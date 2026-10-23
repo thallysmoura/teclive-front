@@ -1,26 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f8fa;
+  --foreground: #10202e;
+
+  /* Design System HAM — tokens */
+  --ds-primary: #008dff;
+  --ds-primary-hover: #00558c;
+  --ds-primary-deep: #00355a;
+  --ds-text: #10202e;
+  --ds-text-secondary: #7a8b9c;
+  --ds-text-muted: #3c5165;
+  --ds-border: #c3cfda;
+  --ds-border-subtle: #e2e9f0;
+  --ds-surface: #ffffff;
+  --ds-bg: #f5f8fa;
+  --ds-success: #00a972;
+  --ds-warning: #ffb020;
+  --ds-warning-text: #4a3000;
+  --ds-danger: #e14337;
+  --ds-danger-text: #c0362b;
+  --ds-danger-bg: #fdf2f1;
+  --ds-danger-border: #f6c9c5;
+  --ds-info: #7a5af8;
+  --ds-cyan: #0de3ff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--font-plus-jakarta), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ds-primary: var(--ds-primary);
+  --color-ds-primary-hover: var(--ds-primary-hover);
+  --color-ds-primary-deep: var(--ds-primary-deep);
+  --color-ds-text: var(--ds-text);
+  --color-ds-text-secondary: var(--ds-text-secondary);
+  --color-ds-text-muted: var(--ds-text-muted);
+  --color-ds-border: var(--ds-border);
+  --color-ds-border-subtle: var(--ds-border-subtle);
+  --color-ds-surface: var(--ds-surface);
+  --color-ds-bg: var(--ds-bg);
+  --color-ds-success: var(--ds-success);
+  --color-ds-warning: var(--ds-warning);
+  --color-ds-warning-text: var(--ds-warning-text);
+  --color-ds-danger: var(--ds-danger);
+  --color-ds-danger-text: var(--ds-danger-text);
+  --color-ds-danger-bg: var(--ds-danger-bg);
+  --color-ds-danger-border: var(--ds-danger-border);
+  --color-ds-info: var(--ds-info);
+  --color-ds-cyan: var(--ds-cyan);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  font-size: 20px;
+  line-height: 1;
+  user-select: none;
 }
