@@ -18,7 +18,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [keepConnected, setKeepConnected] = useState(false);
-  const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
@@ -46,16 +45,13 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await requestLoginNotifications();
-      setLocating(true);
       const location = await requestLoginLocation();
-      setLocating(false);
       await login(email, password, keepConnected, location);
       router.push("/home");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
-      setLocating(false);
     }
   }
 
@@ -168,7 +164,7 @@ export default function LoginPage() {
           </label>
 
           <Button type="submit" disabled={loading} className="mb-4 w-full">
-            {locating ? "Obtendo localização..." : loading ? "Entrando..." : "Entrar"}
+            {loading ? "Carregando..." : "Entrar"}
           </Button>
 
           <div className="mb-4 flex items-center gap-3">
