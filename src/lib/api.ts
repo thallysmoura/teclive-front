@@ -2,6 +2,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export class ApiError extends Error {}
 
+import type { CompanyForm, CompanyProfile } from "./company";
+
 export type Role = "ADMIN" | "USER";
 export type UserStatus = "ACTIVE" | "PENDING";
 
@@ -243,4 +245,18 @@ export async function listAccessLogs(page = 1, filters: { search?: string; from?
   if (res.status === 403) return null;
   if (!res.ok) throw new ApiError("Não foi possível carregar o log de acesso.");
   return res.json();
+}
+
+export async function getCompanyProfile(): Promise<CompanyProfile | null> {
+  const response = await authFetch("/company", { cache: "no-store" });
+  if (!response.ok) throw new ApiError("Não foi possível carregar os dados da empresa.");
+  return response.json();
+}
+export async function saveCompanyProfile(data: CompanyForm): Promise<CompanyProfile> {
+  const response = await authFetch("/company", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível salvar os dados da empresa.");
+  }
+  return response.json();
 }
