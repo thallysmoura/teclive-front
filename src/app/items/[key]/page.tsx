@@ -46,11 +46,11 @@ export default function CustomItemPage() {
   return (
     <div className="flex h-dvh overflow-hidden bg-ds-bg">
       <Sidebar user={user} onLogout={handleLogout} />
-      {!item && !error ? <AwaitingPermission /> : (
+      {!item && !error ? <AwaitingPermission user={user} /> : (
         <main className="flex min-h-0 min-w-0 flex-1 flex-col px-2 pb-2 pt-20 md:px-4 md:pb-4 md:pt-4">
           <div className="flex min-h-0 w-full flex-1 flex-col">
             {error ? <p role="alert" className="text-sm text-ds-danger-text">{error}</p> : <>
-              <h1 className="mb-3 shrink-0 break-words text-2xl font-extrabold tracking-tight text-ds-primary-deep sm:text-[34px]">{item?.label}</h1>
+              <h1 className="mb-3 shrink-0 break-words text-2xl font-extrabold tracking-tight text-ds-primary-deep sm:text-[34px] md:pr-16">{item?.label}</h1>
               {item?.embedUrl ? <iframe key={item.embedUrl} src={item.embedUrl} title={item.label} sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads" referrerPolicy="strict-origin-when-cross-origin" className="min-h-0 w-full flex-1 rounded-xl border border-ds-border-subtle bg-white" /> : <div className="min-h-0 flex-1 rounded-xl border border-ds-border-subtle bg-white" />}
             </>}
           </div>

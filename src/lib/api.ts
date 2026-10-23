@@ -36,12 +36,14 @@ export type ManagedUser = {
 export type Permission = { key: string; label: string };
 export type NavigationItem = { key: string; label: string; href: string | null; section: "main" | "admin" | "group"; sortOrder: number; badge?: number; embedUrl?: string | null; parentKey?: string | null; createdById?: string | null };
 
-export async function login(email: string, password: string, keepConnected: boolean) {
+export type LoginLocation = { locationStatus: "not_requested" | "denied" | "unavailable" | "shared"; location?: { latitude: number; longitude: number; accuracy: number } };
+
+export async function login(email: string, password: string, keepConnected: boolean, location?: LoginLocation) {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email, password, keepConnected }),
+    body: JSON.stringify({ email, password, keepConnected, ...location }),
   });
 
   if (!res.ok) {
@@ -221,5 +223,24 @@ export async function getNavigationPage(key: string): Promise<NavigationItem | n
   const res = await authFetch(`/navigation/${encodeURIComponent(key)}`, { cache: "no-store" });
   if (res.status === 403) return null;
   if (!res.ok) throw new ApiError(res.status === 404 ? "Página não encontrada." : "Não foi possível carregar a página.");
+  return res.json();
+}
+
+export type AccessLog = {
+  avatarUrl: string | null; status: "VALID" | "INVALID";
+  id: string; userId: string | null; userName: string; userEmail: string; device: string;
+  userAgent: string | null; ip: string | null; createdAt: string;
+  locationStatus: LoginLocation["locationStatus"];
+  latitude: number | null; longitude: number | null; accuracy: number | null;
+  city: string | null; region: string | null; country: string | null;
+};
+export type AccessLogsPage = { items: AccessLog[]; total: number; page: number; pageCount: number };
+
+export async function listAccessLogs(page = 1, filters: { search?: string; from?: string; until?: string } = {}): Promise<AccessLogsPage | null> {
+  const query = new URLSearchParams({ page: String(page) });
+  for (const [key, value] of Object.entries(filters)) if (value) query.set(key, value);
+  const res = await authFetch(`/access-logs?${query}`, { cache: "no-store" });
+  if (res.status === 403) return null;
+  if (!res.ok) throw new ApiError("Não foi possível carregar o log de acesso.");
   return res.json();
 }

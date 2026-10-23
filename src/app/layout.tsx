@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 import { NavigationTransition } from "@/components/layout/navigation-transition";
+import { PwaInstall } from "@/components/layout/pwa-install";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -15,7 +17,10 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Teclive Serviços em Tecnologia",
-  description: "euGestor — clone local",
+  description: "Gestão de usuários, acessos e aplicações tecLive.",
+  applicationName: "euGestor",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "euGestor" },
+  icons: { apple: "/pwa/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
@@ -23,6 +28,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#005888",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -37,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
         />
       </head>
-      <body className="min-h-full flex flex-col"><NavigationTransition>{children}</NavigationTransition></body>
+      <body className="min-h-full flex flex-col"><NavigationTransition>{children}</NavigationTransition><PwaInstall /></body>
     </html>
   );
 }

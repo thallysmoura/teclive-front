@@ -46,7 +46,7 @@ export default function HomePage() {
           </p>
         </main>
       ) : (
-        <AwaitingPermission />
+        <AwaitingPermission user={user} />
       )}
     </div>
   );

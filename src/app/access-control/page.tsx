@@ -27,6 +27,8 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { PermissionsDropdown } from "@/components/ui/permissions-dropdown";
 import styles from "./access-control.module.css";
 import { usePresence } from "@/lib/presence";
+import { ListFilters } from "@/components/ui/list-filters";
+import { EMPTY_FILTERS, matchesListFilters } from "@/lib/list-filters";
 
 const presenceLabels = { online: "Online", away: "Ausente", offline: "Offline" };
 const presenceColors = { online: "text-ds-success", away: "text-ds-warning-text", offline: "text-ds-text-secondary" };
@@ -104,6 +106,8 @@ export default function AccessControlPage() {
   const [user, setUser] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [groupPages, setGroupPages] = useState<Record<string, number>>({});
   const [catalog, setCatalog] = useState<Permission[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -163,6 +167,8 @@ export default function AccessControlPage() {
     try {
       await updateUserPermissions(target.id, next);
       await refreshUsers();
+      if (target.id === user?.id) setUser((previous) => previous ? { ...previous, permissions: next } : previous);
+      window.dispatchEvent(new Event("sidebar:updated"));
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Não foi possível salvar as permissões.");
     } finally {
@@ -190,10 +196,11 @@ export default function AccessControlPage() {
 
   const displayedUsers = users.map((original) => ({ ...original, ...livePresence.users[original.id] }));
   const detailUser = displayedUsers.find((person) => person.id === detailsId) ?? null;
+  const filteredUsers = displayedUsers.filter((person) => matchesListFilters(person.name, person.email, person.createdAt, filters));
   const hasAccess = (person: ManagedUser) => person.role === "ADMIN" || person.permissions.length > 0;
   const groups = [
-    { id: "pending-access", title: "Aguardando permissão", pending: true, users: displayedUsers.filter((person) => !hasAccess(person)) },
-    { id: "granted-access", title: "Usuários com acesso", pending: false, users: displayedUsers.filter(hasAccess) },
+    { id: "pending-access", title: "Aguardando permissão", pending: true, users: filteredUsers.filter((person) => !hasAccess(person)) },
+    { id: "granted-access", title: "Usuários com acesso", pending: false, users: filteredUsers.filter(hasAccess) },
   ].map((group) => {
     const pageCount = Math.max(1, Math.ceil(group.users.length / USERS_PER_PAGE));
     const page = Math.min(groupPages[group.id] ?? 1, pageCount);
@@ -206,9 +213,9 @@ export default function AccessControlPage() {
       <Sidebar user={user} onLogout={handleLogout} />
 
       {user.role !== "ADMIN" ? (
-        <AwaitingPermission />
+        <AwaitingPermission user={user} />
       ) : (
-        <main className="min-w-0 flex-1 px-4 pb-10 pt-20 md:px-8 md:pt-10">
+        <main className="min-w-0 flex-1 px-4 pb-10 pt-20 md:px-8 md:pt-20">
           <div className={styles.content}>
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1 basis-full sm:basis-64">
@@ -224,19 +231,28 @@ export default function AccessControlPage() {
                 Gerencie quem tem acesso ao sistema e quais áreas cada pessoa pode ver.
               </p>
             </div>
+            <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
             <Button
               onClick={() => setModalOpen(true)}
-              className="inline-flex w-full shrink-0 items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-primary focus-visible:ring-offset-2 sm:w-auto"
+              className="inline-flex flex-1 items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-primary focus-visible:ring-offset-2 sm:flex-none"
             >
               <span className="flex items-center justify-center gap-2">
                 <Icon name="person_add" className="shrink-0 text-[20px] leading-none" />
                 Novo usuário
               </span>
             </Button>
+            <button type="button" onClick={() => setFiltersOpen((previous) => !previous)} aria-label={filtersOpen ? "Ocultar filtros" : "Mostrar filtros"} title={filtersOpen ? "Ocultar filtros" : "Mostrar filtros"} aria-expanded={filtersOpen} aria-controls="user-list-filters" className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-primary focus-visible:ring-offset-2 ${filtersOpen || filters.search || filters.from || filters.to ? "border-ds-primary bg-ds-primary/10 text-ds-primary" : "border-ds-border bg-white text-ds-primary-deep hover:bg-ds-primary/10"}`}>
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" /></svg>
+              {(filters.search || filters.from || filters.to) && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-ds-primary"><span className="sr-only">Filtros ativos</span></span>}
+            </button>
+            </div>
           </div>
 
             {saveError && <p role="alert" className="mb-4 text-sm text-ds-danger-text">{saveError}</p>}
 
+            <div id="user-list-filters" hidden={!filtersOpen}>
+              <ListFilters dateLabel="Cadastro" onApply={(next) => { setFilters(next); setGroupPages({}); }} />
+            </div>
             <div className="space-y-8">
             {groups.filter((group) => !group.pending || group.users.length > 0).map((group) => (
               <section key={group.id} aria-labelledby={`${group.id}-title`}>
@@ -245,7 +261,7 @@ export default function AccessControlPage() {
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${group.pending ? "bg-ds-warning/15 text-ds-warning-text" : "bg-ds-primary/10 text-ds-primary-deep"}`}>{group.users.length}</span>
                 </div>
                 {group.users.length === 0 ? (
-                  <p className="rounded-xl border border-ds-border-subtle bg-white px-4 py-6 text-sm text-ds-text-secondary">Nenhum usuário com acesso liberado.</p>
+                  <p className="rounded-xl border border-ds-border-subtle bg-white px-4 py-6 text-sm text-ds-text-secondary">{filters.search || filters.from || filters.to ? "Nenhum usuário encontrado neste grupo. Altere ou limpe os filtros." : "Nenhum usuário com acesso liberado."}</p>
                 ) : (
                   <>
             <ul className={styles.mobileList} aria-label={group.title}>
@@ -257,7 +273,7 @@ export default function AccessControlPage() {
                     onClick={() => { setSaveError(null); setDetailsId(person.id); }}
                     aria-label={`Ver informações de ${person.name}, ${presenceLabels[person.presence]}`}
                     aria-haspopup="dialog"
-                    className="flex min-h-20 min-w-0 flex-1 items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-ds-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ds-primary"
+                    className="flex min-h-20 min-w-0 flex-1 items-center gap-3 px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ds-primary"
                   >
                     <UserAvatar name={person.name} avatarUrl={person.avatarUrl} presence={person.presence} size={44} />
                     <span className="min-w-0 flex-1">
@@ -403,7 +419,7 @@ function UserDetailsModal({ person, actorId, catalog, saving, error, onClose, on
   onEdit: (person: ManagedUser) => void;
 }) {
   return (
-    <Modal open={!!person} onClose={onClose} labelledBy="user-details-title">
+    <Modal open={!!person} onClose={onClose} labelledBy="user-details-title" mobileClose={false}>
       {person && (
         <>
           <div className="mb-5 flex items-start justify-between gap-3">
@@ -456,7 +472,7 @@ function UserDetailsModal({ person, actorId, catalog, saving, error, onClose, on
             <Icon name="lock_reset" className="text-[20px]" />
             Resetar senha
           </Button>
-          <Button variant="secondary" className="w-full" onClick={onClose}>Fechar</Button>
+          <Button variant="secondary" className="hidden w-full md:block" onClick={onClose}>Fechar</Button>
         </>
       )}
     </Modal>

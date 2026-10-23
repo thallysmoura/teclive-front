@@ -61,7 +61,7 @@ export function NavigationItemModal({ item, parent, canDelete, onClose, onSaved,
   }
 
   return (
-    <Modal open onClose={() => { if (!saving) onClose(); }} labelledBy="navigation-item-title">
+    <Modal open onClose={() => { if (!saving) onClose(); }} labelledBy="navigation-item-title" mobileClose={false}>
       <form onSubmit={save} noValidate className="flex min-h-full flex-col md:min-h-0">
         <div className="mb-6 flex items-start justify-between gap-3">
           <div className="min-w-0">

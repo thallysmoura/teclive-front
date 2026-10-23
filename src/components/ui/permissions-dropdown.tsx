@@ -69,7 +69,7 @@ export function PermissionsDropdown({
   const renderPanel = (panel: ReactNode) => floating ? createPortal(panel, document.body) : panel;
 
   const label = admin
-    ? "Todas (admin)"
+    ? "Administrador"
     : selected.length === 0 && emptyLabel ? emptyLabel : compact ? `${selected.length} de ${catalog.length}` : selected.length === 0
       ? "Selecione as permissões"
       : `${selected.length} ${selected.length === 1 ? "permissão selecionada" : "permissões selecionadas"}`;
@@ -160,8 +160,8 @@ export function PermissionsDropdown({
             >
               <input
                 type="checkbox"
-                disabled={disabled || admin}
-                checked={admin || selected.includes(perm.key)}
+                disabled={disabled || (admin && perm.key !== "log_acesso")}
+                checked={(admin && perm.key !== "log_acesso") || selected.includes(perm.key)}
                 onChange={() => onToggle(perm.key)}
                 className="h-4 w-4 accent-ds-primary"
               />

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,16 +9,24 @@ import { Button } from "@/components/ui/button";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { CopyrightFooter } from "@/components/ui/copyright-footer";
+import { requestLoginLocation } from "@/lib/login-location";
+import { requestLoginNotifications } from "@/lib/login-notifications";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("thallysmouraof@gmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [keepConnected, setKeepConnected] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ready) emailRef.current?.focus();
+  }, [ready]);
 
   useEffect(() => {
     const timer = setTimeout(() => setReady(true), 900);
@@ -33,15 +41,21 @@ export default function LoginPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (loading) return;
     setError(null);
     setLoading(true);
     try {
-      await login(email, password, keepConnected);
+      await requestLoginNotifications();
+      setLocating(true);
+      const location = await requestLoginLocation();
+      setLocating(false);
+      await login(email, password, keepConnected, location);
       router.push("/home");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
+      setLocating(false);
     }
   }
 
@@ -103,6 +117,7 @@ export default function LoginPage() {
               />
               <Input
                 id="email"
+                ref={emailRef}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -153,7 +168,7 @@ export default function LoginPage() {
           </label>
 
           <Button type="submit" disabled={loading} className="mb-4 w-full">
-            {loading ? "Entrando..." : "Entrar"}
+            {locating ? "Obtendo localização..." : loading ? "Entrando..." : "Entrar"}
           </Button>
 
           <div className="mb-4 flex items-center gap-3">

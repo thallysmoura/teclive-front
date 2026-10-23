@@ -10,11 +10,13 @@ import { acquirePresence, stopPresence, usePresence } from "@/lib/presence";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { NavigationItemModal } from "@/components/layout/navigation-item-modal";
 import { useNavigationTransition } from "@/components/layout/navigation-transition";
+import { NotificationsButton } from "@/components/layout/notifications-button";
 
 const DEFAULT_ITEMS: NavigationItem[] = [
   { key: "inicio", label: "Início", href: "/home", section: "main", sortOrder: 0 },
   { key: "administrativo", label: "Administrativo", href: null, section: "group", sortOrder: 0 },
-  { key: "controle_acesso", label: "Controle de Acesso", href: "/access-control", section: "admin", sortOrder: 0 },
+  { key: "controle_acesso", label: "Usuários e Permissões", href: "/access-control", section: "admin", sortOrder: 0 },
+  { key: "log_acesso", label: "Log de acesso", href: "/access-logs", section: "admin", sortOrder: 1 },
 ];
 
 function EditItemButton({ item, disabled, onEdit }: { item: NavigationItem; disabled: boolean; onEdit: (item: NavigationItem) => void }) {
@@ -28,6 +30,7 @@ function EditItemButton({ item, disabled, onEdit }: { item: NavigationItem; disa
 }
 
 type SidebarUser = {
+  permissions?: string[];
   id: string;
   name: string;
   email: string;
@@ -70,8 +73,10 @@ export function Sidebar({
     return () => { disposed = true; window.removeEventListener("sidebar:updated", load); window.removeEventListener("users:updated", load); window.removeEventListener("focus", load); };
   }, [user.id, user.role]);
 
-  const navItems = items.filter((item) => item.section === "main" && !item.parentKey);
-  const adminItems = items.filter((item) => item.section === "admin" && item.href);
+  const visibleItems = loaded || user.role === "ADMIN" ? items : items.filter((item) => user.permissions?.includes(item.key));
+  const hasGrantedAccess = user.role === "ADMIN" || visibleItems.some((item) => Boolean(item.href));
+  const navItems = visibleItems.filter((item) => item.section === "main" && !item.parentKey);
+  const adminItems = visibleItems.filter((item) => item.section === "admin" && item.href && (user.role === "ADMIN" || item.key === "log_acesso") && (item.key !== "log_acesso" || loaded || user.permissions?.includes("log_acesso")));
   const adminGroup = items.find((item) => item.key === "administrativo") ?? DEFAULT_ITEMS[1];
   const edit = (item: NavigationItem) => { setOpen(false); setEditor({ item }); };
 
@@ -90,9 +95,10 @@ export function Sidebar({
         </button>
 
         <div className="flex items-center justify-center">
-          <Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} className="h-12 w-auto" />
+          <Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-12 w-auto select-none" />
         </div>
       </header>
+      {hasGrantedAccess && <NotificationsButton desktopInSidebar={pathname !== "/home"} />}
 
       {open && (
         <div
@@ -107,7 +113,7 @@ export function Sidebar({
         }`}
       >
         <div className="flex shrink-0 items-center justify-between px-5 py-5">
-          <Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} className="h-16 w-auto md:h-16" />
+          <Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-16 w-auto select-none md:h-20" />
 
           <button
             type="button"
@@ -158,7 +164,7 @@ export function Sidebar({
           )}
           {menuError && <button type="button" onClick={() => window.dispatchEvent(new Event("sidebar:updated"))} className="px-3 py-2 text-left text-xs text-white/70">Não foi possível carregar o menu. Tentar novamente.</button>}
 
-          {user.role === "ADMIN" && (
+          {(user.role === "ADMIN" || adminItems.length > 0) && (
             <div className="mt-auto shrink-0 pt-6">
               <div className="flex items-center">
               <button
@@ -187,7 +193,7 @@ export function Sidebar({
                         }`}
                       >
                         <Link href={item.href!} aria-current={active ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(item.href!); }} className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2">
-                          <Icon name="admin_panel_settings" className="shrink-0 text-[14px]" />
+                          <Icon name={item.key === "log_acesso" ? "history" : "admin_panel_settings"} className="shrink-0 text-[14px]" />
                           <span className="min-w-0 break-words">{item.label}</span>
                         </Link>
                         {item.badge !== undefined && <span title={`${item.badge} usuários cadastrados`} aria-label={`${item.badge} usuários cadastrados`} className="mr-2 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-white/15 px-1 text-[9px] font-semibold tabular-nums text-white/80">{item.badge}</span>}
