@@ -19,6 +19,7 @@ export type Me = {
   status: UserStatus;
   permissions: string[];
   avatarUrl?: string | null;
+  phone?: string;
 };
 
 export type ManagedUser = {
@@ -428,4 +429,19 @@ export async function markNotificationRead(id: string): Promise<void> {
 
 export async function markAllNotificationsRead(): Promise<void> {
   await authFetch("/notifications/read-all", { method: "POST" });
+}
+
+async function failure(res: Response, fallback: string): Promise<never> {
+  const body = await res.json().catch(() => null);
+  throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? fallback);
+}
+
+export async function updateMyProfile(input: { name: string; phone: string }): Promise<void> {
+  const res = await authFetch("/auth/me", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+  if (!res.ok) await failure(res, "Não foi possível salvar seus dados.");
+}
+
+export async function changeMyPassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
+  const res = await authFetch("/auth/me/password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+  if (!res.ok) await failure(res, "Não foi possível alterar a senha.");
 }

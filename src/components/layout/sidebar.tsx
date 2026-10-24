@@ -92,6 +92,15 @@ export function Sidebar({
   const innerRef = useRef<HTMLDivElement>(null);
   const tightRef = useRef(false);
   const lastOpenedRef = useRef<string | null>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const close = (event: MouseEvent) => { if (!userMenuRef.current?.contains(event.target as Node)) setUserMenuOpen(false); };
+    const esc = (event: KeyboardEvent) => { if (event.key === "Escape") setUserMenuOpen(false); };
+    document.addEventListener("mousedown", close); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
+  }, [userMenuOpen]);
   const groupsRef = useRef<{ keys: string[]; current: string | null; adminCurrent: boolean }>({ keys: [], current: null, adminCurrent: false });
   // Tamanho fixo por padrão. Só se faltar espaço o menu se ajusta, de uma vez e antes da primeira pintura
   // (sem "pulo"): 1) todos os textos encolhem juntos; 2) espaços entre linhas; 3) só o grupo da página fica aberto.
@@ -354,22 +363,21 @@ export function Sidebar({
         </div>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-2.5 border-t border-white/10 px-4 py-3">
-          <UserAvatar name={user.name} avatarUrl={user.avatarUrl} presence={livePresence.users[user.id]?.presence ?? "offline"} />
-
-          <div className="min-w-0 flex-1 leading-tight">
-            <p className="truncate text-sm font-bold text-white">{user.name}</p>
-            <p className="truncate text-xs text-white/60">{user.email}</p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => { stopPresence(); onLogout(); }}
-            aria-label="Sair"
-            title="Sair"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <Icon name="logout" className="text-[20px]" />
+        <div ref={userMenuRef} className="relative shrink-0 border-t border-white/10 px-2 py-2">
+          <Collapse open={userMenuOpen}>
+            <div role="menu" className="mb-2 overflow-hidden rounded-lg bg-white/10 py-1 text-sm font-medium text-white">
+              <Link role="menuitem" href="/meus-dados" onNavigate={(event) => { event.preventDefault(); setUserMenuOpen(false); setOpen(false); navigate("/meus-dados"); }} className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/10"><Icon name="person" className="text-[18px]" />Meus Dados</Link>
+              <Link role="menuitem" href="/ajuda" onNavigate={(event) => { event.preventDefault(); setUserMenuOpen(false); setOpen(false); navigate("/ajuda"); }} className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/10"><Icon name="help" className="text-[18px]" />Central de Ajuda</Link>
+              <button type="button" role="menuitem" onClick={() => { stopPresence(); onLogout(); }} className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-white/10"><Icon name="logout" className="text-[18px]" />Sair</button>
+            </div>
+          </Collapse>
+          <button type="button" onClick={() => setUserMenuOpen((v) => !v)} aria-haspopup="menu" aria-expanded={userMenuOpen} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition-colors hover:bg-white/10">
+            <UserAvatar name={user.name} avatarUrl={user.avatarUrl} presence={livePresence.users[user.id]?.presence ?? "offline"} />
+            <span className="min-w-0 flex-1 leading-tight">
+              <span className="block truncate text-sm font-bold text-white">{user.name}</span>
+              <span className="block truncate text-xs text-white/60">{user.email}</span>
+            </span>
+            <Icon name={userMenuOpen ? "expand_more" : "expand_less"} className="text-[20px] text-white/70" />
           </button>
         </div>
       </aside>
