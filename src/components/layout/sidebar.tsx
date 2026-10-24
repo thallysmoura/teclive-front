@@ -91,6 +91,7 @@ export function Sidebar({
   const navRef = useRef<HTMLElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const tightRef = useRef(false);
+  const lastOpenedRef = useRef<string | null>(null);
   const groupsRef = useRef<{ keys: string[]; current: string | null; adminCurrent: boolean }>({ keys: [], current: null, adminCurrent: false });
   // Tamanho fixo por padrão. Só se faltar espaço o menu se ajusta, de uma vez e antes da primeira pintura
   // (sem "pulo"): 1) todos os textos encolhem juntos; 2) espaços entre linhas; 3) só o grupo da página fica aberto.
@@ -107,18 +108,17 @@ export function Sidebar({
       return height > nav.clientHeight + 0.5;
     };
     const fit = () => {
-      // Fase 1: todos os textos e ícones encolhem juntos (mínimo legível). Fase 2: só os espaços entre linhas.
+      // Fonte fixa: só os espaços entre linhas.
       let zoom = 1;
       let pad = 1;
       apply(zoom, pad);
-      while (overflows() && zoom > 0.74) { zoom = Math.round((zoom - 0.02) * 100) / 100; apply(zoom, pad); }
       while (overflows() && pad > 0.1) { pad = Math.round((pad - 0.1) * 10) / 10; apply(zoom, pad); }
       // Cabendo, a rolagem fica desligada de vez; só no caso extremo (janela minúscula) ela existe, sem barra visível.
       nav.style.overflowY = overflows() ? "auto" : "hidden";
       if (overflows() && !tightRef.current) {
         tightRef.current = true;
         const groups = groupsRef.current;
-        setExpandedItems(() => ({ ...Object.fromEntries(groups.keys.map((key) => [key, false])), ...(groups.current ? { [groups.current]: true } : {}) }));
+        setExpandedItems(() => ({ ...Object.fromEntries(groups.keys.map((key) => [key, false])), ...((lastOpenedRef.current ?? groups.current) ? { [(lastOpenedRef.current ?? groups.current)!]: true } : {}) }));
         if (!groups.adminCurrent) setAdminExpanded(false);
       }
     };
@@ -142,8 +142,10 @@ export function Sidebar({
       return next;
     });
   };
-  const toggleGroup = (key: string, expanded: boolean) =>
+  const toggleGroup = (key: string, expanded: boolean) => {
+    lastOpenedRef.current = expanded ? null : key;
     setExpandedItems((previous) => (tightRef.current && !expanded ? { ...Object.fromEntries(groupsRef.current.keys.map((k) => [k, false])), [key]: true } : { ...previous, [key]: !expanded }));
+  };
   const isCurrent = (href: string | null) => !!href && (pathname === href || pathname.startsWith(href + "/"));
   const pathname = usePathname();
   const navigate = useNavigationTransition();
