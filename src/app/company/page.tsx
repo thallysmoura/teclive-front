@@ -3,7 +3,7 @@
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getCompanyProfile, getMe, logout, saveCompanyProfile, type Me } from "@/lib/api";
-import { companyToForm, EMPTY_COMPANY, formatCnpj, lookupPostalCode, type CompanyForm } from "@/lib/company";
+import { companyToForm, EMPTY_COMPANY, formatCep, formatCnpj, formatPhone, lookupPostalCode, type CompanyForm } from "@/lib/company";
 import { Sidebar } from "@/components/layout/sidebar";
 import { FullScreenSpinner } from "@/components/ui/spinner";
 import { Input, FieldLabel } from "@/components/ui/input";
@@ -48,7 +48,8 @@ export default function CompanyPage() {
   const dirty = JSON.stringify(form) !== JSON.stringify(original);
   function change<K extends keyof CompanyForm>(key: K, value: CompanyForm[K]) { setForm((previous) => ({ ...previous, [key]: value })); setSaved(false); setError(null); }
   function field(key: TextKey, label: string, options: { required?: boolean; type?: string; maxLength?: number; placeholder?: string; className?: string } = {}) {
-    return <label className={`flex min-w-0 flex-col gap-1.5 ${options.className ?? ""}`}><FieldLabel>{label}{options.required ? " *" : ""}</FieldLabel><Input name={key} value={key === "cnpj" ? formatCnpj(form[key]) : form[key]} type={options.type ?? "text"} maxLength={options.maxLength ?? 160} required={options.required} placeholder={options.placeholder} disabled={busy || !loaded} onChange={(event) => change(key, key === "cnpj" ? event.target.value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 14) : event.target.value)} /></label>;
+    const displayValue = key === "cnpj" ? formatCnpj(form[key]) : key === "phone" ? formatPhone(form[key]) : key === "postalCode" ? formatCep(form[key]) : form[key];
+    return <label className={`flex min-w-0 flex-col gap-1.5 ${options.className ?? ""}`}><FieldLabel>{label}{options.required ? " *" : ""}</FieldLabel><Input name={key} value={displayValue} type={options.type ?? "text"} maxLength={options.maxLength ?? 160} required={options.required} placeholder={options.placeholder} disabled={busy || !loaded} onChange={(event) => change(key, key === "cnpj" ? event.target.value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 14) : key === "phone" || key === "postalCode" ? event.target.value.replace(/\D/g, "").slice(0, key === "phone" ? 11 : 8) : event.target.value)} /></label>;
   }
   async function consult() {
     if (busy || !canEdit) return;

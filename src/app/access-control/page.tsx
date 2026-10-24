@@ -293,7 +293,7 @@ export default function AccessControlPage() {
             </ul>
 
             <table className={styles.table} aria-label={group.title}>
-              <thead className="bg-ds-bg text-xs font-bold uppercase tracking-wider text-ds-text-secondary">
+              <thead className="text-xs font-bold uppercase tracking-wider text-white">
                 <tr>
                   <th className="px-4 py-3">Usuário</th>
                   <th className="px-4 py-3">Data de criação</th>

@@ -97,7 +97,7 @@ async function refreshSession(): Promise<boolean> {
  * fetch autenticado — se o access token (de vida curta) tiver expirado, tenta renovar
  * silenciosamente via refresh token (cookie httpOnly) antes de desistir.
  */
-async function authFetch(path: string, init?: RequestInit): Promise<Response> {
+export async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   let res = await fetch(`${API_URL}${path}`, { ...init, credentials: "include" });
 
   if (res.status === 401) {
@@ -244,6 +244,155 @@ export async function listAccessLogs(page = 1, filters: { search?: string; from?
   const res = await authFetch(`/access-logs?${query}`, { cache: "no-store" });
   if (res.status === 403) return null;
   if (!res.ok) throw new ApiError("Não foi possível carregar o log de acesso.");
+  return res.json();
+}
+
+export type StockLocation = {
+  id: string;
+  legacyId: number | null;
+  description: string;
+  isActive: boolean;
+  isPrincipal: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listStockLocations(params: { descricao?: string; exibirInativos?: boolean; ordenarPor?: string; decrescente?: boolean } = {}): Promise<{ lista: StockLocation[]; totalRegistros: number }> {
+  const query = new URLSearchParams();
+  if (params.descricao) query.set("descricao", params.descricao);
+  if (params.exibirInativos) query.set("exibirInativos", "true");
+  if (params.ordenarPor) query.set("ordenarPor", params.ordenarPor);
+  if (params.decrescente) query.set("decrescente", "true");
+  const res = await authFetch(`/stock-locations?${query}`, { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível carregar os locais de estoque.");
+  return res.json();
+}
+
+async function stockLocationMutation(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown, fallback = "Não foi possível concluir a operação."): Promise<StockLocation> {
+  const res = await authFetch(`/stock-locations${path}`, { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new ApiError(Array.isArray(data?.message) ? data.message.join(" ") : data?.message ?? fallback);
+  }
+  return res.json();
+}
+
+export async function getStockLocation(id: string): Promise<StockLocation | null> {
+  const res = await authFetch(`/stock-locations/${id}`, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new ApiError("Não foi possível carregar o local de estoque.");
+  return res.json();
+}
+export const createStockLocation = (description: string) => stockLocationMutation("", "POST", { description }, "Não foi possível criar o local de estoque.");
+export const renameStockLocation = (id: string, description: string) => stockLocationMutation(`/${id}`, "PATCH", { description }, "Não foi possível salvar a descrição.");
+export const setPrincipalStockLocation = (id: string) => stockLocationMutation(`/${id}/principal`, "POST");
+export const setStockLocationActive = (id: string, active: boolean) => stockLocationMutation(`/${id}/${active ? "activate" : "inactivate"}`, "POST");
+export const deleteStockLocation = (id: string) => stockLocationMutation(`/${id}`, "DELETE");
+
+export type StockMovement = {
+  id: string;
+  legacyId: number;
+  description: string;
+  movementDate: string;
+  cancellationDate: string | null;
+  userName: string;
+  operation: number;
+};
+
+export type StockMovementItem = { id: string; description: string; type: "IN" | "OUT"; quantity: string; unit: string; cost: string; locationName: string };
+export type StockMovementDetail = StockMovement & { items: StockMovementItem[]; createdAt: string };
+
+export async function listStockMovements(params: { q?: string; from?: string; until?: string; hideCancelled?: boolean; page?: number; orderBy?: string; desc?: boolean } = {}): Promise<{ lista: StockMovement[]; totalRegistros: number; tamanhoPagina: number }> {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.from) query.set("from", params.from);
+  if (params.until) query.set("until", params.until);
+  if (params.hideCancelled) query.set("hideCancelled", "true");
+  if (params.page) query.set("page", String(params.page));
+  if (params.orderBy) query.set("orderBy", params.orderBy);
+  if (params.desc !== undefined) query.set("desc", String(params.desc));
+  const res = await authFetch(`/stock-movements?${query}`, { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível carregar os movimentos de estoque.");
+  return res.json();
+}
+
+export async function getStockMovement(id: string): Promise<StockMovementDetail | null> {
+  const res = await authFetch(`/stock-movements/${id}`, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new ApiError("Não foi possível carregar o movimento.");
+  return res.json();
+}
+
+export type MovementItemInput = { operation: "ADD" | "REMOVE" | "TRANSFER"; productId: string; quantity: number; cost: number; fromLocationId?: string; toLocationId?: string };
+export type ProductOption = { id: string; description: string; unit: string; costPrice: number; balances: { locationId: string; quantity: number }[] };
+
+export async function listProductOptions(): Promise<ProductOption[]> {
+  const res = await authFetch("/stock-products/options", { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível carregar os produtos.");
+  return res.json();
+}
+
+export async function createStockMovement(input: { description: string; movementDate: string; items: MovementItemInput[] }): Promise<StockMovementDetail> {
+  const res = await authFetch("/stock-movements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível salvar o movimento.");
+  }
+  return res.json();
+}
+
+export type StockBalance = {
+  id: string;
+  balanceDate: string;
+  userName: string;
+  status: "OPEN" | "COMPLETED" | "CANCELLED";
+  filterType: "PRODUCTS" | "GROUPS";
+  location: { description: string };
+};
+
+export async function listStockBalances(params: { from?: string; until?: string } = {}): Promise<{ lista: StockBalance[]; totalRegistros: number }> {
+  const query = new URLSearchParams();
+  if (params.from) query.set("from", params.from);
+  if (params.until) query.set("until", params.until);
+  const res = await authFetch(`/stock-balances?${query}`, { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível carregar os balanços de estoque.");
+  return res.json();
+}
+
+export async function createStockBalance(input: { locationId: string; filterType: "PRODUCTS" | "GROUPS"; filterIds?: string[] }): Promise<StockBalance> {
+  const res = await authFetch("/stock-balances", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível criar o balanço.");
+  }
+  return res.json();
+}
+
+export type StockProductBalance = { id: string; description: string; brand: string; productGroup: string; unit: string; balance: number };
+export type StockProductDetail = { id: string; description: string; brand: string; productGroup: string; unit: string; unitName: string | null; balances: { location: string; quantity: number }[]; total: number };
+
+export async function listStockProducts(params: { search?: string; page?: number; orderBy?: string; desc?: boolean; brand?: string; group?: string } = {}): Promise<{ lista: StockProductBalance[]; totalRegistros: number; tamanhoPagina: number }> {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.page) query.set("page", String(params.page));
+  if (params.orderBy) query.set("orderBy", params.orderBy);
+  if (params.desc) query.set("desc", "true");
+  if (params.brand) query.set("brand", params.brand);
+  if (params.group) query.set("group", params.group);
+  const res = await authFetch(`/stock-products?${query}`, { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível consultar o saldo de estoque.");
+  return res.json();
+}
+
+export async function getStockProductFilters(): Promise<{ brands: string[]; groups: string[] }> {
+  const res = await authFetch("/stock-products/filters", { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível carregar os filtros.");
+  return res.json();
+}
+
+export async function getStockProductDetail(id: string): Promise<StockProductDetail> {
+  const res = await authFetch(`/stock-products/${id}`, { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível carregar o saldo do produto.");
   return res.json();
 }
 

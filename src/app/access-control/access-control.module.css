@@ -29,7 +29,7 @@
 .table th:first-child { width: 30%; }
 .table th:nth-child(4) { width: 25%; }
 .table th:last-child { width: 76px; }
-.table thead { background: #e9eff4; }
+.table thead { background: var(--ds-primary-deep); }
 .table tbody tr:nth-child(odd) { background: #f8fafc; }
 .table tbody tr:nth-child(even) { background: #eaf0f5; }
 .table tbody tr + tr td { border-top: 1px solid var(--ds-border-subtle); }

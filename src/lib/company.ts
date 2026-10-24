@@ -21,6 +21,22 @@ export function formatCnpj(value: string): string {
     + (raw.length > 12 ? `-${raw.slice(12, 14)}` : "");
 }
 
+export function formatCep(value: string): string {
+  const raw = value.replace(/\D/g, "").slice(0, 8);
+  return raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
+}
+
+export function formatPhone(value: string): string {
+  const raw = value.replace(/\D/g, "").slice(0, 11);
+  if (!raw) return "";
+  const ddd = raw.slice(0, 2);
+  const rest = raw.slice(2);
+  const splitAt = rest.length > 8 ? 5 : 4;
+  return `(${ddd}${raw.length > 2 ? ")" : ""}`
+    + (rest.length ? ` ${rest.slice(0, splitAt)}` : "")
+    + (rest.length > splitAt ? `-${rest.slice(splitAt, splitAt + 4)}` : "");
+}
+
 export function companyToForm(profile: CompanyProfile | null): CompanyForm {
   if (!profile) return { ...EMPTY_COMPANY };
   return Object.fromEntries(Object.entries(EMPTY_COMPANY).map(([key, fallback]) => [key, profile[key as keyof CompanyProfile] ?? fallback])) as CompanyForm;

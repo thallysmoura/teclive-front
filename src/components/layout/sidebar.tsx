@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
-import { listNavigation, type NavigationItem, type Role } from "@/lib/api";
+import { deleteNavigationItem, listNavigation, type NavigationItem, type Role } from "@/lib/api";
 import { acquirePresence, stopPresence, usePresence } from "@/lib/presence";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { NavigationItemModal } from "@/components/layout/navigation-item-modal";
@@ -14,18 +14,16 @@ import { NotificationsButton } from "@/components/layout/notifications-button";
 
 const DEFAULT_ITEMS: NavigationItem[] = [
   { key: "inicio", label: "Início", href: "/home", section: "main", sortOrder: 0 },
-  { key: "administrativo", label: "Administrativo", href: null, section: "group", sortOrder: 0 },
+  { key: "administrativo", label: "Governança", href: null, section: "group", sortOrder: 0 },
   { key: "controle_acesso", label: "Usuários e Permissões", href: "/access-control", section: "admin", sortOrder: 0 },
   { key: "log_acesso", label: "Log de acesso", href: "/access-logs", section: "admin", sortOrder: 1 },
   { key: "dados_empresa", label: "Dados da empresa", href: "/company", section: "admin", sortOrder: 2 },
 ];
 
-function EditItemButton({ item, disabled, onEdit }: { item: NavigationItem; disabled: boolean; onEdit: (item: NavigationItem) => void }) {
+function DeleteItemButton({ item, disabled, onDelete }: { item: NavigationItem; disabled: boolean; onDelete: (item: NavigationItem) => void }) {
   return (
-    <button type="button" disabled={disabled} onClick={() => onEdit(item)} title={`Editar ${item.label}`} aria-label={`Editar ${item.label}`} aria-haspopup="dialog" className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-40">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
-        <path d="M14.06 9.02l.92.92L5.92 19H5v-.92l9.06-9.06M17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29zm-3.6 3.19L3 17.25V21h3.75L17.81 9.94l-3.75-3.75z" />
-      </svg>
+    <button type="button" disabled={disabled} onClick={() => onDelete(item)} title={`Excluir ${item.label}`} aria-label={`Excluir ${item.label}`} className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-40">
+      <Icon name="delete" className="text-[16px]" />
     </button>
   );
 }
@@ -52,7 +50,17 @@ export function Sidebar({
   const [loaded, setLoaded] = useState(false);
   const [menuError, setMenuError] = useState(false);
   const [editor, setEditor] = useState<{ item: NavigationItem | null; parent?: NavigationItem } | null>(null);
-  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const [expandedItems, setExpandedItemsState] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(sessionStorage.getItem("sidebar:expanded") ?? "{}"); } catch { return {}; }
+  });
+  const setExpandedItems = (update: (previous: Record<string, boolean>) => Record<string, boolean>) => {
+    setExpandedItemsState((previous) => {
+      const next = update(previous);
+      try { sessionStorage.setItem("sidebar:expanded", JSON.stringify(next)); } catch { /* sem storage */ }
+      return next;
+    });
+  };
+  const isCurrent = (href: string | null) => !!href && (pathname === href || pathname.startsWith(href + "/"));
   const pathname = usePathname();
   const navigate = useNavigationTransition();
   const livePresence = usePresence();
@@ -79,7 +87,18 @@ export function Sidebar({
   const navItems = visibleItems.filter((item) => item.section === "main" && !item.parentKey);
   const adminItems = visibleItems.filter((item) => item.section === "admin" && item.href && (user.role === "ADMIN" || item.key === "log_acesso" || item.key === "dados_empresa") && (item.key !== "log_acesso" || loaded || user.permissions?.includes("log_acesso")));
   const adminGroup = items.find((item) => item.key === "administrativo") ?? DEFAULT_ITEMS[1];
-  const edit = (item: NavigationItem) => { setOpen(false); setEditor({ item }); };
+  const canDeleteItem = (item: NavigationItem) => user.role === "ADMIN" && item.createdById === user.id && !items.some((child) => child.parentKey === item.key && child.createdById !== user.id);
+  const handleDeleted = (deleted: NavigationItem) => {
+    const currentDeleted = pathname === deleted.href || items.some((item) => item.parentKey === deleted.key && item.href === pathname);
+    setItems((previous) => previous.filter((item) => item.key !== deleted.key && item.parentKey !== deleted.key));
+    setEditor(null);
+    if (currentDeleted) navigate("/home");
+    window.dispatchEvent(new Event("sidebar:updated"));
+  };
+  const remove = async (item: NavigationItem) => {
+    if (!window.confirm(`Excluir "${item.label}"? Esta ação não pode ser desfeita.`)) return;
+    try { await deleteNavigationItem(item.key); handleDeleted(item); } catch (error) { window.alert(error instanceof Error ? error.message : "Não foi possível excluir o item."); }
+  };
 
   return (
     <>
@@ -130,11 +149,11 @@ export function Sidebar({
 
         <div className="mx-5 border-t border-white/15" />
 
-        <nav className="mt-2 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-3">
+        <nav className="sidebar-fit mt-2 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-3">
           {navItems.map((item) => {
             const active = pathname === item.href;
             const children = items.filter((child) => child.parentKey === item.key);
-            const expanded = expandedItems[item.key] ?? true;
+            const expanded = expandedItems[item.key] ?? children.some((child) => isCurrent(child.href));
             return (
               <div key={item.key} className="shrink-0">
               <div
@@ -142,15 +161,15 @@ export function Sidebar({
                   active ? "bg-black/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                {item.href ? <Link href={item.href} aria-current={active ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(item.href!); }} className={`min-w-0 flex-1 break-words rounded-lg px-3 py-2 ${children.length ? "text-[11px] font-bold uppercase tracking-wide" : ""}`}>{item.label}</Link> : <span className="min-w-0 flex-1 break-words px-3 py-2 text-[11px] font-bold uppercase tracking-wide">{item.label}</span>}
+                {children.length > 0 ? <button type="button" onClick={() => setExpandedItems((previous) => ({ ...previous, [item.key]: !expanded }))} aria-expanded={expanded} aria-controls={`children-${item.key}`} className="min-w-0 flex-1 break-words rounded-lg px-3 py-2 text-left">{item.label}</button> : item.href ? <Link href={item.href} aria-current={active ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(item.href!); }} className={`min-w-0 flex-1 break-words rounded-lg px-3 py-2 `}>{item.label}</Link> : <span className="min-w-0 flex-1 break-words px-3 py-2">{item.label}</span>}
                 {children.length > 0 && <button type="button" onClick={() => setExpandedItems((previous) => ({ ...previous, [item.key]: !expanded }))} aria-label={`${expanded ? "Recolher" : "Expandir"} ${item.label}`} aria-expanded={expanded} aria-controls={`children-${item.key}`} className="flex h-8 shrink-0 items-center gap-1 rounded-md px-1 text-white/60 hover:bg-white/10"><span className="rounded-full bg-white/10 px-1.5 text-[9px]">{children.length}</span><Icon name={expanded ? "expand_less" : "expand_more"} className="text-[16px]" /></button>}
-                {user.role === "ADMIN" && <EditItemButton item={item} disabled={!loaded} onEdit={edit} />}
-                {user.role === "ADMIN" && item.href?.startsWith("/items/") && <button type="button" disabled={!loaded} onClick={() => { setOpen(false); setEditor({ item: null, parent: item }); }} aria-label={`Adicionar subitem em ${item.label}`} title="Adicionar subitem" className="mr-1 flex h-8 w-6 shrink-0 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"><Icon name="add" className="text-[16px]" /></button>}
+                {user.role === "ADMIN" && item.createdById === user.id && item.href?.startsWith("/items/") && <button type="button" disabled={!loaded} onClick={() => { setOpen(false); setEditor({ item: null, parent: item }); }} aria-label={`Adicionar subitem em ${item.label}`} title="Adicionar subitem" className="mr-1 flex h-8 w-6 shrink-0 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"><Icon name="add" className="text-[16px]" /></button>}
+                {canDeleteItem(item) && <DeleteItemButton item={item} disabled={!loaded} onDelete={remove} />}
               </div>
               {children.length > 0 && <div id={`children-${item.key}`} hidden={!expanded} className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-2">
-                {children.map((child) => <div key={child.key} className={`flex items-center rounded-lg text-xs font-medium ${pathname === child.href ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/10 hover:text-white"}`}>
-                  <Link href={child.href!} aria-current={pathname === child.href ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(child.href!); }} className="min-w-0 flex-1 break-words rounded-lg px-3 py-2">{child.label}</Link>
-                  {user.role === "ADMIN" && <EditItemButton item={child} disabled={!loaded} onEdit={edit} />}
+                {children.map((child) => <div key={child.key} className={`flex items-center rounded-lg text-sm font-medium ${isCurrent(child.href) ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/10 hover:text-white"}`}>
+                  <Link href={child.href!} aria-current={isCurrent(child.href) ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(child.href!); }} className="min-w-0 flex-1 break-words rounded-lg px-3 py-2">{child.label}</Link>
+                  {canDeleteItem(child) && <DeleteItemButton item={child} disabled={!loaded} onDelete={remove} />}
                 </div>)}
               </div>}
               </div>
@@ -173,7 +192,7 @@ export function Sidebar({
                 onClick={() => setAdminExpanded((v) => !v)}
                 aria-expanded={adminExpanded}
                 aria-controls={adminExpanded ? "sidebar-admin-items" : undefined}
-                className="flex min-w-0 flex-1 items-center justify-between gap-1 px-3 py-1.5 text-left text-[13px] font-bold uppercase tracking-wider text-white/50 hover:text-white/70"
+                className="flex min-w-0 flex-1 items-center justify-between gap-1 px-3 py-1.5 text-left text-sm font-medium text-white/50 hover:text-white/70"
               >
                 <span className="min-w-0 break-words">{adminGroup.label}</span>
                 <Icon name={adminExpanded ? "expand_less" : "expand_more"} className="text-[18px]" />
@@ -187,7 +206,7 @@ export function Sidebar({
                     return (
                       <div
                         key={item.href}
-                        className={`flex min-h-9 items-center rounded-lg border-l-2 text-[11px] font-medium transition-colors ${
+                        className={`flex min-h-8 items-center rounded-lg border-l-2 text-xs font-medium transition-colors ${
                           active
                             ? "border-ds-primary bg-white/10 text-white"
                             : "border-transparent text-white/80 hover:bg-white/10 hover:text-white"
@@ -226,13 +245,7 @@ export function Sidebar({
           </button>
         </div>
       </aside>
-      {editor && <NavigationItemModal item={editor.item} parent={editor.parent} canDelete={!!editor.item && editor.item.createdById === user.id && !items.some((child) => child.parentKey === editor.item!.key && child.createdById !== user.id)} onClose={() => setEditor(null)} onDeleted={(deleted) => {
-        const currentDeleted = pathname === deleted.href || items.some((item) => item.parentKey === deleted.key && item.href === pathname);
-        setItems((previous) => previous.filter((item) => item.key !== deleted.key && item.parentKey !== deleted.key));
-        setEditor(null);
-        if (currentDeleted) navigate("/home");
-        window.dispatchEvent(new Event("sidebar:updated"));
-      }} onSaved={(saved) => {
+      {editor && <NavigationItemModal item={editor.item} parent={editor.parent} canDelete={!!editor.item && editor.item.createdById === user.id && !items.some((child) => child.parentKey === editor.item!.key && child.createdById !== user.id)} onClose={() => setEditor(null)} onDeleted={handleDeleted} onSaved={(saved) => {
         const creating = !editor.item;
         if (saved.parentKey) setExpandedItems((previous) => ({ ...previous, [saved.parentKey!]: true }));
         const currentItem = editor.item && pathname === editor.item.href;
