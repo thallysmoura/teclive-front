@@ -94,6 +94,7 @@ export function Sidebar({
   const lastOpenedRef = useRef<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ bottom: number; left: number; width: number } | null>(null);
   useEffect(() => {
     if (!userMenuOpen) return;
     const close = (event: MouseEvent) => { if (!userMenuRef.current?.contains(event.target as Node)) setUserMenuOpen(false); };
@@ -364,20 +365,20 @@ export function Sidebar({
         </nav>
 
         <div ref={userMenuRef} className="relative shrink-0 border-t border-white/10 px-2 py-2">
-          <Collapse open={userMenuOpen}>
-            <div role="menu" className="mb-2 overflow-hidden rounded-lg bg-white/10 py-1 text-sm font-medium text-white">
-              <Link role="menuitem" href="/meus-dados" onNavigate={(event) => { event.preventDefault(); setUserMenuOpen(false); setOpen(false); navigate("/meus-dados"); }} className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/10"><Icon name="person" className="text-[18px]" />Meus Dados</Link>
-              <Link role="menuitem" href="/ajuda" onNavigate={(event) => { event.preventDefault(); setUserMenuOpen(false); setOpen(false); navigate("/ajuda"); }} className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/10"><Icon name="help" className="text-[18px]" />Central de Ajuda</Link>
-              <button type="button" role="menuitem" onClick={() => { stopPresence(); onLogout(); }} className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-white/10"><Icon name="logout" className="text-[18px]" />Sair</button>
+          {userMenuOpen && menuPos && (
+            <div role="menu" style={{ bottom: menuPos.bottom, left: menuPos.left, width: menuPos.width }} className="fixed z-50 rounded-2xl border border-ds-border-subtle bg-white p-2 shadow-2xl motion-safe:animate-[overlay-in_160ms_ease-out_both]">
+              <Link role="menuitem" href="/meus-dados" onNavigate={(event) => { event.preventDefault(); setUserMenuOpen(false); setOpen(false); navigate("/meus-dados"); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-ds-primary-deep transition-colors hover:bg-ds-bg"><Icon name="person" className="text-[20px] text-ds-primary" />Meus Dados</Link>
+              <Link role="menuitem" href="/ajuda" onNavigate={(event) => { event.preventDefault(); setUserMenuOpen(false); setOpen(false); navigate("/ajuda"); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-ds-primary-deep transition-colors hover:bg-ds-bg"><Icon name="help" className="text-[20px] text-ds-primary" />Central de Ajuda</Link>
+              <button type="button" role="menuitem" onClick={() => { stopPresence(); onLogout(); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-ds-primary-deep transition-colors hover:bg-ds-bg"><Icon name="logout" className="text-[20px] text-ds-primary" />Sair</button>
             </div>
-          </Collapse>
-          <button type="button" onClick={() => setUserMenuOpen((v) => !v)} aria-haspopup="menu" aria-expanded={userMenuOpen} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition-colors hover:bg-white/10">
+          )}
+          <button type="button" onClick={(event) => { const r = event.currentTarget.getBoundingClientRect(); setMenuPos({ bottom: window.innerHeight - r.top + 8, left: r.left, width: Math.max(r.width, 220) }); setUserMenuOpen((v) => !v); }} aria-haspopup="menu" aria-expanded={userMenuOpen} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition-colors hover:bg-white/10">
             <UserAvatar name={user.name} avatarUrl={user.avatarUrl} presence={livePresence.users[user.id]?.presence ?? "offline"} />
             <span className="min-w-0 flex-1 leading-tight">
               <span className="block truncate text-sm font-bold text-white">{user.name}</span>
               <span className="block truncate text-xs text-white/60">{user.email}</span>
             </span>
-            <Icon name={userMenuOpen ? "expand_more" : "expand_less"} className="text-[20px] text-white/70" />
+            <Icon name="unfold_more" className="text-[20px] text-white/70" />
           </button>
         </div>
       </aside>
