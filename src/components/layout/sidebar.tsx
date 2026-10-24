@@ -234,7 +234,7 @@ export function Sidebar({
           <Link href="/home" aria-label="Ir para a página inicial" title="Página inicial" onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate("/home"); }} className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-12 w-auto select-none" /></Link>
         </div>
       </header>
-      {hasGrantedAccess && <NotificationsButton desktopInSidebar={pathname !== "/home"} />}
+      {hasGrantedAccess && <NotificationsButton desktopInSidebar />}
 
       {open && (
         <div
