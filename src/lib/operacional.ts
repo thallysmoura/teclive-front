@@ -136,3 +136,13 @@ export type Management = {
 };
 export const managementClient = async (): Promise<Management> => parse(await authFetch("/service-orders/management", { cache: "no-store" }), "Não foi possível carregar a gestão.");
 export const openFromQuote = async (quoteId: string): Promise<OsDetail> => parse(await authFetch(`/service-orders/from-quote/${quoteId}`, send("POST")), "Não foi possível abrir a OS.");
+
+export type WorkRow = {
+  id: string; number: number; type: number; status: number; personName: string; personNickname: string | null; defect: string | null; address: OsAddress | null;
+  openedAt: string; scheduleStart: string | null; scheduleEnd: string | null; closedAt: string | null; technicians: string[]; sellers: string[]; quoteNumbers: number[];
+  totalServices: number; totalProducts: number; total: number; serviceCount: number; productCount: number; qty: number; delivered: number; attachments: number; calls: number; pendencies: number; lateDays: number;
+  checklist: { technician: boolean; scheduled: boolean; items: boolean; materials: boolean; photos: boolean; onTime: boolean };
+};
+export type PendingQuote = { id: string; number: number; personName: string; title: string | null; wonAt: string; total: number };
+export type WorksData = { generatedAt: string; works: WorkRow[]; pendingQuotes: PendingQuote[] };
+export const worksClient = async (): Promise<WorksData> => parse(await authFetch("/service-orders/works", { cache: "no-store" }), "Não foi possível carregar a gestão de obras.");

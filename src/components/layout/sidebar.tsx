@@ -22,7 +22,7 @@ const DEFAULT_ITEMS: NavigationItem[] = [
 ];
 
 const MENU_ICONS: Record<string, string> = {
-  "Visão Geral": "home", Indicadores: "area_chart", Administrativo: "apartment", Comercial: "work", Operacional: "build", Estoque: "inventory_2", "Governança": "shield_person",
+  "Visão Geral": "home", Indicadores: "area_chart", Administrativo: "apartment", Comercial: "work", Operacional: "build", "Gestão de Obras": "engineering", Estoque: "inventory_2", "Governança": "shield_person",
 };
 
 /** Ícone sólido do item principal do menu (mesmo estilo do eugestor). */
