@@ -14,16 +14,17 @@ import { fmtDate, formatOsNumber } from "@/lib/operacional";
 const WEEKDAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 const LONG_MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const BLUES = ["#00355A", "#00558C", "#008DFF", "#4DB0FF", "#99D1FF", "#C9E4FA"];
 const compact = (n: number) => (Math.abs(n) >= 1e6 ? `R$ ${(n / 1e6).toFixed(1).replace(".", ",")} mi` : Math.abs(n) >= 1e3 ? `R$ ${(n / 1e3).toFixed(1).replace(".", ",")} mil` : money(n));
 const int = (n: number) => n.toLocaleString("pt-BR");
 
 function Kpi({ href, icon, label, value, hint, tone, trend }: { href: string; icon: string; label: string; value: string; hint?: string; tone: string; trend?: { text: string; good: boolean } }) {
   return (
     <Link href={href} className="group min-w-0 rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-ds-primary hover:shadow-md">
-      <span className="flex items-center justify-between gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: `${tone}1a`, color: tone }}><Icon name={icon} className="text-[20px]" /></span><Icon name="arrow_outward" className="text-[16px] text-ds-border transition-colors group-hover:text-ds-primary" /></span>
+      <span className="flex items-center justify-between gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: tone === "#E14337" ? "#E143371a" : "rgba(0,141,255,0.10)", color: tone === "#E14337" ? tone : "#008DFF" }}><Icon name={icon} className="text-[20px]" /></span><Icon name="arrow_outward" className="text-[16px] text-ds-border transition-colors group-hover:text-ds-primary" /></span>
       <span className="mt-3 block text-[11px] font-bold uppercase tracking-wider text-ds-text-secondary">{label}</span>
       <span className="mt-1 block text-[26px] font-extrabold leading-none tracking-tight" style={{ color: tone }}>{value}</span>
-      <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-ds-text-secondary">{hint}{trend && <span className={`rounded-full px-1.5 py-0.5 font-semibold ${trend.good ? "bg-ds-success/10 text-ds-success" : "bg-ds-danger-bg text-ds-danger-text"}`}>{trend.text}</span>}</span>
+      <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-ds-text-secondary">{hint}{trend && <span className={`rounded-full px-1.5 py-0.5 font-semibold ${trend.good ? "bg-ds-bg text-ds-text-muted" : "bg-ds-danger-bg text-ds-danger-text"}`}>{trend.text}</span>}</span>
     </Link>
   );
 }
@@ -57,11 +58,11 @@ function Home({ user }: { user: Me }) {
   // Pontos de atenção do dia (cada um leva direto para a tela de ação).
   const alerts: { icon: string; tone: string; text: string; href: string }[] = [];
   if (o?.late) alerts.push({ icon: "alarm", tone: "bg-ds-danger-bg text-ds-danger-text border-ds-danger-border", text: `${o.late} obras em atraso`, href: "/gestao-obras?grupo=atraso" });
-  if (o?.pendingQuotes) alerts.push({ icon: "request_quote", tone: "bg-[#FFF8EC] text-ds-warning-text border-[#F7D9A8]", text: `${o.pendingQuotes} orçamentos ganhos sem OS (${compact(o.pendingQuotesValue)})`, href: "/operacional/andamento" });
-  if (c?.expiring) alerts.push({ icon: "hourglass_bottom", tone: "bg-[#FFF8EC] text-ds-warning-text border-[#F7D9A8]", text: `${c.expiring} orçamentos vencem em 7 dias`, href: "/comercial/orcamentos?status=3" });
-  if (o?.ready) alerts.push({ icon: "task_alt", tone: "bg-[#EEFBF5] text-[#0e6b4a] border-[#BDE8D6]", text: `${o.ready} obras prontas para fechar e faturar`, href: "/gestao-obras?grupo=fechamento" });
-  if (e?.negative) alerts.push({ icon: "inventory", tone: "bg-ds-danger-bg text-ds-danger-text border-ds-danger-border", text: `${e.negative} produtos com saldo negativo no estoque`, href: "/estoque/saldo" });
-  if (g?.pending) alerts.push({ icon: "person_alert", tone: "bg-ds-bg text-ds-text-muted border-ds-border-subtle", text: `${g.pending} usuários aguardando permissão`, href: "/access-control" });
+  if (o?.pendingQuotes) alerts.push({ icon: "request_quote", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${o.pendingQuotes} orçamentos ganhos sem OS (${compact(o.pendingQuotesValue)})`, href: "/operacional/andamento" });
+  if (c?.expiring) alerts.push({ icon: "hourglass_bottom", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${c.expiring} orçamentos vencem em 7 dias`, href: "/comercial/orcamentos?status=3" });
+  if (o?.ready) alerts.push({ icon: "task_alt", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${o.ready} obras prontas para fechar e faturar`, href: "/gestao-obras?grupo=fechamento" });
+  if (e?.negative) alerts.push({ icon: "inventory", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${e.negative} produtos com saldo negativo no estoque`, href: "/estoque/saldo" });
+  if (g?.pending) alerts.push({ icon: "person_alert", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${g.pending} usuários aguardando permissão`, href: "/access-control" });
 
   return (
     <div className="mx-auto max-w-[1400px]">
@@ -69,10 +70,10 @@ function Home({ user }: { user: Me }) {
         <span className="shrink-0 rounded-full bg-white/15 p-1 sm:p-1.5"><span className="hidden sm:block"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={72} presence="online" /></span><span className="sm:hidden"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={52} presence="online" /></span></span>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-extrabold tracking-tight sm:text-3xl">Olá, {first}!</h1>
-          <p className="mt-0.5 text-[13px] leading-snug first-letter:uppercase text-white/85 sm:mt-1 sm:text-sm">{WEEKDAYS[now.getDay()]}, {now.getDate()} de {LONG_MONTHS[now.getMonth()]}<span className="hidden sm:inline"> de {now.getFullYear()}</span></p>
-          <p className="mt-0.5 hidden text-xs text-white/70 sm:block">Painel executivo — visão consolidada de toda a operação da Teclive.</p>
+          <p className="mt-0.5 text-[13px] leading-snug first-letter:uppercase text-white/85 sm:mt-1 sm:text-sm">{WEEKDAYS[now.getDay()]}, {now.getDate()} de {LONG_MONTHS[now.getMonth()]}<span> de {now.getFullYear()}</span></p>
+          <p className="mt-0.5 hidden text-xs text-white/70 lg:block">Painel executivo — visão consolidada de toda a operação da Teclive.</p>
         </div>
-        <div className="absolute right-3 top-3 flex items-center gap-2 text-xs text-white/80 sm:static">{data && <span className="hidden md:inline">Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
+        <div className="absolute right-3 top-3 flex items-center gap-2 text-xs text-white/80 sm:static">{data && <span className="hidden xl:inline">Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
           <button type="button" onClick={() => void load()} aria-label="Atualizar painel" title="Atualizar" className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 hover:bg-white/25"><Icon name="refresh" className="text-[20px]" /></button></div>
       </header>
 
@@ -81,25 +82,25 @@ function Home({ user }: { user: Me }) {
         <div className="space-y-6">
           {alerts.length > 0 && (
             <section aria-label="Pontos de atenção"><h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-ds-text-secondary">Atenção hoje</h2>
-              <ul className="flex flex-wrap gap-2">{alerts.map((a) => <li key={a.text}><Link href={a.href} className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium hover:brightness-95 ${a.tone}`}><Icon name={a.icon} className="text-[18px]" />{a.text}<Icon name="arrow_forward" className="text-[16px] opacity-60" /></Link></li>)}</ul></section>
+              <ul className="flex flex-wrap gap-2">{alerts.map((a) => <li key={a.text}><Link href={a.href} className={`inline-flex max-w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors hover:border-ds-primary ${a.tone}`}><Icon name={a.icon} className={`shrink-0 text-[18px] ${a.tone.includes("danger") ? "" : "text-ds-primary"}`} />{a.text}<Icon name="arrow_forward" className="text-[16px] opacity-60" /></Link></li>)}</ul></section>
           )}
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
-            {c && <Kpi href="/comercial/orcamentos?status=4,7,8" icon="trending_up" label="Receita ganha" value={compact(c.wonValue)} hint={`${c.wonCount} orçamentos`} tone="#00A972" />}
-            {c && <Kpi href="/comercial/orcamentos?status=3" icon="filter_alt" label="Pipeline aberto" value={compact(c.openValue)} hint={`${c.openCount} propostas`} tone="#008DFF" />}
-            {c && <Kpi href="/comercial/orcamentos" icon="percent" label="Conversão" value={`${String(c.conversionRate).replace(".", ",")}%`} hint={`${c.wonCount} ganhos de ${c.wonCount + (c.total - c.wonCount - c.openCount)} decididos`} tone="#7A5AF8" trend={{ text: c.conversionRate >= 30 ? "saudável" : "atenção", good: c.conversionRate >= 30 }} />}
-            {c && <Kpi href="/comercial/orcamentos" icon="receipt_long" label="Ticket médio" value={compact(c.averageTicket)} hint={c.recurringTotal ? `+ ${compact(c.recurringTotal)} recorrente` : "por orçamento ganho"} tone="#0DB38A" />}
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 2xl:grid-cols-8">
+            {c && <Kpi href="/comercial/orcamentos?status=4,7,8" icon="trending_up" label="Receita ganha" value={compact(c.wonValue)} hint={`${c.wonCount} orçamentos`} tone="#00355A" />}
+            {c && <Kpi href="/comercial/orcamentos?status=3" icon="filter_alt" label="Pipeline aberto" value={compact(c.openValue)} hint={`${c.openCount} propostas`} tone="#00355A" />}
+            {c && <Kpi href="/comercial/orcamentos" icon="percent" label="Conversão" value={`${String(c.conversionRate).replace(".", ",")}%`} hint={`${c.wonCount} ganhos de ${c.wonCount + (c.total - c.wonCount - c.openCount)} decididos`} tone="#00355A" trend={{ text: c.conversionRate >= 30 ? "saudável" : "atenção", good: c.conversionRate >= 30 }} />}
+            {c && <Kpi href="/comercial/orcamentos" icon="receipt_long" label="Ticket médio" value={compact(c.averageTicket)} hint={c.recurringTotal ? `+ ${compact(c.recurringTotal)} recorrente` : "por orçamento ganho"} tone="#00355A" />}
             {o && <Kpi href="/gestao-obras?grupo=execucao" icon="engineering" label="Obras ativas" value={String(o.active)} hint={compact(o.openValue)} tone="#00355A" />}
             {o && <Kpi href="/gestao-obras?grupo=atraso" icon="alarm" label="Em atraso" value={String(o.late)} hint={o.active ? `${Math.round((o.late / o.active) * 100)}% das ativas` : undefined} tone="#E14337" trend={o.active ? { text: o.late / o.active < 0.15 ? "controlado" : "crítico", good: o.late / o.active < 0.15 } : undefined} />}
-            {o && <Kpi href="/gestao-obras?grupo=faturadas" icon="payments" label="OS faturadas" value={compact(o.billedValue)} hint={`${o.billedCount} OS`} tone="#F7941D" />}
-            {e && <Kpi href="/estoque/saldo" icon="inventory_2" label="Estoque (custo)" value={compact(e.costValue)} hint={`${int(e.units)} unidades`} tone="#00558C" />}
+            {o && <Kpi href="/gestao-obras?grupo=faturadas" icon="payments" label="OS faturadas" value={compact(o.billedValue)} hint={`${o.billedCount} OS`} tone="#00355A" />}
+            {e && <Kpi href="/estoque/saldo" icon="inventory_2" label="Estoque (custo)" value={compact(e.costValue)} hint={`${int(e.units)} unidades`} tone="#00355A" />}
           </div>
 
           {c && data.access.comercial && (
             <Section icon="work" title="Comercial" subtitle="Funil de vendas, receita e desempenho do time" href="/comercial/orcamentos" linkLabel="Ver orçamentos">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <ChartCard title="Orçamentos por situação"><Donut data={c.statuses} center={String(c.total)} /></ChartCard>
-                <ChartCard title="Receita ganha por mês"><Columns data={c.monthlyWon} format={compact} /></ChartCard>
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <ChartCard title="Orçamentos por situação"><Donut data={c.statuses} center={String(c.total)} palette={BLUES} /></ChartCard>
+                <ChartCard title="Receita ganha por mês"><div className="pt-6"><Columns data={c.monthlyWon} format={compact} /></div></ChartCard>
                 <ChartCard title="Receita por vendedor"><BarList data={c.bySeller} format={compact} /></ChartCard>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -111,9 +112,9 @@ function Home({ user }: { user: Me }) {
 
           {o && (
             <Section icon="build" title="Operacional" subtitle="Ordens de serviço, prazos, equipe e faturamento" href="/gestao-obras" linkLabel="Abrir Gestão de Obras">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <ChartCard title="OS por situação"><Donut data={o.byStatus} center={String(o.total)} /></ChartCard>
-                <ChartCard title="Valor aberto por mês"><Columns data={o.monthly.map((m) => ({ label: `${MONTHS[Number(m.month.slice(5)) - 1]}/${m.month.slice(2, 4)}`, value: m.value }))} format={compact} /></ChartCard>
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <ChartCard title="OS por situação"><Donut data={o.byStatus} center={String(o.total)} palette={BLUES} /></ChartCard>
+                <ChartCard title="Valor aberto por mês"><div className="pt-6"><Columns data={o.monthly.map((m) => ({ label: `${MONTHS[Number(m.month.slice(5)) - 1]}/${m.month.slice(2, 4)}`, value: m.value }))} format={compact} /></div></ChartCard>
                 <ChartCard title="Obras abertas por técnico"><BarList data={o.byTechnician.slice(0, 6)} /></ChartCard>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
