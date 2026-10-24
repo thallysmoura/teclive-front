@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Breadcrumb, PageShell } from "@/components/layout/page-shell";
+import { SettingsShell } from "@/components/settings/settings-shell";
 import { Icon } from "@/components/ui/icon";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -105,7 +106,7 @@ function Profile({ user }: { user: Me }) {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Meus Dados" }]} />
+      <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Configurações", href: "/configuracoes" }, { label: "Meus Dados" }]} />
 
       <header className="mb-6 flex flex-wrap items-center gap-5 rounded-2xl bg-gradient-to-r from-ds-primary-deep to-ds-primary p-6 text-white shadow-sm">
         <div className="scale-150 p-2"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} presence="online" /></div>
@@ -179,5 +180,5 @@ function Profile({ user }: { user: Me }) {
 }
 
 export default function MyDataPage() {
-  return <PageShell permissionKey={null}>{(user) => <Profile user={user} />}</PageShell>;
+  return <PageShell permissionKey={null}>{(user) => <SettingsShell active="meus-dados" admin={user.role === "ADMIN"}><Profile user={user} /></SettingsShell>}</PageShell>;
 }
