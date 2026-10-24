@@ -18,13 +18,56 @@ const BLUES = ["#00355A", "#00558C", "#008DFF", "#4DB0FF", "#99D1FF", "#C9E4FA"]
 const compact = (n: number) => (Math.abs(n) >= 1e6 ? `R$ ${(n / 1e6).toFixed(1).replace(".", ",")} mi` : Math.abs(n) >= 1e3 ? `R$ ${(n / 1e3).toFixed(1).replace(".", ",")} mil` : money(n));
 const int = (n: number) => n.toLocaleString("pt-BR");
 
-function Kpi({ href, icon, label, value, hint, tone, trend }: { href: string; icon: string; label: string; value: string; hint?: string; tone: string; trend?: { text: string; good: boolean } }) {
+
+/** Mini-gráfico de área (série mensal) para os destaques. */
+function Spark({ values, dark = false }: { values: number[]; dark?: boolean }) {
+  if (values.length < 2 || Math.max(...values) <= 0) return null;
+  const w = 120, h = 36, max = Math.max(...values), step = w / (values.length - 1);
+  const pts = values.map((v, i) => `${(i * step).toFixed(1)},${(h - 4 - (v / max) * (h - 8)).toFixed(1)}`);
   return (
-    <Link href={href} className="group min-w-0 rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-ds-primary hover:shadow-md">
-      <span className="flex items-center justify-between gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: tone === "#E14337" ? "#E143371a" : "rgba(0,141,255,0.10)", color: tone === "#E14337" ? tone : "#008DFF" }}><Icon name={icon} className="text-[20px]" /></span><Icon name="arrow_outward" className="text-[16px] text-ds-border transition-colors group-hover:text-ds-primary" /></span>
-      <span className="mt-3 block text-[11px] font-bold uppercase tracking-wider text-ds-text-secondary">{label}</span>
-      <span className="mt-1 block text-[26px] font-extrabold leading-none tracking-tight" style={{ color: tone }}>{value}</span>
-      <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-ds-text-secondary">{hint}{trend && <span className={`rounded-full px-1.5 py-0.5 font-semibold ${trend.good ? "bg-ds-bg text-ds-text-muted" : "bg-ds-danger-bg text-ds-danger-text"}`}>{trend.text}</span>}</span>
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-9 w-28 shrink-0" role="img" aria-label="Evolução mensal">
+      <polygon points={`0,${h} ${pts.join(" ")} ${w},${h}`} fill={dark ? "rgba(255,255,255,0.14)" : "rgba(0,141,255,0.12)"} />
+      <polyline points={pts.join(" ")} fill="none" stroke={dark ? "#ffffff" : "#008DFF"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={pts[pts.length - 1].split(",")[0]} cy={pts[pts.length - 1].split(",")[1]} r="3" fill={dark ? "#ffffff" : "#008DFF"} />
+    </svg>
+  );
+}
+
+type Delta = { text: string; good: boolean };
+const deltaOf = (series: number[]): Delta | undefined => {
+  if (series.length < 2) return undefined;
+  const prev = series[series.length - 2], last = series[series.length - 1];
+  if (!prev) return undefined;
+  const change = Math.round(((last - prev) / prev) * 100);
+  return { text: `${change >= 0 ? "▲" : "▼"} ${Math.abs(change)}% vs. mês anterior`, good: change >= 0 };
+};
+
+function Hero({ href, icon, label, value, detail, foot, series, delta, dark = false, children }: { href: string; icon: string; label: string; value: string; detail?: string; foot?: string; series?: number[]; delta?: Delta; dark?: boolean; children?: React.ReactNode }) {
+  return (
+    <Link href={href} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-3xl border p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${dark ? "border-transparent bg-gradient-to-br from-ds-primary-deep to-[#00558c] text-white" : "border-ds-border-subtle bg-white hover:border-ds-primary"}`}>
+      <span className="flex items-start justify-between gap-2">
+        <span className="flex items-center gap-2.5"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${dark ? "bg-white/15" : "bg-ds-primary/10 text-ds-primary"}`}><Icon name={icon} className="text-[22px]" /></span><span className={`text-xs font-bold uppercase tracking-wider ${dark ? "text-white/75" : "text-ds-text-secondary"}`}>{label}</span></span>
+        <Icon name="arrow_outward" className={`text-[18px] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${dark ? "text-white/60" : "text-ds-border"}`} />
+      </span>
+      <span className="mt-5 flex items-end justify-between gap-3">
+        <span className="min-w-0"><span className={`block whitespace-nowrap text-[34px] font-extrabold leading-none tracking-tight ${dark ? "text-white" : "text-ds-primary-deep"}`}>{value}</span>{detail && <span className={`mt-2 block text-[13px] font-medium ${dark ? "text-white/85" : "text-ds-text-muted"}`}>{detail}</span>}</span>
+        {series && <Spark values={series} dark={dark} />}
+      </span>
+      {children}
+      <span className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+        {delta && <span title="Mês atual (parcial) comparado ao mês anterior" className={`rounded-full px-2 py-0.5 font-bold ${dark ? "bg-white/15 text-white" : delta.good ? "bg-ds-primary/10 text-ds-primary" : "bg-ds-danger-bg text-ds-danger-text"}`}>{delta.text}</span>}
+        {foot && <span className={dark ? "text-white/70" : "text-ds-text-secondary"}>{foot}</span>}
+      </span>
+    </Link>
+  );
+}
+
+function Stat({ href, label, value, hint, bad = false }: { href: string; label: string; value: string; hint: string; bad?: boolean }) {
+  return (
+    <Link href={href} className="min-w-0 rounded-2xl border border-ds-border-subtle bg-white px-4 py-3 transition-colors hover:border-ds-primary">
+      <span className="block truncate text-[11px] font-bold uppercase tracking-wider text-ds-text-secondary">{label}</span>
+      <span className={`mt-1 block whitespace-nowrap text-xl font-extrabold tracking-tight ${bad ? "text-ds-danger-text" : "text-ds-primary-deep"}`}>{value}</span>
+      <span className="block truncate text-xs text-ds-text-secondary">{hint}</span>
     </Link>
   );
 }
@@ -85,15 +128,25 @@ function Home({ user }: { user: Me }) {
               <ul className="flex flex-wrap gap-2">{alerts.map((a) => <li key={a.text}><Link href={a.href} className={`inline-flex max-w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors hover:border-ds-primary ${a.tone}`}><Icon name={a.icon} className={`shrink-0 text-[18px] ${a.tone.includes("danger") ? "" : "text-ds-primary"}`} />{a.text}<Icon name="arrow_forward" className="text-[16px] opacity-60" /></Link></li>)}</ul></section>
           )}
 
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 2xl:grid-cols-8">
-            {c && <Kpi href="/comercial/orcamentos?status=4,7,8" icon="trending_up" label="Receita ganha" value={compact(c.wonValue)} hint={`${c.wonCount} orçamentos`} tone="#00355A" />}
-            {c && <Kpi href="/comercial/orcamentos?status=3" icon="filter_alt" label="Pipeline aberto" value={compact(c.openValue)} hint={`${c.openCount} propostas`} tone="#00355A" />}
-            {c && <Kpi href="/comercial/orcamentos" icon="percent" label="Conversão" value={`${String(c.conversionRate).replace(".", ",")}%`} hint={`${c.wonCount} ganhos de ${c.wonCount + (c.total - c.wonCount - c.openCount)} decididos`} tone="#00355A" trend={{ text: c.conversionRate >= 30 ? "saudável" : "atenção", good: c.conversionRate >= 30 }} />}
-            {c && <Kpi href="/comercial/orcamentos" icon="receipt_long" label="Ticket médio" value={compact(c.averageTicket)} hint={c.recurringTotal ? `+ ${compact(c.recurringTotal)} recorrente` : "por orçamento ganho"} tone="#00355A" />}
-            {o && <Kpi href="/gestao-obras?grupo=execucao" icon="engineering" label="Obras ativas" value={String(o.active)} hint={compact(o.openValue)} tone="#00355A" />}
-            {o && <Kpi href="/gestao-obras?grupo=atraso" icon="alarm" label="Em atraso" value={String(o.late)} hint={o.active ? `${Math.round((o.late / o.active) * 100)}% das ativas` : undefined} tone="#E14337" trend={o.active ? { text: o.late / o.active < 0.15 ? "controlado" : "crítico", good: o.late / o.active < 0.15 } : undefined} />}
-            {o && <Kpi href="/gestao-obras?grupo=faturadas" icon="payments" label="OS faturadas" value={compact(o.billedValue)} hint={`${o.billedCount} OS`} tone="#00355A" />}
-            {e && <Kpi href="/estoque/saldo" icon="inventory_2" label="Estoque (custo)" value={compact(e.costValue)} hint={`${int(e.units)} unidades`} tone="#00355A" />}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {c && <Hero dark href="/comercial/orcamentos?status=4,7,8" icon="trending_up" label="Receita ganha" value={compact(c.wonValue)} detail={`${c.wonCount} orçamentos ganhos`} series={c.monthlyWon.map((m) => m.value)} delta={deltaOf(c.monthlyWon.map((m) => m.value))} foot={`Ticket médio ${compact(c.averageTicket)} · ${money(c.wonValue)}`} />}
+            {c && (
+              <Hero href="/comercial/orcamentos?status=3" icon="filter_alt" label="Pipeline aberto" value={compact(c.openValue)} detail={`${c.openCount} propostas em negociação`} foot={`Conversão ${String(c.conversionRate).replace(".", ",")}%`}>
+                <span className="mt-4 block"><span className="mb-1 flex justify-between text-[11px] font-semibold text-ds-text-secondary"><span>Taxa de conversão</span><span className="text-ds-primary-deep">{String(c.conversionRate).replace(".", ",")}%</span></span><span className="block h-2 overflow-hidden rounded-full bg-ds-bg"><span className="block h-full rounded-full bg-ds-primary" style={{ width: `${Math.min(100, c.conversionRate)}%` }} /></span></span>
+              </Hero>
+            )}
+            {o && (
+              <Hero href="/gestao-obras?grupo=execucao" icon="engineering" label="Carteira de obras" value={compact(o.openValue)} detail={`${o.active} obras ativas`} foot={o.late ? `${o.late} em atraso (${o.active ? Math.round((o.late / o.active) * 100) : 0}%)` : "Todas dentro do prazo"}>
+                <span className="mt-4 block"><span className="mb-1 flex justify-between text-[11px] font-semibold text-ds-text-secondary"><span>No prazo × em atraso</span><span className={o.late ? "text-ds-danger-text" : "text-ds-primary-deep"}>{o.late} / {o.active}</span></span><span className="flex h-2 overflow-hidden rounded-full bg-ds-bg"><span className="h-full bg-ds-primary" style={{ width: `${o.active ? ((o.active - o.late) / o.active) * 100 : 100}%` }} /><span className="h-full bg-ds-danger" style={{ width: `${o.active ? (o.late / o.active) * 100 : 0}%` }} /></span></span>
+              </Hero>
+            )}
+            {o && <Hero href="/gestao-obras?grupo=faturadas" icon="payments" label="OS faturadas" value={compact(o.billedValue)} detail={`${o.billedCount} ordens de serviço`} series={o.monthly.map((m) => m.value)} delta={deltaOf(o.monthly.map((m) => m.value))} foot={`${o.pendingQuotes} orçamentos ganhos sem OS`} />}
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {c && <Stat href="/comercial/orcamentos?status=4,7,8" label="Conversão" value={`${String(c.conversionRate).replace(".", ",")}%`} hint={`${c.wonCount} ganhos de ${c.wonCount + (c.total - c.wonCount - c.openCount)} decididos`} bad={c.conversionRate < 30} />}
+            {o && <Stat href="/gestao-obras?grupo=atraso" label="Obras em atraso" value={String(o.late)} hint={`${compact(o.openValue)} em carteira`} bad={o.late > 0 && o.active > 0 && o.late / o.active >= 0.15} />}
+            {o && <Stat href="/gestao-obras?grupo=materiais" label="Entrega de materiais" value={`${o.materialsPercent}%`} hint={`${int(o.pendingUnits)} unidades pendentes`} bad={o.materialsPercent < 50} />}
+            {e && <Stat href="/estoque/saldo" label="Estoque a custo" value={compact(e.costValue)} hint={`${int(e.units)} unidades · ${e.zero} sem saldo`} />}
           </div>
 
           {c && data.access.comercial && (
