@@ -88,6 +88,11 @@ export function CrudList<T extends Entity>(props: Props<T>) {
   }, [api, q, showInactive, page, orderBy, desc, filters, props.filterPanel, from, until]);
 
   useEffect(() => { load(); }, [load]);
+  // Filtra enquanto digita (sem precisar clicar no botão).
+  useEffect(() => {
+    const timer = setTimeout(() => { const next = text.trim(); setQ((current) => { if (current === next) return current; setPage(1); return next; }); }, 300);
+    return () => clearTimeout(timer);
+  }, [text]);
 
   function sortBy(key: string) {
     if (orderBy === key) setDesc((d) => !d); else { setOrderBy(key); setDesc(false); }

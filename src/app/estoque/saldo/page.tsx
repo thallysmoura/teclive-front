@@ -64,6 +64,15 @@ export default function StockBalanceQueryPage() {
     if (hasAccess) getStockProductFilters().then(setOptions);
   }, [hasAccess]);
 
+  // Consulta enquanto digita e ao trocar marca/grupo.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const next = { search: busca.trim(), brand, group };
+      setApplied((current) => { if (current.search === next.search && current.brand === next.brand && current.group === next.group) return current; setPage(1); return next; });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [busca, brand, group]);
+
   function consult() {
     setPage(1);
     setApplied({ search: busca.trim(), brand, group });

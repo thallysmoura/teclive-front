@@ -16,7 +16,7 @@ import { NotificationsButton } from "@/components/layout/notifications-button";
 const DEFAULT_ITEMS: NavigationItem[] = [
   { key: "inicio", label: "Início", href: "/home", section: "main", sortOrder: 0 },
   { key: "administrativo", label: "Governança", href: null, section: "group", sortOrder: 0 },
-  { key: "controle_acesso", label: "Usuários e Permissões", href: "/access-control", section: "admin", sortOrder: 0 },
+  { key: "controle_acesso", label: "Equipe e Permissões", href: "/access-control", section: "admin", sortOrder: 0 },
   { key: "log_acesso", label: "Log de acesso", href: "/access-logs", section: "admin", sortOrder: 1 },
   { key: "dados_empresa", label: "Dados da empresa", href: "/company", section: "admin", sortOrder: 2 },
 ];
@@ -50,6 +50,15 @@ type SidebarUser = {
   role: Role;
   avatarUrl?: string | null;
 };
+
+/** Expande/recolhe com transição suave de altura (o conteúdo continua montado). */
+function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <div className="grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none" style={{ gridTemplateRows: open ? "1fr" : "0fr", opacity: open ? 1 : 0 }} aria-hidden={!open} inert={!open}>
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  );
+}
 
 export function Sidebar({
   user,
@@ -116,6 +125,7 @@ export function Sidebar({
     fit();
     const resize = new ResizeObserver(fit);
     resize.observe(nav);
+    resize.observe(inner);
     const mutation = new MutationObserver(fit);
     mutation.observe(inner, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
     const onResize = () => { tightRef.current = false; fit(); };
@@ -281,12 +291,12 @@ export function Sidebar({
                 {user.role === "ADMIN" && item.createdById === user.id && item.href?.startsWith("/items/") && <button type="button" disabled={!loaded} onClick={() => { setOpen(false); setEditor({ item: null, parent: item }); }} aria-label={`Adicionar subitem em ${item.label}`} title="Adicionar subitem" className="mr-1 flex h-8 w-6 shrink-0 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"><Icon name="add" className="text-[16px]" /></button>}
                 {canDeleteItem(item) && <DeleteItemButton item={item} disabled={!loaded} onDelete={remove} />}
               </div>
-              {children.length > 0 && <div id={`children-${item.key}`} hidden={!expanded} className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-2">
+              {children.length > 0 && <Collapse open={expanded}><div id={`children-${item.key}`} className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-2">
                 {children.map((child) => <div key={child.key} className={`flex items-center rounded-lg text-sm font-medium ${isCurrent(child.href) ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/10 hover:text-white"}`}>
                   <Link href={child.href!} aria-current={isCurrent(child.href) ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(child.href!); }} className="min-w-0 flex-1 break-words rounded-lg px-3 py-2">{child.label}</Link>
                   {canDeleteItem(child) && <DeleteItemButton item={child} disabled={!loaded} onDelete={remove} />}
                 </div>)}
-              </div>}
+              </div></Collapse>}
               </div>
             );
           })}
@@ -314,7 +324,7 @@ export function Sidebar({
               </button>
               </div>
 
-              {(adminExpanded || searching) && (
+              <Collapse open={adminExpanded || searching}>
                 <div id="sidebar-admin-items" className="ml-3 mt-1 flex flex-col gap-0.5 border-l border-white/20 py-1 pl-2">
                   {shownAdminItems.map((item) => {
                     const active = pathname === item.href;
@@ -336,7 +346,7 @@ export function Sidebar({
                     );
                   })}
                 </div>
-              )}
+              </Collapse>
             </div>
           )}
         </div>

@@ -277,7 +277,7 @@ export const HELP_SECTIONS: HelpSection[] = [
         tips: ["Esta página está disponível para todos os usuários."],
       },
       {
-        id: "usuarios", title: "Usuários e Permissões", icon: "admin_panel_settings", path: "Governança › Usuários e Permissões", href: "/access-control",
+        id: "usuarios", title: "Equipe e Permissões", icon: "admin_panel_settings", path: "Governança › Equipe e Permissões", href: "/access-control",
         purpose: "Gerencia quem acessa o sistema e o que cada pessoa pode ver. Visível para administradores.",
         steps: [
           "Clique em Novo usuário e informe nome e e-mail: o sistema gera uma senha aleatória, que deve ser repassada ao usuário.",
@@ -331,10 +331,10 @@ export const HELP_SECTIONS: HelpSection[] = [
         ],
       },
       {
-        id: "fluxo-acesso", title: "Liberar acesso a um novo colaborador", icon: "person_add", path: "Governança › Usuários e Permissões",
+        id: "fluxo-acesso", title: "Liberar acesso a um novo colaborador", icon: "person_add", path: "Governança › Equipe e Permissões",
         purpose: "Como dar acesso ao sistema de forma segura.",
         steps: [
-          "Em Usuários e Permissões, adicione o colaborador com nome e e-mail corporativo.",
+          "Em Equipe e Permissões, adicione o colaborador com nome e e-mail corporativo.",
           "Envie a senha gerada por um canal seguro.",
           "Marque somente os itens do menu de que ele precisa.",
           "Peça que ele acesse e confira se os itens aparecem no menu.",

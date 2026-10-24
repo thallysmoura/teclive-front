@@ -34,6 +34,11 @@ export default function StockMovementsPage() {
   }, [q, from, until, hideCancelled, page, orderBy, desc]);
 
   useEffect(() => { load(); }, [load]);
+  // Filtra enquanto digita (sem precisar clicar no botão).
+  useEffect(() => {
+    const timer = setTimeout(() => { const next = text.trim(); setQ((current) => { if (current === next) return current; setPage(1); return next; }); }, 300);
+    return () => clearTimeout(timer);
+  }, [text]);
 
   function sortBy(column: Column) {
     if (orderBy === column) setDesc((d) => !d);

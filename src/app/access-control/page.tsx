@@ -306,7 +306,7 @@ export default function AccessControlPage() {
             </ul>
 
             <table className={styles.table} aria-label={group.title}>
-              <thead className="text-xs font-bold uppercase tracking-wider text-white">
+              <thead className={`text-xs font-bold uppercase tracking-wider ${group.pending ? "text-amber-900" : "text-white"}`} style={{ background: group.pending ? "#FEF3C7" : "#12A262" }}>
                 <tr>
                   <th className="px-4 py-3"><SortButton label="Usuário" active={userSort?.key === "name"} desc={!!userSort?.desc} onClick={() => toggleUserSort("name")} /></th>
                   <th className="px-4 py-3"><SortButton label="Data de criação" active={userSort?.key === "createdAt"} desc={!!userSort?.desc} onClick={() => toggleUserSort("createdAt")} /></th>
