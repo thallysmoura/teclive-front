@@ -11,7 +11,7 @@ export default function QuoteTemplatesPage() {
   return (
     <>
       <CrudList<QuoteTemplate>
-        permissionKey={COMERCIAL_KEYS.templates} title="Templates de Orçamento" breadcrumb="Templates de Orçamentos" basePath="/comercial/templates" newLabel="Novo Template"
+        permissionKey={COMERCIAL_KEYS.templates} title="Templates de Orçamento" group="Comercial" breadcrumb="Templates de Orçamentos" basePath="/comercial/templates" newLabel="Novo Template"
         searchPlaceholder="Pesquise pela descrição" entityLabel="O template" defaultSort="description" api={templatesClient} rowName={(r) => r.description}
         headerActions={<button type="button" onClick={() => setVariables(true)} className="inline-flex h-11 items-center rounded-[10px] border border-ds-primary-deep px-4 text-sm font-bold text-ds-primary-deep hover:bg-ds-primary-deep hover:text-white">Variáveis</button>}
         creator={{ title: "Novo Template para Orçamentos", render: ({ onSaved, onCancel }) => (

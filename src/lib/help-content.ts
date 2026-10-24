@@ -228,6 +228,72 @@ export const HELP_SECTIONS: HelpSection[] = [
     ],
   },
   {
+    id: "operacional",
+    title: "Operacional",
+    icon: "build",
+    intro: "Da venda fechada ao serviço entregue: abertura de ordens de serviço, agenda da equipe técnica, acompanhamento e cadastros de apoio.",
+    topics: [
+      {
+        id: "andamento", title: "Andamento do Operacional", icon: "view_kanban", path: "Operacional › Andamento do Operacional", href: "/operacional/andamento",
+        purpose: "Quadro com o caminho de cada trabalho: do orçamento ganho até o fechamento da ordem de serviço.",
+        steps: [
+          "Leia as colunas da esquerda para a direita: Orçamentos Pendentes de OS, OS Aguardando Entrega de Equipamentos, OS Aguardando Fechamento e as demais.",
+          "Em um orçamento ganho, clique em Abrir OS: a OS é criada com os serviços e produtos do orçamento.",
+          "Em uma OS, clique em Ver Detalhes para registrar entregas, comentários e fechar o serviço.",
+          "Use a busca para achar um cliente ou número e a seta de cada coluna para recolhê-la.",
+        ],
+        tips: ["Uma OS só aparece em Aguardando Fechamento quando não tem nenhuma pendência."],
+      },
+      {
+        id: "ordens-servico", title: "Ordens de Serviço", icon: "assignment", path: "Operacional › Ordens de Serviço", href: "/operacional/ordens-servico",
+        purpose: "Cadastro e acompanhamento de todas as ordens de serviço: instalações, manutenções corretivas e preventivas.",
+        steps: [
+          "Clique em Nova OS, escolha o cliente, o tipo, o motivo, a equipe técnica e o agendamento.",
+          "Use os botões de situação (Aberta, Em atraso, Fechada...) e a busca para filtrar a lista; ela atualiza enquanto você digita.",
+          "Abra a OS para ver as abas Resumo, Serviços, Produtos, Atendimentos, Anexos e Histórico.",
+          "Em Produtos, registre a entrega de cada item. Quando não houver pendências, clique em Fechar OS e informe causa e solução.",
+          "No menu Ações você pode editar, interromper, reabrir ou cancelar a OS.",
+        ],
+        tips: ["Uma OS aberta com a previsão de fechamento vencida passa sozinha para Em atraso."],
+      },
+      {
+        id: "gestao-os", title: "Gestão de OS", icon: "monitoring", path: "Operacional › Gestão de OS", href: "/operacional/gestao",
+        purpose: "Painel com os números do operacional: OS abertas, atrasos, valores, tempo médio e carga por técnico.",
+        steps: ["Veja os indicadores no topo e os gráficos por situação, tipo e técnico.", "Confira a lista de OS em atraso e clique em Ver todas as OS para tratar cada uma."],
+      },
+      {
+        id: "causas", title: "Causas", icon: "help_center", path: "Operacional › Causas", href: "/operacional/causas",
+        purpose: "Lista de causas possíveis de um problema, escolhidas ao fechar uma OS.",
+        steps: ["Clique em Nova Causa e escreva a descrição.", "Para parar de usar uma causa, inative-a; causas em uso por OS não podem ser excluídas."],
+      },
+      {
+        id: "defeitos", title: "Defeitos", icon: "report_problem", path: "Operacional › Defeitos", href: "/operacional/defeitos",
+        purpose: "Motivos de abertura de OS, cada um com o prazo de atendimento e a previsão de fechamento.",
+        steps: ["Clique em Novo Defeito, escreva a descrição e informe os prazos em horas e minutos.", "Ao abrir uma OS com esse motivo, a previsão de fechamento é sugerida a partir do prazo."],
+      },
+      {
+        id: "solucoes", title: "Soluções", icon: "task_alt", path: "Operacional › Soluções", href: "/operacional/solucoes",
+        purpose: "Lista de soluções aplicadas, escolhidas ao fechar uma OS.",
+        steps: ["Clique em Nova Solução e escreva a descrição.", "Inative as que não são mais usadas para manter a lista enxuta."],
+      },
+      {
+        id: "agenda-tecnica", title: "Agenda Técnica", icon: "calendar_month", path: "Operacional › Agenda Técnica", href: "/operacional/agenda",
+        purpose: "Calendário com as OS agendadas, por dia e por técnico.",
+        steps: ["Alterne entre Mês e Semana e use as setas ou Hoje para navegar.", "Filtre por técnico para ver a agenda de uma pessoa.", "Clique em uma OS no calendário para abrir os detalhes."],
+      },
+      {
+        id: "central-operacoes", title: "Central de Operações", icon: "map", path: "Operacional › Central de Operações", href: "/operacional/central",
+        purpose: "Visão em tempo real das OS em andamento, com mapa e alertas de atraso, falta de técnico e falta de agendamento.",
+        steps: ["Veja os totais no topo e use os filtros Em atraso, Sem técnico e Sem agendamento.", "Clique em uma OS da lista para centralizar o mapa no endereço dela.", "Use o ícone de abrir para ver os detalhes completos."],
+      },
+      {
+        id: "questionarios", title: "Questionários", icon: "checklist", path: "Operacional › Questionários", href: "/operacional/questionarios",
+        purpose: "Modelos de questionário aplicados nas OS, como a pesquisa de satisfação no encerramento.",
+        steps: ["Clique em Novo Questionário, informe título, descrição e a quantidade de perguntas.", "Inative os modelos que não são mais usados."],
+      },
+    ],
+  },
+  {
     id: "estoque",
     title: "Estoque",
     icon: "inventory_2",

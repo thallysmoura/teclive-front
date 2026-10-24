@@ -11,7 +11,7 @@ export default function SalesActionsPage() {
   const [round, setRound] = useState(0);
   return (
     <CrudList<SalesAction>
-      key={round} permissionKey={COMERCIAL_KEYS.acoes} title="Ações de Venda" breadcrumb="Ações de Venda" basePath="/comercial/acoes-venda" newLabel="Nova Ação de Venda"
+      key={round} permissionKey={COMERCIAL_KEYS.acoes} title="Ações de Venda" group="Comercial" breadcrumb="Ações de Venda" basePath="/comercial/acoes-venda" newLabel="Nova Ação de Venda"
       searchPlaceholder="Pesquisar..." entityLabel="A ação de venda" defaultSort="recent" api={salesActionsClient} rowName={(r) => r.title} dateRange
       header={<SalesActionInsights />}
       creator={{ title: "Nova Ação de Venda", wide: true, render: ({ onSaved, onCancel }) => (

@@ -9,7 +9,7 @@ const USED_WHEN = { CLIENT: "Recusado pelo cliente", MANAGEMENT: "Recusado pela 
 export default function RefusalReasonsPage() {
   return (
     <CrudList<RefusalReason>
-      permissionKey={COMERCIAL_KEYS.motivos} title="Motivos de Recusa de Orçamento" breadcrumb="Motivos de Recusa de Orçamento" basePath="/comercial/motivos-recusa" newLabel="Novo Motivo"
+      permissionKey={COMERCIAL_KEYS.motivos} title="Motivos de Recusa de Orçamento" group="Comercial" breadcrumb="Motivos de Recusa de Orçamento" basePath="/comercial/motivos-recusa" newLabel="Novo Motivo"
       searchPlaceholder="Pesquise pela descrição..." entityLabel="O motivo" defaultSort="description" api={refusalClient} rowName={(r) => r.description}
       creator={{ title: "Adicionando Motivo de Recusa de Orçamento", render: ({ onSaved, onCancel }) => (
         <RefusalForm submitLabel="Criar motivo de recusa" onCancel={onCancel} onSubmit={async (v) => { await refusalClient.create(v); onSaved(); }} />

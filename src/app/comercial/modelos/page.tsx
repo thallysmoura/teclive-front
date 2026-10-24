@@ -7,7 +7,7 @@ import { ModelForm } from "@/components/comercial/simple-forms";
 export default function QuoteModelsPage() {
   return (
     <CrudList<QuoteModel>
-      permissionKey={COMERCIAL_KEYS.modelos} title="Modelos de Orçamento" breadcrumb="Modelos de Orçamentos" basePath="/comercial/modelos" newLabel="Novo Modelo"
+      permissionKey={COMERCIAL_KEYS.modelos} title="Modelos de Orçamento" group="Comercial" breadcrumb="Modelos de Orçamentos" basePath="/comercial/modelos" newLabel="Novo Modelo"
       searchPlaceholder="Pesquisar..." entityLabel="O modelo" defaultSort="description" api={quoteModelsClient} rowName={(r) => r.description} hideInactivate hideInactiveToggle
       creator={{ title: "Novo Modelo de Orçamento", render: ({ onSaved, onCancel }) => (
         <ModelForm submitLabel="Salvar Modelo" onCancel={onCancel} onSubmit={async (description) => { await quoteModelsClient.create({ description }); onSaved(); }} />

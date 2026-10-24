@@ -15,7 +15,7 @@ const toInput = (v: LeadFormValue) => ({
 export default function ProspectsPage() {
   return (
     <CrudList<Person>
-      permissionKey={COMERCIAL_KEYS.prospects} title="Leads" breadcrumb="Prospects" basePath="/comercial/prospects" newLabel="Novo Lead"
+      permissionKey={COMERCIAL_KEYS.prospects} title="Leads" group="Comercial" breadcrumb="Prospects" basePath="/comercial/prospects" newLabel="Novo Lead"
       searchPlaceholder="Pesquisar..." entityLabel="O lead" defaultSort="recent" api={leadsClient} rowName={(r) => r.name}
       header={<LeadInsights />}
       filterPanel={{
