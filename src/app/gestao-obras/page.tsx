@@ -208,7 +208,7 @@ function Dashboard() {
     const sum = (list: WorkRow[]) => list.reduce((s, w) => s + w.total, 0);
     const pq = data?.pendingQuotes ?? [];
     return [
-      { key: "__quotes", label: "Orçamentos ganhos, sem OS", count: pq.length, value: pq.reduce((s, q) => s + q.total, 0), color: "#F7941D", hint: "A abrir — ação comercial/operacional" },
+      { key: "__quotes", label: "Vendas fechadas, sem OS aberta", count: pq.length, value: pq.reduce((s, q) => s + q.total, 0), color: "#F7941D", hint: "A abrir — ação comercial/operacional" },
       { key: "execucao", label: "Em execução", count: base.filter(GROUPS.execucao.test).length, value: sum(base.filter(GROUPS.execucao.test)), color: "#00558C", hint: "OS abertas, interrompidas ou em atendimento" },
       { key: "fechamento", label: "Prontas para fechar", count: base.filter(GROUPS.fechamento.test).length, value: sum(base.filter(GROUPS.fechamento.test)), color: "#7A5AF8", hint: "Sem nenhuma pendência" },
       { key: "fechadas", label: "Fechadas", count: base.filter(GROUPS.fechadas.test).length, value: sum(base.filter(GROUPS.fechadas.test)), color: "#008DFF", hint: "Aguardando faturamento" },
@@ -313,12 +313,12 @@ function Dashboard() {
         <div className="space-y-5">
           {/* KPIs */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <Kpi icon="construction" label="Obras ativas" value={String(kpi.active)} hint={compact(kpi.activeValue)} active={f.group === "execucao"} onClick={() => toggle({ group: "execucao" })} />
-            <Kpi icon="alarm" label="Em atraso" value={String(kpi.late)} hint={compact(kpi.lateValue)} tone="#E14337" active={f.group === "atraso"} onClick={() => toggle({ group: "atraso" })} delta={kpi.active ? { text: `${pct(kpi.late, kpi.active)}% das ativas`, good: pct(kpi.late, kpi.active) < 15 } : undefined} />
-            <Kpi icon="task_alt" label="Prontas p/ fechar" value={String(kpi.ready)} hint="sem pendências" tone="#7A5AF8" active={f.group === "fechamento"} onClick={() => toggle({ group: "fechamento" })} />
+            <Kpi icon="construction" label="Obras em andamento" value={String(kpi.active)} hint={compact(kpi.activeValue)} active={f.group === "execucao"} onClick={() => toggle({ group: "execucao" })} />
+            <Kpi icon="alarm" label="Atrasadas" value={String(kpi.late)} hint={compact(kpi.lateValue)} tone="#E14337" active={f.group === "atraso"} onClick={() => toggle({ group: "atraso" })} delta={kpi.active ? { text: `${pct(kpi.late, kpi.active)}% das ativas`, good: pct(kpi.late, kpi.active) < 15 } : undefined} />
+            <Kpi icon="task_alt" label="Prontas para fechar" value={String(kpi.ready)} hint="sem pendências" tone="#7A5AF8" active={f.group === "fechamento"} onClick={() => toggle({ group: "fechamento" })} />
             <Kpi icon="payments" label="Faturado" value={compact(kpi.billed)} hint={`${kpi.billedCount} obras`} tone="#00A972" active={f.group === "faturadas"} onClick={() => toggle({ group: "faturadas" })} />
-            <Kpi icon="inventory_2" label="Entrega de materiais" value={`${kpi.materials}%`} hint={`${kpi.pendingUnits} un. pendentes`} tone="#F7941D" active={f.group === "materiais"} onClick={() => toggle({ group: "materiais" })} delta={{ text: kpi.materials >= 70 ? "no ritmo" : "atenção", good: kpi.materials >= 70 }} />
-            <Kpi icon="schedule" label="Cumprimento de prazo" value={kpi.doneCount ? `${kpi.onTime}%` : "—"} hint={`${String(kpi.days).replace(".", ",")} dias em média · ${kpi.doneCount} concluídas`} tone="#008DFF" delta={kpi.doneCount ? { text: kpi.onTime >= 80 ? "saudável" : "abaixo da meta", good: kpi.onTime >= 80 } : undefined} />
+            <Kpi icon="inventory_2" label="Materiais entregues" value={`${kpi.materials}%`} hint={`${kpi.pendingUnits} un. pendentes`} tone="#F7941D" active={f.group === "materiais"} onClick={() => toggle({ group: "materiais" })} delta={{ text: kpi.materials >= 70 ? "no ritmo" : "atenção", good: kpi.materials >= 70 }} />
+            <Kpi icon="schedule" label="Entregas no prazo" value={kpi.doneCount ? `${kpi.onTime}%` : "—"} hint={`${String(kpi.days).replace(".", ",")} dias em média · ${kpi.doneCount} concluídas`} tone="#008DFF" delta={kpi.doneCount ? { text: kpi.onTime >= 80 ? "saudável" : "abaixo da meta", good: kpi.onTime >= 80 } : undefined} />
           </div>
 
           {/* Análises automáticas */}
@@ -345,7 +345,7 @@ function Dashboard() {
           </div>
 
           {/* Orçamentos ganhos sem OS */}
-          <Card title="Orçamentos ganhos aguardando abertura de OS" subtitle={`${data.pendingQuotes.length} orçamentos · ${compact(kpi.pipeline)} em receita parada`} className="scroll-mt-24" action={undefined}>
+          <Card title="Vendas fechadas aguardando ordem de serviço" subtitle={`${data.pendingQuotes.length} orçamentos · ${compact(kpi.pipeline)} em receita parada`} className="scroll-mt-24" action={undefined}>
             <div id="quotes-panel" />
             {data.pendingQuotes.length === 0 ? <p className="py-6 text-center text-sm text-ds-text-secondary">Nenhum orçamento pendente. Toda venda ganha já virou obra.</p> : (
               <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">{data.pendingQuotes.map((q) => (

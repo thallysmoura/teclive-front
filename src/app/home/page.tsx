@@ -101,8 +101,8 @@ function Home({ user }: { user: Me }) {
 
   // Pontos de atenção do dia (cada um leva direto para a tela de ação).
   const alerts: { icon: string; tone: string; text: string; href: string }[] = [];
-  if (o?.late) alerts.push({ icon: "alarm", tone: "bg-ds-danger-bg text-ds-danger-text border-ds-danger-border", text: `${o.late} obras em atraso`, href: "/gestao-obras?grupo=atraso" });
-  if (o?.pendingQuotes) alerts.push({ icon: "request_quote", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${o.pendingQuotes} orçamentos ganhos sem OS (${compact(o.pendingQuotesValue)})`, href: "/operacional/andamento" });
+  if (o?.late) alerts.push({ icon: "alarm", tone: "bg-ds-danger-bg text-ds-danger-text border-ds-danger-border", text: `${o.late} obras atrasadas`, href: "/gestao-obras?grupo=atraso" });
+  if (o?.pendingQuotes) alerts.push({ icon: "request_quote", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${o.pendingQuotes} vendas sem ordem de serviço aberta (${compact(o.pendingQuotesValue)})`, href: "/operacional/andamento" });
   if (c?.expiring) alerts.push({ icon: "hourglass_bottom", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${c.expiring} orçamentos vencem em 7 dias`, href: "/comercial/orcamentos?status=3" });
   if (o?.ready) alerts.push({ icon: "task_alt", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${o.ready} obras prontas para fechar e faturar`, href: "/gestao-obras?grupo=fechamento" });
   if (e?.negative) alerts.push({ icon: "inventory", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${e.negative} produtos com saldo negativo no estoque`, href: "/estoque/saldo" });
@@ -130,32 +130,32 @@ function Home({ user }: { user: Me }) {
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {c && <Hero dark href="/comercial/orcamentos?status=4,7,8" icon="trending_up" label="Receita ganha" value={compact(c.wonValue)} detail={`${c.wonCount} orçamentos ganhos`} series={c.monthlyWon.map((m) => m.value)} delta={deltaOf(c.monthlyWon.map((m) => m.value))} foot={`Ticket médio ${compact(c.averageTicket)} · ${money(c.wonValue)}`} />}
+            {c && <Hero dark href="/comercial/orcamentos?status=4,7,8" icon="trending_up" label="Vendas fechadas" value={compact(c.wonValue)} detail={`${c.wonCount} orçamentos aprovados pelos clientes`} series={c.monthlyWon.map((m) => m.value)} delta={deltaOf(c.monthlyWon.map((m) => m.value))} foot={`Ticket médio ${compact(c.averageTicket)} · ${money(c.wonValue)}`} />}
             {c && (
-              <Hero href="/comercial/orcamentos?status=3" icon="filter_alt" label="Pipeline aberto" value={compact(c.openValue)} detail={`${c.openCount} propostas em negociação`} foot={`Conversão ${String(c.conversionRate).replace(".", ",")}%`}>
-                <span className="mt-4 block"><span className="mb-1 flex justify-between text-[11px] font-semibold text-ds-text-secondary"><span>Taxa de conversão</span><span className="text-ds-primary-deep">{String(c.conversionRate).replace(".", ",")}%</span></span><span className="block h-2 overflow-hidden rounded-full bg-ds-bg"><span className="block h-full rounded-full bg-ds-primary" style={{ width: `${Math.min(100, c.conversionRate)}%` }} /></span></span>
+              <Hero href="/comercial/orcamentos?status=3" icon="filter_alt" label="Propostas em negociação" value={compact(c.openValue)} detail={`${c.openCount} propostas aguardando resposta do cliente`} foot={`${String(c.conversionRate).replace(".", ",")}% das propostas viram venda`}>
+                <span className="mt-4 block"><span className="mb-1 flex justify-between text-[11px] font-semibold text-ds-text-secondary"><span>Propostas que viram venda</span><span className="text-ds-primary-deep">{String(c.conversionRate).replace(".", ",")}%</span></span><span className="block h-2 overflow-hidden rounded-full bg-ds-bg"><span className="block h-full rounded-full bg-ds-primary" style={{ width: `${Math.min(100, c.conversionRate)}%` }} /></span></span>
               </Hero>
             )}
             {o && (
-              <Hero href="/gestao-obras?grupo=execucao" icon="engineering" label="Carteira de obras" value={compact(o.openValue)} detail={`${o.active} obras ativas`} foot={o.late ? `${o.late} em atraso (${o.active ? Math.round((o.late / o.active) * 100) : 0}%)` : "Todas dentro do prazo"}>
-                <span className="mt-4 block"><span className="mb-1 flex justify-between text-[11px] font-semibold text-ds-text-secondary"><span>No prazo × em atraso</span><span className={o.late ? "text-ds-danger-text" : "text-ds-primary-deep"}>{o.late} / {o.active}</span></span><span className="flex h-2 overflow-hidden rounded-full bg-ds-bg"><span className="h-full bg-ds-primary" style={{ width: `${o.active ? ((o.active - o.late) / o.active) * 100 : 100}%` }} /><span className="h-full bg-ds-danger" style={{ width: `${o.active ? (o.late / o.active) * 100 : 0}%` }} /></span></span>
+              <Hero href="/gestao-obras?grupo=execucao" icon="engineering" label="Obras em andamento" value={compact(o.openValue)} detail={`${o.active} obras em andamento`} foot={o.late ? `${o.late} em atraso (${o.active ? Math.round((o.late / o.active) * 100) : 0}%)` : "Todas dentro do prazo"}>
+                <span className="mt-4 block"><span className="mb-1 flex justify-between text-[11px] font-semibold text-ds-text-secondary"><span>Obras atrasadas</span><span className={o.late ? "text-ds-danger-text" : "text-ds-primary-deep"}>{o.late} / {o.active}</span></span><span className="flex h-2 overflow-hidden rounded-full bg-ds-bg"><span className="h-full bg-ds-primary" style={{ width: `${o.active ? ((o.active - o.late) / o.active) * 100 : 100}%` }} /><span className="h-full bg-ds-danger" style={{ width: `${o.active ? (o.late / o.active) * 100 : 0}%` }} /></span></span>
               </Hero>
             )}
-            {o && <Hero href="/gestao-obras?grupo=faturadas" icon="payments" label="OS faturadas" value={compact(o.billedValue)} detail={`${o.billedCount} ordens de serviço`} series={o.monthly.map((m) => m.value)} delta={deltaOf(o.monthly.map((m) => m.value))} foot={`${o.pendingQuotes} orçamentos ganhos sem OS`} />}
+            {o && <Hero href="/gestao-obras?grupo=faturadas" icon="payments" label="Serviços já cobrados" value={compact(o.billedValue)} detail={`${o.billedCount} ordens de serviço faturadas`} series={o.monthly.map((m) => m.value)} delta={deltaOf(o.monthly.map((m) => m.value))} foot={`${o.pendingQuotes} vendas ainda sem ordem de serviço`} />}
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {c && <Stat href="/comercial/orcamentos?status=4,7,8" label="Conversão" value={`${String(c.conversionRate).replace(".", ",")}%`} hint={`${c.wonCount} ganhos de ${c.wonCount + (c.total - c.wonCount - c.openCount)} decididos`} bad={c.conversionRate < 30} />}
-            {o && <Stat href="/gestao-obras?grupo=atraso" label="Obras em atraso" value={String(o.late)} hint={`${compact(o.openValue)} em carteira`} bad={o.late > 0 && o.active > 0 && o.late / o.active >= 0.15} />}
-            {o && <Stat href="/gestao-obras?grupo=materiais" label="Entrega de materiais" value={`${o.materialsPercent}%`} hint={`${int(o.pendingUnits)} unidades pendentes`} bad={o.materialsPercent < 50} />}
-            {e && <Stat href="/estoque/saldo" label="Estoque a custo" value={compact(e.costValue)} hint={`${int(e.units)} unidades · ${e.zero} sem saldo`} />}
+            {c && <Stat href="/comercial/orcamentos?status=4,7,8" label="Propostas que viram venda" value={`${String(c.conversionRate).replace(".", ",")}%`} hint={`${c.wonCount} fechadas de ${c.wonCount + (c.total - c.wonCount - c.openCount)} respondidas`} bad={c.conversionRate < 30} />}
+            {o && <Stat href="/gestao-obras?grupo=atraso" label="Obras atrasadas" value={String(o.late)} hint={`de ${compact(o.openValue)} em andamento`} bad={o.late > 0 && o.active > 0 && o.late / o.active >= 0.15} />}
+            {o && <Stat href="/gestao-obras?grupo=materiais" label="Materiais entregues" value={`${o.materialsPercent}%`} hint={`${int(o.pendingUnits)} unidades pendentes`} bad={o.materialsPercent < 50} />}
+            {e && <Stat href="/estoque/saldo" label="Valor em estoque" value={compact(e.costValue)} hint={`${int(e.units)} unidades · ${e.zero} sem saldo`} />}
           </div>
 
           {c && data.access.comercial && (
             <Section icon="work" title="Comercial" subtitle="Funil de vendas, receita e desempenho do time" href="/comercial/orcamentos" linkLabel="Ver orçamentos">
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <ChartCard title="Orçamentos por situação"><Donut data={c.statuses} center={String(c.total)} palette={BLUES} /></ChartCard>
-                <ChartCard title="Receita ganha por mês"><div className="pt-6"><Columns data={c.monthlyWon} format={compact} /></div></ChartCard>
-                <ChartCard title="Receita por vendedor"><BarList data={c.bySeller} format={compact} /></ChartCard>
+                <ChartCard title="Vendas fechadas por mês"><div className="pt-6"><Columns data={c.monthlyWon} format={compact} /></div></ChartCard>
+                <ChartCard title="Vendas por vendedor"><BarList data={c.bySeller} format={compact} /></ChartCard>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Mini label="Prospects ativos" value={int(c.leads)} href="/comercial/prospects" /><Mini label="Ações de venda" value={int(c.actions)} href="/comercial/acoes-venda" />
@@ -168,11 +168,11 @@ function Home({ user }: { user: Me }) {
             <Section icon="build" title="Operacional" subtitle="Ordens de serviço, prazos, equipe e faturamento" href="/gestao-obras" linkLabel="Abrir Gestão de Obras">
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <ChartCard title="OS por situação"><Donut data={o.byStatus} center={String(o.total)} palette={BLUES} /></ChartCard>
-                <ChartCard title="Valor aberto por mês"><div className="pt-6"><Columns data={o.monthly.map((m) => ({ label: `${MONTHS[Number(m.month.slice(5)) - 1]}/${m.month.slice(2, 4)}`, value: m.value }))} format={compact} /></div></ChartCard>
+                <ChartCard title="Valor das obras abertas por mês"><div className="pt-6"><Columns data={o.monthly.map((m) => ({ label: `${MONTHS[Number(m.month.slice(5)) - 1]}/${m.month.slice(2, 4)}`, value: m.value }))} format={compact} /></div></ChartCard>
                 <ChartCard title="Obras abertas por técnico"><BarList data={o.byTechnician.slice(0, 6)} /></ChartCard>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <Mini label="Entrega de materiais" value={`${o.materialsPercent}%`} href="/gestao-obras?grupo=materiais" /><Mini label="Prazo cumprido" value={o.onTimePercent === null ? "—" : `${o.onTimePercent}%`} href="/gestao-obras" />
+                <Mini label="Materiais entregues" value={`${o.materialsPercent}%`} href="/gestao-obras?grupo=materiais" /><Mini label="Entregas no prazo" value={o.onTimePercent === null ? "—" : `${o.onTimePercent}%`} href="/gestao-obras" />
                 <Mini label="Tempo médio de execução" value={`${String(o.averageCloseDays).replace(".", ",")} dias`} /><Mini label="Prontas para fechar" value={String(o.ready)} href="/gestao-obras?grupo=fechamento" />
               </div>
               {o.lateList.length > 0 && (
