@@ -31,7 +31,7 @@ export function ChartCard({ title, children }: { title: string; children: ReactN
 }
 
 /** Rosca em SVG com legenda. */
-export function Donut({ data }: { data: Datum[] }) {
+export function Donut({ data, format = (n: number) => String(n), percent = false, center }: { data: Datum[]; format?: (n: number) => string; percent?: boolean; center?: string }) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const radius = 15.9155;
   let offset = 25;
@@ -45,14 +45,14 @@ export function Donut({ data }: { data: Datum[] }) {
           offset -= length;
           return circle;
         })}
-        <text x="21" y="22.5" textAnchor="middle" className="fill-[var(--ds-primary-deep)] text-[7px] font-bold">{total}</text>
+        <text x="21" y="22.5" textAnchor="middle" className="fill-[var(--ds-primary-deep)] text-[5px] font-bold">{center ?? total}</text>
       </svg>
       <ul className="min-w-0 space-y-1.5 text-sm">
         {data.map((d, i) => (
           <li key={d.label} className="flex items-center gap-2 text-ds-text-muted">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PALETTE[i % PALETTE.length] }} />
             <span className="truncate">{d.label}</span>
-            <strong className="ml-auto pl-2 text-ds-primary-deep">{d.value}</strong>
+            <strong className="ml-auto pl-2 text-ds-primary-deep">{format(d.value)}{percent && total > 0 && <span className="ml-1 font-normal text-ds-text-secondary">({((d.value / total) * 100).toFixed(1).replace(".", ",")}%)</span>}</strong>
           </li>
         ))}
       </ul>

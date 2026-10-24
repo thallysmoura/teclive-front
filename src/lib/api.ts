@@ -409,3 +409,19 @@ export async function saveCompanyProfile(data: CompanyForm): Promise<CompanyProf
   }
   return response.json();
 }
+
+export type AppNotification = { id: string; title: string; message: string; data: unknown; readAt: string | null; createdAt: string };
+
+export async function listNotifications(): Promise<{ lista: AppNotification[]; unreadCount: number }> {
+  const res = await authFetch("/notifications", { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível carregar as notificações.");
+  return res.json();
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await authFetch(`/notifications/${id}/read`, { method: "POST" });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await authFetch("/notifications/read-all", { method: "POST" });
+}

@@ -56,6 +56,7 @@ export type QuoteStats = {
   total: number; openCount: number; openValue: number; wonCount: number; wonValue: number; averageTicket: number; conversionRate: number; recurringValue: number;
   statuses: Datum[]; monthlyCount: Datum[]; monthlyWon: Datum[]; bySeller: Datum[]; topClients: Datum[];
 };
+export type QuoteIndicators = { month: string; groups: { status: number; label: string; count: number; value: number }[]; totalCount: number; totalValue: number };
 export type QuoteItemInput = { kind: "PRODUCT" | "SERVICE" | "RECURRING"; description: string; identifier?: string; unit?: string; quantity: number; unitValue: number; discountValue?: number; cost?: number; rental?: boolean };
 export type QuoteInput = { personId?: string; title?: string; validUntil?: string; sellerName?: string; contactName?: string; contactEmail?: string; contactPhone?: string; technicalSheet?: string; notes?: string; showNotes?: boolean; address?: Record<string, string> };
 
@@ -68,6 +69,7 @@ export const quotesClient = {
     return parse(await authFetch(`/quotes?${query}`, { cache: "no-store" }), "Não foi possível carregar os orçamentos.");
   },
   stats: async (): Promise<QuoteStats> => parse(await authFetch("/quotes/stats", { cache: "no-store" }), "Não foi possível carregar os indicadores."),
+  indicators: async (month: string): Promise<QuoteIndicators> => parse(await authFetch(`/quotes/indicators?month=${month}`, { cache: "no-store" }), "Não foi possível carregar o indicador."),
   filters: async (): Promise<{ sellers: string[]; reasons: string[] }> => parse(await authFetch("/quotes/filters", { cache: "no-store" }), "Não foi possível carregar os filtros."),
   async get(id: string): Promise<QuoteDetail | null> {
     const res = await authFetch(`/quotes/${id}`, { cache: "no-store" });
