@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { getCompanyProfile, getMe, logout, saveCompanyProfile, type Me } from "@/lib/api";
 import { companyToForm, EMPTY_COMPANY, formatCep, formatCnpj, formatPhone, lookupPostalCode, type CompanyForm } from "@/lib/company";
 import { Sidebar } from "@/components/layout/sidebar";
-import { FullScreenSpinner } from "@/components/ui/spinner";
+import { ShellLoading } from "@/components/layout/shell-loading";
 import { Input, FieldLabel } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -66,7 +66,7 @@ export default function CompanyPage() {
     finally { setSaving(false); }
   }
   async function handleLogout() { await logout(); router.replace("/login"); }
-  if (loading) return <FullScreenSpinner />;
+  if (loading) return <ShellLoading />;
   if (!user) return <p role="alert" className="p-6 text-ds-danger-text">{error ?? "Sessão expirada."}</p>;
 
   return <div className="flex min-h-screen bg-ds-bg"><Sidebar user={user} onLogout={handleLogout} />

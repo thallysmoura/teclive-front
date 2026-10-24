@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getMe, getNavigationPage, logout, type Me, type NavigationItem } from "@/lib/api";
 import { Sidebar } from "@/components/layout/sidebar";
-import { FullScreenSpinner } from "@/components/ui/spinner";
+import { ShellLoading } from "@/components/layout/shell-loading";
 import { AwaitingPermission } from "@/components/layout/awaiting-permission";
 
 export default function CustomItemPage() {
@@ -40,8 +40,8 @@ export default function CustomItemPage() {
   }, [key, router]);
 
   async function handleLogout() { await logout(); router.replace("/login"); }
-  if (loading) return <FullScreenSpinner />;
-  if (!user) return error ? <p role="alert" className="p-6 text-ds-danger-text">{error}</p> : <FullScreenSpinner />;
+  if (loading) return <ShellLoading />;
+  if (!user) return error ? <p role="alert" className="p-6 text-ds-danger-text">{error}</p> : <ShellLoading />;
 
   return (
     <div className="flex h-dvh overflow-hidden bg-ds-bg">

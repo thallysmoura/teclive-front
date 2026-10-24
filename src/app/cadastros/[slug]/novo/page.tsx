@@ -17,7 +17,7 @@ export default function NewCatalogItemPage({ params }: { params: Promise<{ slug:
     <PageShell permissionKey={config.permissionKey}>
       {() => (
         <>
-          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Cadastros" }, { label: config.title, href: `/cadastros/${slug}` }, { label: `Adicionando ${config.singular}` }]} />
+          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Administrativo" }, { label: config.title, href: `/cadastros/${slug}` }, { label: `Adicionando ${config.singular}` }]} />
           <CatalogForm
             title={`Adicionando ${config.singular}`} help={config.help} fieldLabel={config.fieldLabel} submitLabel={config.createLabel} backHref={`/cadastros/${slug}`}
             onSubmit={async (description) => { await api.create({ description }); router.push(`/cadastros/${slug}`); }}

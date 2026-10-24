@@ -8,7 +8,7 @@ import {
 } from "@/lib/api";
 import { Sidebar } from "@/components/layout/sidebar";
 import { AwaitingPermission } from "@/components/layout/awaiting-permission";
-import { FullScreenSpinner } from "@/components/ui/spinner";
+import { ShellLoading } from "@/components/layout/shell-loading";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SortButton } from "@/components/ui/sortable";
@@ -87,7 +87,7 @@ export default function StockBalanceQueryPage() {
     URL.revokeObjectURL(url);
   }
 
-  if (loading || !user) return <FullScreenSpinner />;
+  if (loading || !user) return <ShellLoading />;
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;

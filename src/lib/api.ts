@@ -3,6 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 export class ApiError extends Error {}
 
 import type { CompanyForm, CompanyProfile } from "./company";
+import { cacheMe, clearSessionCache } from "./session-cache";
 
 export type Role = "ADMIN" | "USER";
 export type UserStatus = "ACTIVE" | "PENDING";
@@ -112,8 +113,10 @@ export async function authFetch(path: string, init?: RequestInit): Promise<Respo
 
 export async function getMe(): Promise<Me | null> {
   const res = await authFetch("/auth/me", { cache: "no-store" });
-  if (!res.ok) return null;
-  return res.json();
+  if (!res.ok) { cacheMe(null); return null; }
+  const me: Me = await res.json();
+  cacheMe(me);
+  return me;
 }
 
 export async function restorePresenceSession(): Promise<boolean> {
@@ -124,6 +127,7 @@ export async function restorePresenceSession(): Promise<boolean> {
 }
 
 export async function logout() {
+  clearSessionCache();
   await fetch(`${API_URL}/auth/logout`, {
     method: "POST",
     credentials: "include",

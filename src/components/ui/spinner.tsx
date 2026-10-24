@@ -18,3 +18,15 @@ export function FullScreenSpinner() {
     </div>
   );
 }
+
+/** Spinner da área de conteúdo: aparece só se a espera passar de ~150 ms (evita piscar) e entra suavemente. */
+export function ContentSpinner() {
+  return (
+    <main className="flex min-w-0 flex-1 items-center justify-center" aria-busy="true">
+      <div role="status" aria-label="Carregando" className="flex flex-col items-center gap-3 motion-safe:animate-[spinner-in_240ms_ease-out_150ms_both] motion-reduce:opacity-100">
+        <Spinner className="h-8 w-8 motion-reduce:animate-none" />
+        <span className="text-sm text-ds-text-secondary">Carregando...</span>
+      </div>
+    </main>
+  );
+}

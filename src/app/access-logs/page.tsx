@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMe, listAccessLogs, logout, type AccessLog, type AccessLogsPage, type Me } from "@/lib/api";
 import { Sidebar } from "@/components/layout/sidebar";
-import { FullScreenSpinner } from "@/components/ui/spinner";
+import { ShellLoading } from "@/components/layout/shell-loading";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -84,7 +84,7 @@ export default function AccessLogs() {
     finally { if (request === latestRequest.current.id) setBusy(false); }
   }
   async function handleLogout() { await logout(); router.replace("/login"); }
-  if (loading) return <FullScreenSpinner />;
+  if (loading) return <ShellLoading />;
   if (!user) return <p role="alert" className="p-6 text-ds-danger-text">{error ?? "Sessão expirada."}</p>;
 
   return <div className="flex min-h-screen bg-ds-bg">

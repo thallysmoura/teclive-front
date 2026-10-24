@@ -19,7 +19,7 @@ export default function EditCatalogItemPage({ params }: { params: Promise<{ slug
     <PageShell permissionKey={config.permissionKey}>
       {() => (
         <>
-          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Cadastros" }, { label: config.title, href: `/cadastros/${slug}` }, { label: `Editando ${config.singular}` }]} />
+          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Administrativo" }, { label: config.title, href: `/cadastros/${slug}` }, { label: `Editando ${config.singular}` }]} />
           {item === null ? <p className="text-sm text-ds-text-secondary">Registro não encontrado.</p> : item && (
             <CatalogForm
               title={`Editando ${config.singular}`} help={config.help} fieldLabel={config.fieldLabel} initial={item.description} submitLabel="Salvar Alteração" backHref={`/cadastros/${slug}`}

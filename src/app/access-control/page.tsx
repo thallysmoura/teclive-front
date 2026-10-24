@@ -18,7 +18,7 @@ import {
 } from "@/lib/api";
 import { Sidebar } from "@/components/layout/sidebar";
 import { AwaitingPermission } from "@/components/layout/awaiting-permission";
-import { FullScreenSpinner } from "@/components/ui/spinner";
+import { ShellLoading } from "@/components/layout/shell-loading";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
@@ -194,7 +194,7 @@ export default function AccessControlPage() {
   }
 
   if (loading || !user) {
-    return <FullScreenSpinner />;
+    return <ShellLoading />;
   }
 
   const displayedUsers = users.map((original) => ({ ...original, ...livePresence.users[original.id] }));

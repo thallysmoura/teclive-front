@@ -1,3 +1,3 @@
-import { FullScreenSpinner } from "@/components/ui/spinner";
+import { ShellLoading } from "@/components/layout/shell-loading";
 
-export default function Loading() { return <FullScreenSpinner />; }
+export default function Loading() { return <ShellLoading />; }

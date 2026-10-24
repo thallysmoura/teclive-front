@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createStockBalance, getMe, listStockBalances, listStockLocations, logout, type Me, type StockBalance, type StockLocation } from "@/lib/api";
 import { Sidebar } from "@/components/layout/sidebar";
 import { AwaitingPermission } from "@/components/layout/awaiting-permission";
-import { FullScreenSpinner } from "@/components/ui/spinner";
+import { ShellLoading } from "@/components/layout/shell-loading";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -72,7 +72,7 @@ export default function StockBalancesPage() {
     }
   }
 
-  if (loading || !user) return <FullScreenSpinner />;
+  if (loading || !user) return <ShellLoading />;
 
   return (
     <div className="flex min-h-screen bg-ds-bg">

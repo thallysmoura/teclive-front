@@ -11,7 +11,7 @@ export default function NewServicePage() {
     <PageShell permissionKey={CADASTROS_KEYS.servicos}>
       {() => (
         <>
-          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Cadastros" }, { label: "Serviços", href: "/cadastros/servicos" }, { label: "Novo Serviço" }]} />
+          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Administrativo" }, { label: "Serviços", href: "/cadastros/servicos" }, { label: "Novo Serviço" }]} />
           <h1 className="mb-4 text-xl font-bold text-ds-primary-deep">Novo Serviço</h1>
           <ServiceForm submitLabel="Salvar Serviço" onSubmit={async (input) => { await servicesClient.create(input); router.push("/cadastros/servicos"); }} />
         </>

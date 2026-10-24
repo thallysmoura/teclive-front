@@ -16,7 +16,7 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
     <PageShell permissionKey={CADASTROS_KEYS.servicos}>
       {() => (
         <>
-          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Cadastros" }, { label: "Serviços", href: "/cadastros/servicos" }, { label: "Editando Serviço" }]} />
+          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Administrativo" }, { label: "Serviços", href: "/cadastros/servicos" }, { label: "Editando Serviço" }]} />
           <h1 className="mb-4 text-xl font-bold text-ds-primary-deep">Editando Serviço</h1>
           {item === null ? <p className="text-sm text-ds-text-secondary">Serviço não encontrado.</p> : item && (
             <>

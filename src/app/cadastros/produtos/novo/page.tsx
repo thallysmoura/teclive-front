@@ -11,7 +11,7 @@ export default function NewProductPage() {
     <PageShell permissionKey={CADASTROS_KEYS.produtos}>
       {() => (
         <>
-          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Cadastros" }, { label: "Produtos", href: "/cadastros/produtos" }, { label: "Novo Produto" }]} />
+          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Administrativo" }, { label: "Produtos", href: "/cadastros/produtos" }, { label: "Novo Produto" }]} />
           <h1 className="mb-4 text-xl font-bold text-ds-primary-deep">Novo Produto</h1>
           <ProductForm submitLabel="Salvar Produto" onSubmit={async (input) => { await productsClient.create(input); router.push("/cadastros/produtos"); }} />
         </>

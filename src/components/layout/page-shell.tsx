@@ -1,23 +1,26 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useLayoutEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMe, logout, type Me } from "@/lib/api";
 import { Sidebar } from "@/components/layout/sidebar";
 import { AwaitingPermission } from "@/components/layout/awaiting-permission";
-import { FullScreenSpinner } from "@/components/ui/spinner";
+import { ShellLoading } from "@/components/layout/shell-loading";
+import { cacheMe, cachedMe } from "@/lib/session-cache";
 
 /** Casca padrão das telas autenticadas: sessão, sidebar e checagem de permissão do item de menu. */
-export function PageShell({ permissionKey, children }: { permissionKey: string; children: (user: Me) => ReactNode }) {
+export function PageShell({ permissionKey, children }: { permissionKey: string | null; children: (user: Me) => ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<Me | null>(null);
 
+  // O cache entra antes da primeira pintura (sem piscar); a sessão é revalidada em seguida.
+  useLayoutEffect(() => { const cached = cachedMe(); if (cached) setUser(cached); }, []);
   useEffect(() => {
-    getMe().then((me) => (me ? setUser(me) : router.replace("/login")));
+    getMe().then((me) => { cacheMe(me); if (me) setUser(me); else router.replace("/login"); });
   }, [router]);
 
-  if (!user) return <FullScreenSpinner />;
-  const hasAccess = user.role === "ADMIN" || user.permissions.includes(permissionKey);
+  if (!user) return <ShellLoading />;
+  const hasAccess = permissionKey === null || user.role === "ADMIN" || user.permissions.includes(permissionKey);
 
   return (
     <div className="flex min-h-screen bg-ds-bg">

@@ -16,7 +16,7 @@ export default function EditPersonPage({ params }: { params: Promise<{ id: strin
     <PageShell permissionKey={CADASTROS_KEYS.pessoas}>
       {() => (
         <>
-          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Cadastros" }, { label: "Pessoas", href: "/cadastros/pessoas" }, { label: "Editando Pessoa" }]} />
+          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Administrativo" }, { label: "Pessoas", href: "/cadastros/pessoas" }, { label: "Editando Pessoa" }]} />
           <h1 className="mb-4 text-xl font-bold text-ds-primary-deep">Editando Pessoa</h1>
           {item === null ? <p className="text-sm text-ds-text-secondary">Pessoa não encontrada.</p> : item && (
             <>

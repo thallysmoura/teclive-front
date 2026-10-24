@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { cacheNavigation, cachedNavigation } from "@/lib/session-cache";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,7 +22,7 @@ const DEFAULT_ITEMS: NavigationItem[] = [
 ];
 
 const MENU_ICONS: Record<string, string> = {
-  "Visão Geral": "home", Indicadores: "area_chart", Cadastros: "apartment", Comercial: "work", Estoque: "inventory_2", "Governança": "shield_person",
+  "Visão Geral": "home", Indicadores: "area_chart", Administrativo: "apartment", Comercial: "work", Estoque: "inventory_2", "Governança": "shield_person",
 };
 
 /** Ícone sólido do item principal do menu (mesmo estilo do eugestor). */
@@ -30,6 +31,8 @@ function MenuIcon({ label }: { label: string }) {
   if (!name) return <span className="w-6 shrink-0" aria-hidden="true" />;
   return <span aria-hidden="true" className="material-symbols-outlined w-6 shrink-0 text-center text-[22px] leading-none text-white/85" style={{ fontVariationSettings: '"FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24' }}>{name}</span>;
 }
+
+const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 function DeleteItemButton({ item, disabled, onDelete }: { item: NavigationItem; disabled: boolean; onDelete: (item: NavigationItem) => void }) {
   return (
@@ -60,40 +63,64 @@ export function Sidebar({
   const [items, setItems] = useState(DEFAULT_ITEMS);
   const [loaded, setLoaded] = useState(false);
   const [menuError, setMenuError] = useState(false);
+  const [menuQuery, setMenuQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  // Atalho: "/" leva o cursor para a busca do menu (fora de campos de texto).
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey || target?.closest("input, textarea, select, [contenteditable]")) return;
+      event.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  // Itens do menu da última visita: o menu aparece completo e igual desde o primeiro quadro.
+  useLayoutEffect(() => { const cached = cachedNavigation(); if (cached?.length) { setItems(cached); setLoaded(true); } }, []);
   const [editor, setEditor] = useState<{ item: NavigationItem | null; parent?: NavigationItem } | null>(null);
   const navRef = useRef<HTMLElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const tightRef = useRef(false);
   const groupsRef = useRef<{ keys: string[]; current: string | null; adminCurrent: boolean }>({ keys: [], current: null, adminCurrent: false });
-  // Mede o menu e reduz fonte e espaçamentos (até 45%) para tudo caber sem rolar.
+  // Tamanho fixo por padrão. Só se faltar espaço o menu se ajusta, de uma vez e antes da primeira pintura
+  // (sem "pulo"): 1) todos os textos encolhem juntos; 2) espaços entre linhas; 3) só o grupo da página fica aberto.
   useLayoutEffect(() => {
     const nav = navRef.current;
-    if (!nav) return;
-    let frame = 0;
+    const inner = innerRef.current;
+    if (!nav || !inner) return;
+    const apply = (zoom: number, pad: number) => { nav.style.setProperty("--fit", String(zoom)); nav.style.setProperty("--pad", String(pad)); };
+    // Mede a altura natural do conteúdo (sem a altura mínima que empurra a Governança para o rodapé).
+    const overflows = () => {
+      inner.style.minHeight = "0px";
+      const height = inner.getBoundingClientRect().height;
+      inner.style.minHeight = "";
+      return height > nav.clientHeight + 0.5;
+    };
     const fit = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        let scale = 1;
-        nav.style.setProperty("--fit", "1");
-        while (nav.scrollHeight > nav.clientHeight + 1 && scale > 0.45) {
-          scale = Math.round((scale - 0.03) * 100) / 100;
-          nav.style.setProperty("--fit", String(scale));
-        }
-        if (nav.scrollHeight > nav.clientHeight + 1 && !tightRef.current) {
-          tightRef.current = true;
-          const groups = groupsRef.current;
-          setExpandedItems(() => ({ ...Object.fromEntries(groups.keys.map((key) => [key, false])), ...(groups.current ? { [groups.current]: true } : {}) }));
-          if (!groups.adminCurrent) setAdminExpanded(false);
-        }
-      });
+      // Fase 1: todos os textos e ícones encolhem juntos (mínimo legível). Fase 2: só os espaços entre linhas.
+      let zoom = 1;
+      let pad = 1;
+      apply(zoom, pad);
+      while (overflows() && zoom > 0.74) { zoom = Math.round((zoom - 0.02) * 100) / 100; apply(zoom, pad); }
+      while (overflows() && pad > 0.1) { pad = Math.round((pad - 0.1) * 10) / 10; apply(zoom, pad); }
+      // Cabendo, a rolagem fica desligada de vez; só no caso extremo (janela minúscula) ela existe, sem barra visível.
+      nav.style.overflowY = overflows() ? "auto" : "hidden";
+      if (overflows() && !tightRef.current) {
+        tightRef.current = true;
+        const groups = groupsRef.current;
+        setExpandedItems(() => ({ ...Object.fromEntries(groups.keys.map((key) => [key, false])), ...(groups.current ? { [groups.current]: true } : {}) }));
+        if (!groups.adminCurrent) setAdminExpanded(false);
+      }
     };
     fit();
     const resize = new ResizeObserver(fit);
     resize.observe(nav);
     const mutation = new MutationObserver(fit);
-    mutation.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+    mutation.observe(inner, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
     const onResize = () => { tightRef.current = false; fit(); };
     window.addEventListener("resize", onResize);
-    return () => { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect(); window.removeEventListener("resize", onResize); };
+    return () => { resize.disconnect(); mutation.disconnect(); window.removeEventListener("resize", onResize); };
   }, []);
   const [expandedItems, setExpandedItemsState] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(sessionStorage.getItem("sidebar:expanded") ?? "{}"); } catch { return {}; }
@@ -119,7 +146,7 @@ export function Sidebar({
     async function load() {
       try {
         const result = await listNavigation();
-        if (!disposed) { setItems(result); setLoaded(true); setMenuError(false); }
+        if (!disposed) { setItems(result); setLoaded(true); setMenuError(false); cacheNavigation(result); }
       } catch { if (!disposed) setMenuError(true); }
     }
     void load();
@@ -132,8 +159,23 @@ export function Sidebar({
   const visibleItems = loaded || user.role === "ADMIN" ? items : items.filter((item) => user.permissions?.includes(item.key));
   const hasGrantedAccess = user.role === "ADMIN" || visibleItems.some((item) => Boolean(item.href));
   const navItems = visibleItems.filter((item) => item.section === "main" && !item.parentKey);
-  const adminItems = visibleItems.filter((item) => item.section === "admin" && item.href && (user.role === "ADMIN" || item.key === "log_acesso" || item.key === "dados_empresa") && (item.key !== "log_acesso" || loaded || user.permissions?.includes("log_acesso")));
+  const adminItems = visibleItems.filter((item) => item.section === "admin" && item.href && (user.role === "ADMIN" || item.key === "log_acesso" || item.key === "dados_empresa" || item.key === "ajuda") && (item.key !== "log_acesso" || loaded || user.permissions?.includes("log_acesso")));
   const adminGroup = items.find((item) => item.key === "administrativo") ?? DEFAULT_ITEMS[1];
+  const query = normalize(menuQuery.trim());
+  const searching = query.length > 0;
+  const itemMatches = (item: { label: string }) => normalize(item.label).includes(query);
+  const childrenOf = (item: { key: string }) => items.filter((child) => child.parentKey === item.key);
+  const shownNavItems = searching ? navItems.filter((item) => itemMatches(item) || childrenOf(item).some(itemMatches)) : navItems;
+  const shownAdminItems = searching ? adminItems.filter(itemMatches) : adminItems;
+  const nothingFound = searching && shownNavItems.length === 0 && shownAdminItems.length === 0;
+  const firstResult = (() => {
+    for (const item of shownNavItems) {
+      const kids = childrenOf(item).filter((child) => itemMatches(item) || itemMatches(child));
+      const target = kids.find((child) => child.href)?.href ?? (kids.length === 0 ? item.href : null);
+      if (target) return target;
+    }
+    return shownAdminItems.find((item) => item.href)?.href ?? null;
+  })();
   groupsRef.current = {
     keys: navItems.filter((item) => items.some((child) => child.parentKey === item.key)).map((item) => item.key),
     current: navItems.find((item) => items.some((child) => child.parentKey === item.key && isCurrent(child.href)))?.key ?? null,
@@ -201,11 +243,32 @@ export function Sidebar({
 
         <div className="mx-5 border-t border-white/15" />
 
-        <nav ref={navRef} className="sidebar-fit mt-2 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-3">
-          {navItems.map((item) => {
+        <nav ref={navRef} className="sidebar-fit mt-2 flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div ref={innerRef} className="sidebar-fit-inner flex shrink-0 flex-col gap-0.5 px-3 pb-3">
+          <div className="relative mb-2 shrink-0">
+            <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-white/60" />
+            <input
+              ref={searchRef} type="search" value={menuQuery} autoComplete="off" spellCheck={false}
+              onChange={(event) => setMenuQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") { setMenuQuery(""); event.currentTarget.blur(); }
+                if (event.key === "Enter" && firstResult) { event.preventDefault(); setOpen(false); setMenuQuery(""); navigate(firstResult); }
+              }}
+              placeholder="Buscar no menu..." aria-label="Buscar no menu"
+              className="h-10 w-full rounded-xl border border-white/15 bg-white/10 pl-10 pr-14 text-sm text-white outline-none transition placeholder:text-white/55 focus:border-white/40 focus:bg-white/15 focus:ring-2 focus:ring-white/20 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {menuQuery ? (
+              <button type="button" aria-label="Limpar busca" onClick={() => { setMenuQuery(""); searchRef.current?.focus(); }} className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white"><Icon name="close" className="text-[16px]" /></button>
+            ) : (
+              <kbd aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-white/20 px-1.5 text-[11px] font-medium text-white/50 md:block">/</kbd>
+            )}
+          </div>
+          {nothingFound && <p role="status" className="px-3 py-4 text-center text-xs text-white/60">Nenhum item encontrado para &quot;{menuQuery}&quot;.</p>}
+          {shownNavItems.map((item) => {
             const active = pathname === item.href;
-            const children = items.filter((child) => child.parentKey === item.key);
-            const expanded = expandedItems[item.key] ?? children.some((child) => isCurrent(child.href));
+            const allChildren = childrenOf(item);
+            const children = searching && !itemMatches(item) ? allChildren.filter(itemMatches) : allChildren;
+            const expanded = searching ? children.length > 0 : (expandedItems[item.key] ?? children.some((child) => isCurrent(child.href)));
             return (
               <div key={item.key} className="shrink-0">
               <div
@@ -228,7 +291,7 @@ export function Sidebar({
             );
           })}
 
-          {user.role === "ADMIN" && (
+          {user.role === "ADMIN" && !searching && (
             <button type="button" disabled={!loaded} onClick={() => { setOpen(false); setEditor({ item: null }); }} className="mt-1 flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-white/60 hover:bg-white/10 hover:text-white disabled:opacity-40">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
               Adicionar item
@@ -236,8 +299,8 @@ export function Sidebar({
           )}
           {menuError && <button type="button" onClick={() => window.dispatchEvent(new Event("sidebar:updated"))} className="px-3 py-2 text-left text-xs text-white/70">Não foi possível carregar o menu. Tentar novamente.</button>}
 
-          {(user.role === "ADMIN" || adminItems.length > 0) && (
-            <div className="mt-auto shrink-0 pt-6">
+          {(user.role === "ADMIN" || adminItems.length > 0) && (!searching || shownAdminItems.length > 0) && (
+            <div className="-mx-3 -mb-3 mt-auto shrink-0 bg-black/20 px-3 pb-3 pt-3">
               <div className="flex items-center">
               <button
                 type="button"
@@ -251,9 +314,9 @@ export function Sidebar({
               </button>
               </div>
 
-              {adminExpanded && (
+              {(adminExpanded || searching) && (
                 <div id="sidebar-admin-items" className="ml-3 mt-1 flex flex-col gap-0.5 border-l border-white/20 py-1 pl-2">
-                  {adminItems.map((item) => {
+                  {shownAdminItems.map((item) => {
                     const active = pathname === item.href;
                     return (
                       <div
@@ -265,7 +328,7 @@ export function Sidebar({
                         }`}
                       >
                         <Link href={item.href!} aria-current={active ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(item.href!); }} className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2">
-                          <Icon name={item.key === "log_acesso" ? "history" : item.key === "dados_empresa" ? "business" : "admin_panel_settings"} className="shrink-0 text-[14px]" />
+                          <Icon name={item.key === "ajuda" ? "help" : item.key === "log_acesso" ? "history" : item.key === "dados_empresa" ? "business" : "admin_panel_settings"} className="shrink-0 text-[14px]" />
                           <span className="min-w-0 break-words">{item.label}</span>
                         </Link>
                         {item.badge !== undefined && <span title={`${item.badge} usuários cadastrados`} aria-label={`${item.badge} usuários cadastrados`} className="mr-2 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-white/15 px-1 text-[9px] font-semibold tabular-nums text-white/80">{item.badge}</span>}
@@ -276,6 +339,7 @@ export function Sidebar({
               )}
             </div>
           )}
+        </div>
         </nav>
 
         <div className="flex shrink-0 items-center gap-2.5 border-t border-white/10 px-4 py-3">

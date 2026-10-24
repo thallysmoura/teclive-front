@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { getMe, logout, type Me } from "@/lib/api";
 import { Sidebar } from "@/components/layout/sidebar";
 import { AwaitingPermission } from "@/components/layout/awaiting-permission";
-import { FullScreenSpinner } from "@/components/ui/spinner";
+import { ShellLoading } from "@/components/layout/shell-loading";
 
 export default function HomePage() {
   const router = useRouter();
@@ -29,7 +29,7 @@ export default function HomePage() {
   }
 
   if (loading || !user) {
-    return <FullScreenSpinner />;
+    return <ShellLoading />;
   }
 
   const hasAccess = user.role === "ADMIN" || user.permissions.includes("inicio");

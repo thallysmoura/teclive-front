@@ -11,7 +11,7 @@ export default function NewPersonPage() {
     <PageShell permissionKey={CADASTROS_KEYS.pessoas}>
       {() => (
         <>
-          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Cadastros" }, { label: "Pessoas", href: "/cadastros/pessoas" }, { label: "Nova Pessoa" }]} />
+          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Administrativo" }, { label: "Pessoas", href: "/cadastros/pessoas" }, { label: "Nova Pessoa" }]} />
           <h1 className="mb-4 text-xl font-bold text-ds-primary-deep">Nova Pessoa</h1>
           <PersonForm submitLabel="Salvar Pessoa" onSubmit={async (input) => { await peopleClient.create(input); router.push("/cadastros/pessoas"); }} />
         </>

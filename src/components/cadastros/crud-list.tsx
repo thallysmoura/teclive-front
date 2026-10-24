@@ -119,7 +119,7 @@ export function CrudList<T extends Entity>(props: Props<T>) {
     <PageShell permissionKey={props.permissionKey}>
       {() => (
         <div onClick={() => menu && setMenu(null)}>
-          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Cadastros" }, { label: props.breadcrumb }]} />
+          <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Administrativo" }, { label: props.breadcrumb }]} />
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-xl font-bold text-ds-primary-deep">{props.title}</h1>
             <span className="flex flex-wrap items-center gap-2">
