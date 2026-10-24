@@ -12,14 +12,8 @@ import { getOverview, type Overview } from "@/lib/dashboard";
 import { fmtDate, formatOsNumber } from "@/lib/operacional";
 
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-const WEEKDAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 const compact = (n: number) => (Math.abs(n) >= 1e6 ? `R$ ${(n / 1e6).toFixed(1).replace(".", ",")} mi` : Math.abs(n) >= 1e3 ? `R$ ${(n / 1e3).toFixed(1).replace(".", ",")} mil` : money(n));
 const int = (n: number) => n.toLocaleString("pt-BR");
-
-function greeting() {
-  const hour = Number(new Date().toLocaleString("pt-BR", { timeZone: "America/Manaus", hour: "2-digit", hour12: false }));
-  return hour < 5 ? "Boa madrugada" : hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
-}
 
 function Kpi({ href, icon, label, value, hint, tone, trend }: { href: string; icon: string; label: string; value: string; hint?: string; tone: string; trend?: { text: string; good: boolean } }) {
   return (
@@ -54,16 +48,15 @@ function Home({ user }: { user: Me }) {
   const load = useCallback(() => getOverview().then((d) => { setData(d); setError(""); }).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível carregar.")), []);
   useEffect(() => { void load(); const t = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 120000); return () => clearInterval(t); }, [load]);
 
-  const now = new Date();
   const first = user.name.trim().split(/\s+/)[0];
   const c = data?.comercial, o = data?.operacional, e = data?.estoque, k = data?.cadastros, g = data?.governanca;
 
   // Pontos de atenção do dia (cada um leva direto para a tela de ação).
   const alerts: { icon: string; tone: string; text: string; href: string }[] = [];
-  if (o?.late) alerts.push({ icon: "alarm", tone: "bg-ds-danger-bg text-ds-danger-text border-ds-danger-border", text: `${o.late} obras em atraso`, href: "/gestao-obras" });
+  if (o?.late) alerts.push({ icon: "alarm", tone: "bg-ds-danger-bg text-ds-danger-text border-ds-danger-border", text: `${o.late} obras em atraso`, href: "/gestao-obras?grupo=atraso" });
   if (o?.pendingQuotes) alerts.push({ icon: "request_quote", tone: "bg-[#FFF8EC] text-ds-warning-text border-[#F7D9A8]", text: `${o.pendingQuotes} orçamentos ganhos sem OS (${compact(o.pendingQuotesValue)})`, href: "/operacional/andamento" });
-  if (c?.expiring) alerts.push({ icon: "hourglass_bottom", tone: "bg-[#FFF8EC] text-ds-warning-text border-[#F7D9A8]", text: `${c.expiring} orçamentos vencem em 7 dias`, href: "/comercial/orcamentos" });
-  if (o?.ready) alerts.push({ icon: "task_alt", tone: "bg-[#EEFBF5] text-[#0e6b4a] border-[#BDE8D6]", text: `${o.ready} obras prontas para fechar e faturar`, href: "/gestao-obras" });
+  if (c?.expiring) alerts.push({ icon: "hourglass_bottom", tone: "bg-[#FFF8EC] text-ds-warning-text border-[#F7D9A8]", text: `${c.expiring} orçamentos vencem em 7 dias`, href: "/comercial/orcamentos?status=3" });
+  if (o?.ready) alerts.push({ icon: "task_alt", tone: "bg-[#EEFBF5] text-[#0e6b4a] border-[#BDE8D6]", text: `${o.ready} obras prontas para fechar e faturar`, href: "/gestao-obras?grupo=fechamento" });
   if (e?.negative) alerts.push({ icon: "inventory", tone: "bg-ds-danger-bg text-ds-danger-text border-ds-danger-border", text: `${e.negative} produtos com saldo negativo no estoque`, href: "/estoque/saldo" });
   if (g?.pending) alerts.push({ icon: "person_alert", tone: "bg-ds-bg text-ds-text-muted border-ds-border-subtle", text: `${g.pending} usuários aguardando permissão`, href: "/access-control" });
 
@@ -73,8 +66,6 @@ function Home({ user }: { user: Me }) {
         <span className="shrink-0 rounded-full bg-white/15 p-1 sm:p-1.5"><span className="hidden sm:block"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={72} presence="online" /></span><span className="sm:hidden"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={52} presence="online" /></span></span>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-extrabold tracking-tight sm:text-3xl">Olá, {first}!</h1>
-          <p className="mt-0.5 text-[13px] leading-snug text-white/85 sm:mt-1 sm:text-sm">{greeting()} · <span className="capitalize">{WEEKDAYS[now.getDay()]}</span>, {now.getDate()} de {["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"][now.getMonth()]}<span className="hidden sm:inline"> de {now.getFullYear()}</span></p>
-          <p className="mt-0.5 hidden text-xs text-white/70 sm:block">Painel executivo — visão consolidada de toda a operação da Teclive.</p>
         </div>
         <div className="absolute right-3 top-3 flex items-center gap-2 text-xs text-white/80 sm:static">{data && <span className="hidden md:inline">Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
           <button type="button" onClick={() => void load()} aria-label="Atualizar painel" title="Atualizar" className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 hover:bg-white/25"><Icon name="refresh" className="text-[20px]" /></button></div>
@@ -89,13 +80,13 @@ function Home({ user }: { user: Me }) {
           )}
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
-            {c && <Kpi href="/comercial/orcamentos" icon="trending_up" label="Receita ganha" value={compact(c.wonValue)} hint={`${c.wonCount} orçamentos`} tone="#00A972" />}
-            {c && <Kpi href="/comercial/orcamentos" icon="filter_alt" label="Pipeline aberto" value={compact(c.openValue)} hint={`${c.openCount} propostas`} tone="#008DFF" />}
+            {c && <Kpi href="/comercial/orcamentos?status=4,7,8" icon="trending_up" label="Receita ganha" value={compact(c.wonValue)} hint={`${c.wonCount} orçamentos`} tone="#00A972" />}
+            {c && <Kpi href="/comercial/orcamentos?status=3" icon="filter_alt" label="Pipeline aberto" value={compact(c.openValue)} hint={`${c.openCount} propostas`} tone="#008DFF" />}
             {c && <Kpi href="/comercial/orcamentos" icon="percent" label="Conversão" value={`${String(c.conversionRate).replace(".", ",")}%`} hint={`${c.wonCount} ganhos de ${c.wonCount + (c.total - c.wonCount - c.openCount)} decididos`} tone="#7A5AF8" trend={{ text: c.conversionRate >= 30 ? "saudável" : "atenção", good: c.conversionRate >= 30 }} />}
             {c && <Kpi href="/comercial/orcamentos" icon="receipt_long" label="Ticket médio" value={compact(c.averageTicket)} hint={c.recurringTotal ? `+ ${compact(c.recurringTotal)} recorrente` : "por orçamento ganho"} tone="#0DB38A" />}
-            {o && <Kpi href="/gestao-obras" icon="engineering" label="Obras ativas" value={String(o.active)} hint={compact(o.openValue)} tone="#00355A" />}
-            {o && <Kpi href="/gestao-obras" icon="alarm" label="Em atraso" value={String(o.late)} hint={o.active ? `${Math.round((o.late / o.active) * 100)}% das ativas` : undefined} tone="#E14337" trend={o.active ? { text: o.late / o.active < 0.15 ? "controlado" : "crítico", good: o.late / o.active < 0.15 } : undefined} />}
-            {o && <Kpi href="/operacional/ordens-servico" icon="payments" label="OS faturadas" value={compact(o.billedValue)} hint={`${o.billedCount} OS`} tone="#F7941D" />}
+            {o && <Kpi href="/gestao-obras?grupo=execucao" icon="engineering" label="Obras ativas" value={String(o.active)} hint={compact(o.openValue)} tone="#00355A" />}
+            {o && <Kpi href="/gestao-obras?grupo=atraso" icon="alarm" label="Em atraso" value={String(o.late)} hint={o.active ? `${Math.round((o.late / o.active) * 100)}% das ativas` : undefined} tone="#E14337" trend={o.active ? { text: o.late / o.active < 0.15 ? "controlado" : "crítico", good: o.late / o.active < 0.15 } : undefined} />}
+            {o && <Kpi href="/gestao-obras?grupo=faturadas" icon="payments" label="OS faturadas" value={compact(o.billedValue)} hint={`${o.billedCount} OS`} tone="#F7941D" />}
             {e && <Kpi href="/estoque/saldo" icon="inventory_2" label="Estoque (custo)" value={compact(e.costValue)} hint={`${int(e.units)} unidades`} tone="#00558C" />}
           </div>
 
@@ -108,7 +99,7 @@ function Home({ user }: { user: Me }) {
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Mini label="Prospects ativos" value={int(c.leads)} href="/comercial/prospects" /><Mini label="Ações de venda" value={int(c.actions)} href="/comercial/acoes-venda" />
-                <Mini label="Vencem em 7 dias" value={int(c.expiring)} href="/comercial/orcamentos" /><Mini label="Maior cliente" value={c.topClients[0] ? `${c.topClients[0].label.slice(0, 22)} · ${compact(c.topClients[0].value)}` : "—"} />
+                <Mini label="Vencem em 7 dias" value={int(c.expiring)} href="/comercial/orcamentos?status=3" /><Mini label="Maior cliente" value={c.topClients[0] ? `${c.topClients[0].label.slice(0, 22)} · ${compact(c.topClients[0].value)}` : "—"} />
               </div>
             </Section>
           )}
@@ -121,8 +112,8 @@ function Home({ user }: { user: Me }) {
                 <ChartCard title="Obras abertas por técnico"><BarList data={o.byTechnician.slice(0, 6)} /></ChartCard>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <Mini label="Entrega de materiais" value={`${o.materialsPercent}%`} href="/gestao-obras" /><Mini label="Prazo cumprido" value={o.onTimePercent === null ? "—" : `${o.onTimePercent}%`} href="/gestao-obras" />
-                <Mini label="Tempo médio de execução" value={`${String(o.averageCloseDays).replace(".", ",")} dias`} /><Mini label="Prontas para fechar" value={String(o.ready)} href="/operacional/andamento" />
+                <Mini label="Entrega de materiais" value={`${o.materialsPercent}%`} href="/gestao-obras?grupo=materiais" /><Mini label="Prazo cumprido" value={o.onTimePercent === null ? "—" : `${o.onTimePercent}%`} href="/gestao-obras" />
+                <Mini label="Tempo médio de execução" value={`${String(o.averageCloseDays).replace(".", ",")} dias`} /><Mini label="Prontas para fechar" value={String(o.ready)} href="/gestao-obras?grupo=fechamento" />
               </div>
               {o.lateList.length > 0 && (
                 <div className="mt-4 rounded-2xl border border-ds-border-subtle bg-white p-4"><h3 className="mb-2 text-sm font-semibold text-ds-primary-deep">Obras mais atrasadas</h3>

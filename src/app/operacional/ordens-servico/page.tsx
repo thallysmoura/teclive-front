@@ -24,7 +24,7 @@ function Orders() {
   const [q, setQ] = useState("");
   const [from, setFrom] = useState("");
   const [until, setUntil] = useState("");
-  const [filters, setFilters] = useState<PanelFilters>(NONE);
+  const [filters, setFilters] = useState<PanelFilters>(() => ({ ...NONE, status: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("status")) || "" }));
   const [draft, setDraft] = useState<PanelFilters>(NONE);
   const [panel, setPanel] = useState(false);
   const [orderBy, setOrderBy] = useState("openedAt");

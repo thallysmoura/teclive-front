@@ -28,7 +28,7 @@ export default function QuotesPage() {
   const [q, setQ] = useState("");
   const [from, setFrom] = useState("");
   const [until, setUntil] = useState("");
-  const [filters, setFilters] = useState<Filters>(NONE);
+  const [filters, setFilters] = useState<Filters>(() => ({ ...NONE, status: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("status")) || "" }));
   const [draft, setDraft] = useState<Filters>(NONE);
   const [panel, setPanel] = useState(false);
   const [options, setOptions] = useState<{ sellers: string[]; reasons: string[] }>({ sellers: [], reasons: [] });
@@ -144,7 +144,7 @@ export default function QuotesPage() {
                 <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-12 z-30 w-[min(92vw,34rem)] rounded-xl border border-ds-border-subtle bg-white p-4 shadow-xl">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="flex flex-col gap-1.5"><span className="text-xs font-semibold text-ds-text-secondary">Situação</span>
-                      <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })} className={selectClass}><option value="">Todas</option>{QUOTE_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{QUOTE_STATUS[s].label}</option>)}</select></label>
+                      <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })} className={selectClass}><option value="">Todas</option><option value="4,7,8">Ganhos (liberado, OS aberta, concluído)</option>{QUOTE_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{QUOTE_STATUS[s].label}</option>)}</select></label>
                     <label className="flex flex-col gap-1.5"><span className="text-xs font-semibold text-ds-text-secondary">Modalidade</span>
                       <select value={draft.modality} onChange={(e) => setDraft({ ...draft, modality: e.target.value })} className={selectClass}><option value="">Todas</option><option value="2">Venda</option><option value="1">Locação</option></select></label>
                     <label className="flex flex-col gap-1.5"><span className="text-xs font-semibold text-ds-text-secondary">Tipo de Cliente</span>

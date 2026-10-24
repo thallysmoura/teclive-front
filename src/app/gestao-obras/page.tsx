@@ -137,7 +137,14 @@ function MonthlyChart({ data, active, onPick }: { data: { key: string; label: st
 function Dashboard() {
   const [data, setData] = useState<WorksData | null>(null);
   const [error, setError] = useState("");
-  const [f, setF] = useState<Filters>(NONE);
+  const [f, setF] = useState<Filters>(() => {
+    if (typeof window === "undefined") return NONE;
+    const q = new URLSearchParams(window.location.search);
+    const group = q.get("grupo") ?? "";
+    return { ...NONE, group: group in GROUPS ? group : "", status: q.get("status") ?? "", technician: q.get("tecnico") ?? "", type: q.get("tipo") ?? "" };
+  });
+  // Quando chega com um filtro na URL (vindo da Visão Geral), leva direto para a lista filtrada.
+  useEffect(() => { if (data && new URLSearchParams(window.location.search).has("grupo")) document.getElementById("checklist-obras")?.scrollIntoView({ block: "start" }); }, [data === null]); // eslint-disable-line react-hooks/exhaustive-deps
   const [openId, setOpenId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: string; desc: boolean }>({ key: "risk", desc: true });
   const [page, setPage] = useState(1);
@@ -350,6 +357,7 @@ function Dashboard() {
           </Card>
 
           {/* Checklist de obras */}
+          <div id="checklist-obras" className="scroll-mt-4" />
           <Card title="Checklist de obras" subtitle={`${table.length} ${table.length === 1 ? "obra" : "obras"} no filtro · clique na linha para abrir a obra`}
             action={!f.group && !f.status ? <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-ds-text-muted"><input type="checkbox" checked={f.onlyActive} onChange={(e) => set({ onlyActive: e.target.checked })} />Somente ativas</label> : undefined}>
             <div className="-mx-1 overflow-x-auto">
