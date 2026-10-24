@@ -11,7 +11,7 @@ import { ImageLightbox } from "@/components/operacional/image-lightbox";
 import { OS_STATUS, addressLine, fmtDate, fmtDateTime, formatMinutes, formatOsNumber, osClient, type OsDetail, type OsFilters } from "@/lib/operacional";
 import { formatQuoteNumber } from "@/lib/comercial";
 
-const TABS = ["Resumo", "Serviços", "Produtos", "Atendimentos", "Questionários", "Adiantamentos", "Fechamento/Cobrança", "Anexos", "Histórico"] as const;
+const TABS = ["Resumo", "Comentários", "Serviços", "Produtos", "Atendimentos", "Questionários", "Adiantamentos", "Fechamento/Cobrança", "Anexos", "Histórico"] as const;
 type Tab = (typeof TABS)[number];
 const selectClass = "h-11 w-full rounded-[10px] border border-ds-border bg-white px-3 text-sm text-ds-text outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20";
 const ADVANCE_STATUS: Record<number, string> = { 6: "Pago", 1: "Em aberto" };
@@ -119,14 +119,23 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
   const [histQ, setHistQ] = useState("");
   const [logs, setLogs] = useState(false);
   const [zoom, setZoom] = useState<number | null>(null);
+  const [liveComments, setLiveComments] = useState<OsDetail["events"] | null>(null);
 
   useEffect(() => { osClient.get(id).then(setOs).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível carregar.")); osClient.filters().then(setFilters).catch(() => {}); }, [id]);
+
+  // Mantém o selo de comentários atualizado mesmo fora da aba.
+  useEffect(() => {
+    const timer = setInterval(() => { if (document.visibilityState === "visible") void osClient.comments(id).then(setLiveComments).catch(() => {}); }, 8000);
+    return () => clearInterval(timer);
+  }, [id]);
 
   async function run(fn: () => Promise<OsDetail>) {
     setError("");
     try { setOs(await fn()); onChanged(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível concluir a operação."); }
   }
 
+  const comments = (liveComments ?? os?.events ?? []).filter((e) => e.conteudo || e.anexos?.length);
+  const lastComment = comments[comments.length - 1];
   const open = os ? [0, 1, 8].includes(os.status) : false;
   const status = os ? OS_STATUS[os.status] : null;
   const history = (os?.history ?? []).filter((h) => (logs ? true : !h.isLog) && h.descricao.toLowerCase().includes(histQ.toLowerCase()));
@@ -165,8 +174,8 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
 
             <nav aria-label="Seções da OS" className="mt-3 flex shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-ds-border-subtle px-2 text-sm sm:px-5">
               {TABS.map((t) => {
-                const count = t === "Serviços" ? os.services.length : t === "Produtos" ? os.products.length : t === "Atendimentos" ? os.calls.length : t === "Anexos" ? os.attachments.length : null;
-                return <button key={t} type="button" onClick={() => setTab(t)} aria-current={tab === t} className={`whitespace-nowrap border-b-2 px-3 py-2.5 font-medium ${tab === t ? "border-ds-primary-deep text-ds-primary-deep" : "border-transparent text-ds-text-muted hover:text-ds-primary"}`}>{t}{count ? <span className="ml-1 text-xs text-ds-text-secondary">({count})</span> : null}</button>;
+                const count = t === "Comentários" ? comments.length : t === "Serviços" ? os.services.length : t === "Produtos" ? os.products.length : t === "Atendimentos" ? os.calls.length : t === "Anexos" ? os.attachments.length : null;
+                return <button key={t} type="button" onClick={() => setTab(t)} aria-current={tab === t} className={`whitespace-nowrap border-b-2 px-3 py-2.5 font-medium ${tab === t ? "border-ds-primary-deep text-ds-primary-deep" : "border-transparent text-ds-text-muted hover:text-ds-primary"}`}>{t}{count ? (t === "Comentários" ? <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ds-primary px-1.5 text-[11px] font-bold text-white">{count}</span> : <span className="ml-1 text-xs text-ds-text-secondary">({count})</span>) : null}</button>;
               })}
             </nav>
             {error && <p role="alert" className="mx-4 mt-3 sm:mx-6 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
@@ -190,8 +199,23 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
                       <h4 className="border-b border-ds-border-subtle px-4 py-2.5 text-sm font-bold text-ds-primary-deep">Valores</h4>
                       <dl className="grid grid-cols-3 gap-2 p-4 text-sm"><div><dt className="text-xs font-bold text-ds-primary-deep">Serviços</dt><dd>{money(os.totalServices)}</dd></div><div><dt className="text-xs font-bold text-ds-primary-deep">Produtos</dt><dd>{money(os.totalProducts)}</dd></div><div><dt className="text-xs font-bold text-ds-primary-deep">Total</dt><dd className="font-bold">{money(os.totalServices + os.totalProducts)}</dd></div></dl>
                     </section>
-                    <OsComments os={os} onUpdated={(updated) => { setOs(updated); onChanged(); }} />
+                    <section className="rounded-xl border border-ds-border-subtle">
+                      <h4 className="flex items-center gap-2 border-b border-ds-border-subtle px-4 py-2.5 text-sm font-bold text-ds-primary-deep"><Icon name="forum" className="text-[18px]" />Comentários<span className="rounded-full bg-ds-primary px-2 py-0.5 text-[11px] font-bold text-white">{comments.length}</span></h4>
+                      <div className="p-4">
+                        {lastComment ? (
+                          <article className="rounded-xl bg-ds-bg p-3 text-sm"><p className="text-xs font-bold text-ds-primary-deep">{lastComment.usuario} <span className="font-normal text-ds-text-secondary">· {fmtDateTime(lastComment.dataRegistro)}</span></p><p className="mt-1 line-clamp-3 whitespace-pre-wrap break-words text-ds-text-muted">{lastComment.conteudo ?? "Enviou uma imagem"}</p></article>
+                        ) : <p className="text-sm text-ds-text-secondary">Nenhum comentário ainda.</p>}
+                        <button type="button" onClick={() => setTab("Comentários")} className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] border border-ds-primary-deep text-sm font-semibold text-ds-primary-deep hover:bg-ds-primary-deep hover:text-white"><Icon name="open_in_full" className="text-[18px]" />{comments.length ? "Abrir comentários" : "Escrever um comentário"}</button>
+                      </div>
+                    </section>
                   </div>
+                </div>
+              )}
+
+              {tab === "Comentários" && (
+                <div className="mx-auto max-w-4xl">
+                  <button type="button" onClick={() => setTab("Resumo")} className="mb-3 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-semibold text-ds-primary hover:bg-ds-bg"><Icon name="arrow_back" className="text-[18px]" />Voltar ao resumo</button>
+                  <OsComments os={os} tall onUpdated={(updated) => { setOs(updated); setLiveComments(null); onChanged(); }} />
                 </div>
               )}
 

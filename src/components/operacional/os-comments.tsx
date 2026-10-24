@@ -95,7 +95,7 @@ function Bubble({ os, e, mine, onEdit, onDelete, onOpen }: { os: OsDetail; e: Os
   );
 }
 
-export function OsComments({ os, onUpdated }: { os: OsDetail; onUpdated: (os: OsDetail) => void }) {
+export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUpdated: (os: OsDetail) => void; tall?: boolean }) {
   const me = cachedMe();
   const visible = (list: OsComment[]) => list.filter((e) => e.conteudo || e.anexos?.length);
   const [events, setEvents] = useState<OsComment[]>(visible(os.events));
@@ -158,7 +158,7 @@ export function OsComments({ os, onUpdated }: { os: OsDetail; onUpdated: (os: Os
     <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-ds-border-subtle bg-white" aria-label="Comentários">
       <h4 className="flex items-center gap-2 border-b border-ds-border-subtle px-4 py-3 text-sm font-bold text-ds-primary-deep"><Icon name="forum" className="text-[18px]" />Comentários<span className="rounded-full bg-ds-bg px-2 py-0.5 text-xs font-semibold text-ds-text-muted">{events.length}</span><span className="ml-auto flex items-center gap-1 text-[11px] font-medium text-ds-success" title="Atualiza sozinho"><span className="h-2 w-2 animate-pulse rounded-full bg-ds-success" />ao vivo</span></h4>
 
-      <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className="h-[min(26rem,52vh)] min-h-[14rem] space-y-4 overflow-y-auto overscroll-contain bg-ds-bg/40 p-3 sm:p-4 lg:h-[min(32rem,58vh)]">
+      <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className={`${tall ? "h-[min(62vh,44rem)] min-h-[18rem]" : "h-[min(26rem,52vh)] min-h-[14rem] lg:h-[min(32rem,58vh)]"} space-y-4 overflow-y-auto overscroll-contain bg-ds-bg/40 p-3 sm:p-4`}>
         {os.technicalSheet && (
           <article className="rounded-xl border border-ds-border-subtle bg-white p-4">
             <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ds-primary-deep"><Icon name="description" className="text-[16px]" />Ficha técnica</p>
