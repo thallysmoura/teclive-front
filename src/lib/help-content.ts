@@ -361,7 +361,7 @@ export const HELP_SECTIONS: HelpSection[] = [
         tips: ["Várias tentativas inválidas seguidas podem indicar alguém tentando adivinhar a senha: redefina a senha do usuário."],
       },
       {
-        id: "empresa", title: "Dados da empresa", icon: "business", path: "Governança › Dados da empresa", href: "/company",
+        id: "empresa", title: "Dados da empresa", icon: "business", path: "Configurações › Empresa › Dados da Empresa", href: "/configuracoes/dados-da-empresa",
         purpose: "Cadastro da própria empresa (razão social, CNPJ, endereço, contatos e inscrições), usado em documentos e propostas.",
         steps: ["Preencha os campos; CNPJ, telefone e CEP são formatados enquanto você digita.", "Clique em Salvar para gravar as alterações.", "Mantenha esses dados atualizados: eles aparecem nas propostas e impressões."],
       },

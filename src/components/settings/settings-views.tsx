@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { CompanyView } from "@/components/settings/company-view";
 import { peopleClient } from "@/lib/cadastros";
 import { getFilesUsage, getSetting, saveSetting } from "@/lib/settings";
 import { defaultsOf, type Column, type Field, type Row, type Section } from "@/lib/settings-schema";
@@ -246,5 +247,6 @@ export function SectionView({ section }: { section: Section }) {
     case "app": return <AppView section={section} />;
     case "monitoring": return <MonitoringView section={section} />;
     case "files": return <FilesView section={section} />;
+    case "company": return <CompanyView admin />;
   }
 }

@@ -11,7 +11,7 @@ export type Column = { key: string; label: string; type?: "text" | "number" | "s
 export type Row = Record<string, string | number | boolean>;
 export type Section = {
   slug: string; group: string; title: string; icon: string; href?: string;
-  kind: "form" | "table" | "info" | "files" | "app" | "monitoring" | "wallet";
+  kind: "form" | "table" | "info" | "files" | "app" | "monitoring" | "wallet" | "company";
   blocks?: Block[]; columns?: Column[]; rows?: Row[]; newLabel?: string; intro?: string; benefits?: string[]; status?: string;
 };
 
@@ -35,7 +35,7 @@ export const SECTIONS: Section[] = [
   { slug: "perfis-de-acesso", group: "Usuários", title: "Perfis de Acesso", icon: "lock", href: "/access-control", kind: "info" },
 
   /* Empresa */
-  { slug: "dados-da-empresa", group: "Empresa", title: "Dados da Empresa", icon: "business", href: "/company", kind: "info" },
+  { slug: "dados-da-empresa", group: "Empresa", title: "Dados da Empresa", icon: "business", kind: "company" },
   {
     slug: "empresa-config", group: "Empresa", title: "Configurações da Empresa", icon: "settings", kind: "form",
     blocks: [
