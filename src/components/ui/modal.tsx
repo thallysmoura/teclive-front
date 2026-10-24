@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 export function Modal({
   open,
@@ -29,9 +30,10 @@ export function Modal({
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, [open]);
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  // Portal no <body>: um ancestral com transform (animação de entrada da página) quebraria o position: fixed.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#10202e]/50 md:p-4">
       <div className="absolute inset-0" onClick={onClose} />
       <div
@@ -42,7 +44,7 @@ export function Modal({
         aria-label={labelledBy ? undefined : "Janela de diálogo"}
         tabIndex={-1}
         onKeyDown={(event) => {
-          if (event.key === "Escape") { event.preventDefault(); onClose(); }
+          if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); }
           if (event.key !== "Tab") return;
           const controls = [...(ref.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]') ?? [])].filter((element) => element.getClientRects().length > 0);
           const first = controls[0];
@@ -58,6 +60,7 @@ export function Modal({
         </button>}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

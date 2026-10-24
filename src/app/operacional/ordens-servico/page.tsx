@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Breadcrumb, PageShell } from "@/components/layout/page-shell";
 import { OsDetailModal } from "@/components/operacional/os-detail";
 import { OsFormModal } from "@/components/operacional/os-form";
@@ -36,6 +37,11 @@ function Orders() {
   const [form, setForm] = useState<{ os: OsDetail | null } | null>(null);
   const [menu, setMenu] = useState<{ row: OsRow; top: number; right: number } | null>(null);
   const [reload, setReload] = useState(0);
+  // ?os=<id> (vindo de uma notificação) abre a OS direto para acompanhar.
+  const pathname = usePathname();
+  const osParam = useSearchParams().get("os");
+  useEffect(() => { if (osParam) setOpenId(osParam); }, [osParam]);
+  const closeDetail = () => { setOpenId(null); if (osParam) window.history.replaceState(null, "", pathname); };
 
   const params: OsListParams = { q, from, until, ...filters, page, orderBy, desc };
   const key = JSON.stringify(params);
@@ -179,12 +185,12 @@ function Orders() {
         </ul>
       )}
 
-      {openId && <OsDetailModal id={openId} onClose={() => setOpenId(null)} onChanged={() => setReload((n) => n + 1)} onEdit={(os) => { setOpenId(null); setForm({ os }); }} />}
+      {openId && <OsDetailModal id={openId} onClose={closeDetail} onChanged={() => setReload((n) => n + 1)} onEdit={(os) => { setOpenId(null); setForm({ os }); }} />}
       {form && <OsFormModal os={form.os} onClose={() => setForm(null)} onSaved={(os) => { setForm(null); setReload((n) => n + 1); setOpenId(os.id); }} />}
     </div>
   );
 }
 
 export default function ServiceOrdersPage() {
-  return <PageShell permissionKey={OPERACIONAL_KEYS.ordens}>{() => <Orders />}</PageShell>;
+  return <PageShell permissionKey={OPERACIONAL_KEYS.ordens}>{() => <Suspense><Orders /></Suspense>}</PageShell>;
 }

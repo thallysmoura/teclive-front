@@ -6,6 +6,7 @@ import { FieldLabel, Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
 import { money } from "@/lib/cadastros";
+import { OsComments } from "@/components/operacional/os-comments";
 import { OS_STATUS, addressLine, fmtDate, fmtDateTime, formatMinutes, formatOsNumber, osClient, type OsDetail, type OsFilters } from "@/lib/operacional";
 import { formatQuoteNumber } from "@/lib/comercial";
 
@@ -111,7 +112,6 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
   const [filters, setFilters] = useState<OsFilters | null>(null);
   const [tab, setTab] = useState<Tab>("Resumo");
   const [error, setError] = useState("");
-  const [comment, setComment] = useState("");
   const [adding, setAdding] = useState<"service" | "product" | null>(null);
   const [menu, setMenu] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -171,8 +171,8 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
 
             <div className="p-5">
               {tab === "Resumo" && (
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <section className="rounded-xl border border-ds-border-subtle">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+                  <section className="self-start rounded-xl border border-ds-border-subtle">
                     <h4 className="border-b border-ds-border-subtle px-4 py-2.5 text-sm font-bold text-ds-primary-deep">Dados Básicos</h4>
                     <Field icon="location_on" label={os.address?.titulo ?? "Local"}>{addressLine(os.address)}</Field>
                     <Field icon="call" label="Contato Principal">{os.contact?.nome ?? "Sem contato"}{os.contact?.telefone ? ` · ${os.contact.telefone}` : ""}</Field>
@@ -188,18 +188,7 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
                       <h4 className="border-b border-ds-border-subtle px-4 py-2.5 text-sm font-bold text-ds-primary-deep">Valores</h4>
                       <dl className="grid grid-cols-3 gap-2 p-4 text-sm"><div><dt className="text-xs font-bold text-ds-primary-deep">Serviços</dt><dd>{money(os.totalServices)}</dd></div><div><dt className="text-xs font-bold text-ds-primary-deep">Produtos</dt><dd>{money(os.totalProducts)}</dd></div><div><dt className="text-xs font-bold text-ds-primary-deep">Total</dt><dd className="font-bold">{money(os.totalServices + os.totalProducts)}</dd></div></dl>
                     </section>
-                    <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-ds-border-subtle">
-                      <h4 className="border-b border-ds-border-subtle px-4 py-2.5 text-sm font-bold text-ds-primary-deep">Comentários e Atendimentos</h4>
-                      <div className="max-h-72 flex-1 space-y-3 overflow-y-auto p-4">
-                        {os.technicalSheet && <article className="rounded-lg bg-ds-bg p-3 text-sm"><p className="mb-1 text-xs font-bold text-ds-primary-deep">Ficha técnica</p><p className="whitespace-pre-wrap text-ds-text-muted">{os.technicalSheet}</p></article>}
-                        {os.events.filter((e) => e.conteudo).map((e, i) => <article key={i} className="rounded-lg border border-ds-border-subtle p-3 text-sm"><p className="text-xs font-bold text-ds-primary-deep">{e.usuario} <span className="font-normal text-ds-text-secondary">· {fmtDateTime(e.dataRegistro)}</span></p><p className="mt-1 whitespace-pre-wrap text-ds-text-muted">{e.conteudo}</p></article>)}
-                        {!os.technicalSheet && !os.events.some((e) => e.conteudo) && <p className="py-6 text-center text-sm text-ds-text-secondary">Nenhum comentário ainda.</p>}
-                      </div>
-                      <form className="flex gap-2 border-t border-ds-border-subtle p-3" onSubmit={(e) => { e.preventDefault(); if (!comment.trim()) return; void run(() => osClient.comment(os.id, comment)).then(() => setComment("")); }}>
-                        <Input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Adicionar um comentário" aria-label="Novo comentário" />
-                        <Button type="submit" aria-label="Enviar comentário" className="w-12 px-0"><Icon name="send" className="text-[18px]" /></Button>
-                      </form>
-                    </section>
+                    <OsComments os={os} onUpdated={(updated) => { setOs(updated); onChanged(); }} />
                   </div>
                 </div>
               )}

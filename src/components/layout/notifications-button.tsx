@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listNotifications, markAllNotificationsRead, markNotificationRead, type AppNotification } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { useNavigationTransition } from "@/components/layout/navigation-transition";
 
 function BellIcon({ className }: { className?: string }) {
   return <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true" className={className}>
@@ -72,6 +73,7 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
   const [pos, setPos] = useState<{ top: number; left?: number; right?: number }>({ top: 64 });
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const navigate = useNavigationTransition();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -88,7 +90,7 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
 
   useEffect(() => {
     void load();
-    const timer = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 60000);
+    const timer = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 15000);
     return () => clearInterval(timer);
   }, [load]);
 
@@ -110,6 +112,9 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
   }
 
   async function read(n: AppNotification) {
+    // Notificações com destino (ex.: comentário em uma OS) levam direto para a tela.
+    const url = (n.data as { url?: unknown } | null)?.url;
+    if (typeof url === "string" && url.startsWith("/")) { setOpen(false); navigate(url); }
     if (n.readAt) return;
     setItems((list) => list.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)));
     setUnread((c) => Math.max(0, c - 1));

@@ -65,12 +65,13 @@ export type OsRow = {
   total: number; pendencies: number; attachments: number;
 };
 export type OsItem = { ordemServicoItemId: number; quantidade: number; quantidadeEntregue?: number; cobrado?: boolean; valores?: { unitario?: number; total?: number; desconto?: { valor?: number } | number }; servico?: { descricao: string }; produto?: { descricao: string; identificador?: string; unidadeMedida?: string }; orcamento?: { numero: number } | null };
+export type OsComment = { id?: string; tipo: number; conteudo: string | null; dataRegistro: string; usuario: string; usuarioId?: string; avatarUrl?: string | null; anexos?: { id: string; fileName: string; mimeType: string; size: number }[] };
 export type OsDetail = OsRow & {
   purpose: number; openedBy: string; interruptedAt: string | null; contact: { nome?: string; email?: string | null; telefone?: string | null } | null; technicalSheet: string | null; cause: string | null; solution: string | null;
   paymentMethod: string | null; installments: number | null; totalServices: number; totalProducts: number; personId: string | null;
   services: OsItem[]; products: OsItem[]; toWithdraw: OsItem[];
   calls: { atendimentoId: number; descricao?: string; dataHoraInicio?: string; dataHoraFim?: string; duracaoEmMinutos?: number; registro?: { nomeUsuario?: string } }[];
-  events: { tipo: number; conteudo: string | null; dataRegistro: string; usuario: string }[];
+  events: OsComment[];
   history: { dataHora: string; descricao: string; nomeUsuario: string; isLog: boolean }[];
   attachments: { ordemServicoArquivoId: number; nomeArquivo: string; extensaoArquivo: string; legenda: string | null; nomeUsuario: string; dataAnexo: string; url: string }[];
   advances: { numeroConta: string; parcela: number; dataVencimento: string; valor: number; status: number; formaPagamento?: { descricao: string } }[];
@@ -101,7 +102,15 @@ export const osClient = {
   async operations(): Promise<OperationsData> { return parse(await authFetch("/service-orders/operations", { cache: "no-store" }), "Não foi possível carregar a central."); },
   async create(input: OsInput): Promise<OsDetail> { return parse(await authFetch("/service-orders", send("POST", input)), "Não foi possível abrir a OS."); },
   async update(id: string, input: OsInput): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}`, send("PUT", input)), "Não foi possível salvar a OS."); },
-  async comment(id: string, text: string): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/comments`, send("POST", { text })), "Não foi possível comentar."); },
+  async comment(id: string, input: { text: string; fileIds?: string[] }): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/comments`, send("POST", input)), "Não foi possível comentar."); },
+  async comments(id: string): Promise<OsComment[]> { return parse(await authFetch(`/service-orders/${id}/comments`, { cache: "no-store" }), "Não foi possível atualizar os comentários."); },
+  async uploadImage(id: string, file: { fileName: string; mimeType: string; fileBase64: string }): Promise<{ id: string; fileName: string; mimeType: string; size: number }> { return parse(await authFetch(`/service-orders/${id}/files`, send("POST", file)), "Não foi possível enviar a imagem."); },
+  /** Baixa a imagem com a sessão do usuário e devolve uma URL local para exibir. */
+  async imageUrl(id: string, fileId: string): Promise<string> {
+    const res = await authFetch(`/service-orders/${id}/files/${fileId}`, { cache: "force-cache" });
+    if (!res.ok) throw new ApiError("Não foi possível carregar a imagem.");
+    return URL.createObjectURL(await res.blob());
+  },
   async addItem(id: string, input: { kind: "service" | "product"; description: string; quantity: number; unitValue: number; discount?: number }): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/items`, send("POST", input)), "Não foi possível adicionar o item."); },
   async removeItem(id: string, itemId: number): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/items/${itemId}`, send("DELETE")), "Não foi possível remover o item."); },
   async deliver(id: string, itemId: number, quantity?: number): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/items/${itemId}/deliver`, send("POST", { quantity })), "Não foi possível registrar a entrega."); },
