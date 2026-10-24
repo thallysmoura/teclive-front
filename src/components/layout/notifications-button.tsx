@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listNotifications, markAllNotificationsRead, markNotificationRead, type AppNotification } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useNavigationTransition } from "@/components/layout/navigation-transition";
 
 function BellIcon({ className }: { className?: string }) {
@@ -22,6 +23,13 @@ function timeAgo(iso: string) {
   const days = Math.floor(hours / 24);
   if (days < 7) return `há ${days} ${days === 1 ? "dia" : "dias"}`;
   return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+const exact = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Manaus", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+/** Notificações de "nova pessoa aguardando permissão" trazem nome e foto de quem entrou. */
+function personOf(n: AppNotification): { name: string; avatarUrl: string | null } | null {
+  const d = n.data as { type?: string; name?: string; avatarUrl?: string | null } | null;
+  return d?.type === "access-request" && d.name ? { name: d.name, avatarUrl: d.avatarUrl ?? null } : null;
 }
 
 /** Lista de notificações no estilo das redes sociais (abas, ponto de não lida, "marcar todas"). */
@@ -43,11 +51,11 @@ function NotificationList({ items, unreadCount, onRead, onReadAll, loading }: { 
         {shown.map((n) => (
           <li key={n.id}>
             <button type="button" onClick={() => onRead(n)} className="flex w-full items-start gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-ds-bg">
-              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ds-primary/10 text-ds-primary"><BellIcon className="h-5 w-5" /></span>
+              {personOf(n) ? <span className="mt-0.5 shrink-0"><UserAvatar name={personOf(n)!.name} avatarUrl={personOf(n)!.avatarUrl} size={40} /></span> : <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ds-primary/10 text-ds-primary"><BellIcon className="h-5 w-5" /></span>}
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm text-ds-text ${n.readAt ? "font-medium" : "font-bold"}`}>{n.title}</span>
                 <span className="line-clamp-2 block text-sm text-ds-text-muted">{n.message}</span>
-                <span className={`block text-xs ${n.readAt ? "text-ds-text-secondary" : "font-semibold text-ds-primary"}`}>{timeAgo(n.createdAt)}</span>
+                <span className={`block text-xs ${n.readAt ? "text-ds-text-secondary" : "font-semibold text-ds-primary"}`}>{personOf(n) ? `${exact(n.createdAt)} · ${timeAgo(n.createdAt)}` : timeAgo(n.createdAt)}</span>
               </span>
               {!n.readAt && <span className="mt-3 h-2.5 w-2.5 shrink-0 rounded-full bg-ds-primary" aria-label="Não lida" />}
             </button>
@@ -87,6 +95,12 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
     query.addEventListener("change", sync);
     return () => query.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    const refresh = () => void load();
+    window.addEventListener("eg:notifications", refresh);
+    return () => window.removeEventListener("eg:notifications", refresh);
+  }, [load]);
 
   useEffect(() => {
     void load();

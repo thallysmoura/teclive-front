@@ -114,6 +114,7 @@ function start() {
   client.on("presence:update", (update: PresenceUpdate) => {
     publish({ ...snapshot, users: { ...snapshot.users, [update.id]: { ...snapshot.users[update.id], ...update } } });
   });
+  client.on("notification:new", () => window.dispatchEvent(new Event("eg:notifications")));
   client.on("disconnect", () => publish({ ...snapshot, connected: false }));
   client.on("presence:expired", () => {
     client.disconnect();
