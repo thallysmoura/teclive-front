@@ -11,9 +11,9 @@ const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "
 
 function Kpi({ icon, label, value, hint, tone = "text-ds-primary-deep" }: { icon: string; label: string; value: string | number; hint?: string; tone?: string }) {
   return (
-    <div className="rounded-xl border border-ds-border-subtle bg-white p-4">
+    <div className="min-w-0 rounded-xl border border-ds-border-subtle bg-white p-4">
       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-ds-text-secondary"><Icon name={icon} className="text-[18px]" />{label}</div>
-      <p className={`mt-2 text-2xl font-extrabold ${tone}`}>{value}</p>
+      <p className={`mt-2 truncate text-xl font-extrabold sm:text-2xl ${tone}`}>{value}</p>
       {hint && <p className="text-xs text-ds-text-secondary">{hint}</p>}
     </div>
   );
@@ -56,12 +56,12 @@ function Management() {
             <Kpi icon="payments" label="Valor total" value={money(data.value)} hint="sem canceladas" />
             <Kpi icon="timer" label="Tempo médio" value={`${data.averageCloseDays} dias`} hint="abertura → fechamento" />
           </div>
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <Bars title="OS por situação" rows={data.byStatus} />
             <Bars title="OS por tipo" rows={data.byType} color="#12A262" />
             <Bars title="Abertas por técnico" rows={data.byTechnician} color="#F7941D" />
           </div>
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <Bars title="Valor por mês de abertura" rows={data.monthly.map((m) => ({ label: `${MONTHS[Number(m.month.slice(5)) - 1]}/${m.month.slice(2, 4)} · ${m.count} OS`, value: m.value }))} format={money} color="#008DFF" />
             <section className="rounded-xl border border-ds-border-subtle bg-white p-4">
               <h2 className="mb-3 text-sm font-bold text-ds-primary-deep">OS em atraso (mais antigas)</h2>

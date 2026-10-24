@@ -43,7 +43,7 @@ const norm = (v: string) => v.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
 
 function Card({ title, subtitle, children, action, className = "" }: { title: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode; className?: string }) {
   return (
-    <section className={`flex flex-col rounded-2xl border border-ds-border-subtle bg-white p-5 shadow-sm ${className}`}>
+    <section className={`flex min-w-0 flex-col rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-sm sm:p-5 ${className}`}>
       <header className="mb-4 flex items-start justify-between gap-3"><div><h2 className="text-sm font-bold text-ds-primary-deep">{title}</h2>{subtitle && <p className="text-xs text-ds-text-secondary">{subtitle}</p>}</div>{action}</header>
       {children}
     </section>
@@ -276,7 +276,7 @@ function Dashboard() {
   }
   const sortBy = (key: string) => setSort((s) => ({ key, desc: s.key === key ? !s.desc : key === "risk" || key === "value" || key === "progress" ? true : false }));
   const th = (key: string, label: string, cls = "") => <th className={cls}><button type="button" onClick={() => sortBy(key)} className="inline-flex items-center gap-1 font-bold uppercase">{label}<Icon name={sort.key === key ? (sort.desc ? "arrow_downward" : "arrow_upward") : "unfold_more"} className={`text-[14px] ${sort.key === key ? "" : "opacity-50"}`} /></button></th>;
-  const selectCls = "h-10 rounded-[10px] border border-ds-border bg-white px-3 text-sm text-ds-text outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20";
+  const selectCls = "h-10 w-full min-w-0 rounded-[10px] sm:w-auto border border-ds-border bg-white px-3 text-sm text-ds-text outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20";
 
   return (
     <div className="mx-auto max-w-[1400px]">
@@ -290,10 +290,10 @@ function Dashboard() {
       {error && <p role="alert" className="mb-4 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
 
       {/* Filtros */}
-      <div className="sticky top-0 z-20 -mx-1 mb-5 rounded-2xl border border-ds-border-subtle bg-white/95 p-3 shadow-sm backdrop-blur">
+      <div className="sm:sticky sm:top-0 z-20 mb-5 rounded-2xl border border-ds-border-subtle bg-white/95 p-3 shadow-sm backdrop-blur">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[240px] flex-1"><Icon name="search" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-ds-text-secondary" /><Input type="search" value={f.q} onChange={(e) => set({ q: e.target.value })} placeholder="Buscar obra por número, cliente, endereço, motivo ou técnico..." className="h-10 pl-10" aria-label="Buscar obras" /></div>
-          <div className="flex items-center gap-1.5 text-sm text-ds-text-muted"><span className="hidden sm:inline">Aberta entre</span><Input type="date" aria-label="De" value={f.from} onChange={(e) => set({ from: e.target.value })} className="h-10 w-38" /><span>e</span><Input type="date" aria-label="Até" value={f.until} onChange={(e) => set({ until: e.target.value })} className="h-10 w-38" /></div>
+          <div className="flex w-full items-center gap-1.5 text-sm text-ds-text-muted sm:w-auto"><span className="hidden lg:inline">Aberta entre</span><Input type="date" aria-label="De" value={f.from} onChange={(e) => set({ from: e.target.value })} className="h-10 min-w-0 flex-1 sm:w-38 sm:flex-none" /><span>e</span><Input type="date" aria-label="Até" value={f.until} onChange={(e) => set({ until: e.target.value })} className="h-10 min-w-0 flex-1 sm:w-38 sm:flex-none" /></div>
           <select aria-label="Tipo" className={selectCls} value={f.type} onChange={(e) => set({ type: e.target.value })}><option value="">Todos os tipos</option>{Object.entries(OS_TYPES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           <select aria-label="Técnico" className={selectCls} value={f.technician} onChange={(e) => set({ technician: e.target.value })}><option value="">Todos os técnicos</option>{options.technicians.map((t) => <option key={t}>{t}</option>)}</select>
           <select aria-label="Vendedor" className={selectCls} value={f.seller} onChange={(e) => set({ seller: e.target.value })}><option value="">Todos os vendedores</option>{options.sellers.map((t) => <option key={t}>{t}</option>)}</select>
@@ -317,20 +317,20 @@ function Dashboard() {
           {/* Análises automáticas */}
           {insights.length > 0 && (
             <Card title="Leitura executiva" subtitle="Alertas gerados automaticamente a partir dos dados do filtro atual">
-              <ul className="grid gap-2 lg:grid-cols-2">{insights.map((i, idx) => {
+              <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{insights.map((i, idx) => {
                 const tone = { danger: "border-ds-danger-border bg-ds-danger-bg text-ds-danger-text", warning: "border-[#F7D9A8] bg-[#FFF8EC] text-ds-warning-text", info: "border-ds-border-subtle bg-ds-bg text-ds-text-muted", success: "border-[#BDE8D6] bg-[#EEFBF5] text-[#0e6b4a]" }[i.tone];
                 return <li key={idx}><button type="button" disabled={i.group === undefined || i.group === ""} onClick={() => i.group && set({ group: i.group, onlyActive: true })} className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm ${tone} ${i.group ? "hover:brightness-95" : "cursor-default"}`}><Icon name={i.icon} className="mt-0.5 text-[20px]" /><span className="flex-1">{i.text}</span>{i.group && <Icon name="arrow_forward" className="mt-0.5 text-[18px] opacity-60" />}</button></li>;
               })}</ul>
             </Card>
           )}
 
-          <div className="grid gap-5 xl:grid-cols-[1.1fr_1fr_1.2fr]">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_1fr_1.2fr]">
             <Card title="Funil da carteira" subtitle="Da venda ganha ao faturamento"><Funnel stages={funnel} active={f.group} onPick={(k) => (k === "__quotes" ? document.getElementById("quotes-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }) : toggle({ group: k }))} /></Card>
             <Card title="Situação das obras" subtitle="Distribuição por status"><Donut data={statusData} active={f.status} onPick={(k) => toggle({ status: k })} /></Card>
             <Card title="Aberturas × fechamentos" subtitle="Últimos meses — clique no mês para filtrar"><MonthlyChart data={monthly} active={f.month} onPick={(k) => toggle({ month: k })} /></Card>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-4">
             <Card title="Carga por técnico" subtitle="Obras ativas (vermelho = em atraso)"><HBars rows={byTech} color="#00355A" active={f.technician} onPick={(k) => k !== "Sem técnico" && toggle({ technician: k })} /></Card>
             <Card title="Principais motivos" subtitle="Quantidade de obras"><HBars rows={byDefect} color="#7A5AF8" active={f.defect} onPick={(k) => toggle({ defect: k })} /></Card>
             <Card title="Maiores clientes" subtitle="Valor total das obras"><HBars rows={byClient} color="#00A972" format={compact} active={f.client} onPick={(k) => toggle({ client: k })} /></Card>
@@ -341,7 +341,7 @@ function Dashboard() {
           <Card title="Orçamentos ganhos aguardando abertura de OS" subtitle={`${data.pendingQuotes.length} orçamentos · ${compact(kpi.pipeline)} em receita parada`} className="scroll-mt-24" action={undefined}>
             <div id="quotes-panel" />
             {data.pendingQuotes.length === 0 ? <p className="py-6 text-center text-sm text-ds-text-secondary">Nenhum orçamento pendente. Toda venda ganha já virou obra.</p> : (
-              <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">{data.pendingQuotes.map((q) => (
+              <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">{data.pendingQuotes.map((q) => (
                 <li key={q.id} className="flex flex-col gap-2 rounded-xl border border-ds-border-subtle p-3 text-sm"><span className="flex items-start justify-between gap-2"><strong className="text-ds-primary-deep">{q.personName}</strong><span className="shrink-0 rounded bg-ds-bg px-1.5 py-0.5 text-[11px] font-bold">{formatQuoteNumber(q.number)}</span></span>
                   <span className="text-xs text-ds-text-secondary">{q.title ?? "Orçamento sem título"} · ganho em {fmtDate(q.wonAt)}</span>
                   <span className="mt-auto flex items-center justify-between"><strong>{money(q.total)}</strong><button type="button" disabled={busy === q.id} onClick={() => void openQuote(q)} className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#F7941D] px-2.5 text-xs font-semibold text-[#F7941D] hover:bg-[#F7941D] hover:text-white disabled:opacity-50"><Icon name="build" className="text-[15px]" />{busy === q.id ? "Abrindo..." : "Abrir OS"}</button></span></li>

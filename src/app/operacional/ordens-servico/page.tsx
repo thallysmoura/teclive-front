@@ -97,13 +97,13 @@ function Orders() {
       )}
 
       <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-ds-border-subtle bg-white p-4">
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <span className="text-sm text-ds-text-muted">Aberto entre</span>
-          <Input type="date" aria-label="De" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="w-40" />
+          <Input type="date" aria-label="De" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="min-w-0 flex-1 sm:w-40 sm:flex-none" />
           <span className="text-xs text-ds-text-secondary">e</span>
-          <Input type="date" aria-label="Até" value={until} onChange={(e) => { setUntil(e.target.value); setPage(1); }} className="w-40" />
+          <Input type="date" aria-label="Até" value={until} onChange={(e) => { setUntil(e.target.value); setPage(1); }} className="min-w-0 flex-1 sm:w-40 sm:flex-none" />
         </div>
-        <div className="relative min-w-[220px] max-w-md flex-1">
+        <div className="relative min-w-0 flex-1 basis-full sm:min-w-[220px] sm:basis-0">
           <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-ds-text-secondary" />
           <Input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="Pesquisar por número, cliente, endereço ou motivo..." className="pl-10" aria-label="Pesquisar ordens de serviço" />
         </div>

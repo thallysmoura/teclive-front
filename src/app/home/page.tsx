@@ -23,7 +23,7 @@ function greeting() {
 
 function Kpi({ href, icon, label, value, hint, tone, trend }: { href: string; icon: string; label: string; value: string; hint?: string; tone: string; trend?: { text: string; good: boolean } }) {
   return (
-    <Link href={href} className="group rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-ds-primary hover:shadow-md">
+    <Link href={href} className="group min-w-0 rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-ds-primary hover:shadow-md">
       <span className="flex items-center justify-between gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: `${tone}1a`, color: tone }}><Icon name={icon} className="text-[20px]" /></span><Icon name="arrow_outward" className="text-[16px] text-ds-border transition-colors group-hover:text-ds-primary" /></span>
       <span className="mt-3 block text-[11px] font-bold uppercase tracking-wider text-ds-text-secondary">{label}</span>
       <span className="mt-1 block text-[26px] font-extrabold leading-none tracking-tight" style={{ color: tone }}>{value}</span>
@@ -34,7 +34,7 @@ function Kpi({ href, icon, label, value, hint, tone, trend }: { href: string; ic
 
 function Section({ icon, title, subtitle, href, linkLabel, children }: { icon: string; title: string; subtitle: string; href: string; linkLabel: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-3xl border border-ds-border-subtle bg-white/60 p-4 sm:p-5">
+    <section className="min-w-0 rounded-3xl border border-ds-border-subtle bg-white/60 p-3 sm:p-5">
       <header className="mb-4 flex flex-wrap items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ds-primary-deep text-white"><Icon name={icon} className="text-[22px]" /></span>
         <div className="min-w-0 flex-1"><h2 className="text-base font-extrabold text-ds-primary-deep">{title}</h2><p className="text-xs text-ds-text-secondary">{subtitle}</p></div>
         <Link href={href} className="inline-flex h-9 items-center gap-1 rounded-lg border border-ds-primary-deep px-3 text-xs font-semibold text-ds-primary-deep hover:bg-ds-primary-deep hover:text-white">{linkLabel}<Icon name="arrow_forward" className="text-[16px]" /></Link></header>
@@ -69,14 +69,14 @@ function Home({ user }: { user: Me }) {
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      <header className="mb-6 flex flex-wrap items-center gap-4 rounded-3xl bg-gradient-to-r from-ds-primary-deep via-[#00558c] to-ds-primary p-5 text-white shadow-sm sm:p-6">
-        <span className="rounded-full bg-white/15 p-1.5"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={72} presence="online" /></span>
+      <header className="relative mb-5 flex items-center gap-3 rounded-3xl bg-gradient-to-r from-ds-primary-deep via-[#00558c] to-ds-primary p-4 pr-16 text-white shadow-sm sm:mb-6 sm:gap-4 sm:p-6 sm:pr-6">
+        <span className="shrink-0 rounded-full bg-white/15 p-1 sm:p-1.5"><span className="hidden sm:block"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={72} presence="online" /></span><span className="sm:hidden"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={52} presence="online" /></span></span>
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Olá, {first}!</h1>
-          <p className="mt-1 text-sm text-white/85">{greeting()} · <span className="capitalize">{WEEKDAYS[now.getDay()]}</span>, {now.getDate()} de {["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"][now.getMonth()]} de {now.getFullYear()}</p>
-          <p className="mt-0.5 text-xs text-white/70">Painel executivo — visão consolidada de toda a operação da Teclive.</p>
+          <h1 className="truncate text-xl font-extrabold tracking-tight sm:text-3xl">Olá, {first}!</h1>
+          <p className="mt-0.5 text-[13px] leading-snug text-white/85 sm:mt-1 sm:text-sm">{greeting()} · <span className="capitalize">{WEEKDAYS[now.getDay()]}</span>, {now.getDate()} de {["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"][now.getMonth()]}<span className="hidden sm:inline"> de {now.getFullYear()}</span></p>
+          <p className="mt-0.5 hidden text-xs text-white/70 sm:block">Painel executivo — visão consolidada de toda a operação da Teclive.</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-white/80">{data && <span>Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
+        <div className="absolute right-3 top-3 flex items-center gap-2 text-xs text-white/80 sm:static">{data && <span className="hidden md:inline">Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
           <button type="button" onClick={() => void load()} aria-label="Atualizar painel" title="Atualizar" className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 hover:bg-white/25"><Icon name="refresh" className="text-[20px]" /></button></div>
       </header>
 
@@ -101,7 +101,7 @@ function Home({ user }: { user: Me }) {
 
           {c && data.access.comercial && (
             <Section icon="work" title="Comercial" subtitle="Funil de vendas, receita e desempenho do time" href="/comercial/orcamentos" linkLabel="Ver orçamentos">
-              <div className="grid gap-4 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <ChartCard title="Orçamentos por situação"><Donut data={c.statuses} center={String(c.total)} /></ChartCard>
                 <ChartCard title="Receita ganha por mês"><Columns data={c.monthlyWon} format={compact} /></ChartCard>
                 <ChartCard title="Receita por vendedor"><BarList data={c.bySeller} format={compact} /></ChartCard>
@@ -115,7 +115,7 @@ function Home({ user }: { user: Me }) {
 
           {o && (
             <Section icon="build" title="Operacional" subtitle="Ordens de serviço, prazos, equipe e faturamento" href="/gestao-obras" linkLabel="Abrir Gestão de Obras">
-              <div className="grid gap-4 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <ChartCard title="OS por situação"><Donut data={o.byStatus} center={String(o.total)} /></ChartCard>
                 <ChartCard title="Valor aberto por mês"><Columns data={o.monthly.map((m) => ({ label: `${MONTHS[Number(m.month.slice(5)) - 1]}/${m.month.slice(2, 4)}`, value: m.value }))} format={compact} /></ChartCard>
                 <ChartCard title="Obras abertas por técnico"><BarList data={o.byTechnician.slice(0, 6)} /></ChartCard>
@@ -126,23 +126,23 @@ function Home({ user }: { user: Me }) {
               </div>
               {o.lateList.length > 0 && (
                 <div className="mt-4 rounded-2xl border border-ds-border-subtle bg-white p-4"><h3 className="mb-2 text-sm font-semibold text-ds-primary-deep">Obras mais atrasadas</h3>
-                  <ul className="grid gap-x-6 gap-y-1 text-sm md:grid-cols-2">{o.lateList.slice(0, 6).map((w) => <li key={w.id}><Link href={`/operacional/ordens-servico?os=${w.id}`} className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 hover:bg-ds-bg"><span className="min-w-0 truncate"><span className="mr-2 font-semibold text-ds-primary">{formatOsNumber(w.number)}</span>{w.personName}</span><span className="shrink-0 text-xs font-semibold text-ds-danger-text">venceu {fmtDate(w.scheduleEnd)}</span></Link></li>)}</ul></div>
+                  <ul className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm md:grid-cols-2">{o.lateList.slice(0, 6).map((w) => <li key={w.id} className="min-w-0"><Link href={`/operacional/ordens-servico?os=${w.id}`} className="flex min-w-0 items-center justify-between gap-3 rounded-lg px-2 py-1.5 hover:bg-ds-bg"><span className="min-w-0 truncate"><span className="mr-2 font-semibold text-ds-primary">{formatOsNumber(w.number)}</span>{w.personName}</span><span className="shrink-0 text-xs font-semibold text-ds-danger-text">venceu {fmtDate(w.scheduleEnd)}</span></Link></li>)}</ul></div>
               )}
             </Section>
           )}
 
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             {e && (
               <Section icon="inventory_2" title="Estoque" subtitle="Saldo, valor imobilizado e movimentação" href="/estoque/saldo" linkLabel="Consultar saldo">
-                <div className="grid gap-3 sm:grid-cols-3"><Mini label="Valor a custo" value={compact(e.costValue)} /><Mini label="Valor de venda" value={compact(e.saleValue)} /><Mini label="Movimentos (30 dias)" value={int(e.movements30)} href="/estoque/movimentos" /></div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3"><Mini label="Valor a custo" value={compact(e.costValue)} /><Mini label="Valor de venda" value={compact(e.saleValue)} /><Mini label="Movimentos (30 dias)" value={int(e.movements30)} href="/estoque/movimentos" /></div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3"><Mini label="Produtos ativos" value={int(e.products)} /><Mini label="Sem saldo" value={int(e.zero)} href="/estoque/saldo" /><Mini label="Locais" value={int(e.locations)} href="/estoque/locais" /></div>
                 {e.topProducts.length > 0 && <div className="mt-4"><ChartCard title="Maior valor em estoque"><BarList data={e.topProducts} format={compact} /></ChartCard></div>}
               </Section>
             )}
             {(k || g) && (
               <Section icon="groups" title="Base cadastral e equipe" subtitle="Clientes, fornecedores, catálogo e acessos" href={k ? "/cadastros/pessoas" : "/access-control"} linkLabel={k ? "Ver cadastros" : "Ver equipe"}>
-                {k && <div className="grid gap-3 sm:grid-cols-3"><Mini label="Clientes" value={int(k.clients)} href="/cadastros/pessoas" /><Mini label="Fornecedores" value={int(k.suppliers)} href="/cadastros/pessoas" /><Mini label="Técnicos" value={int(k.technicians)} href="/cadastros/pessoas" /><Mini label="Vendedores" value={int(k.sellers)} href="/cadastros/pessoas" /><Mini label="Serviços" value={int(k.services)} href="/cadastros/servicos" /><Mini label="Produtos" value={int(k.products)} href="/cadastros/produtos" /></div>}
-                {g && <div className={`${k ? "mt-4 " : ""}grid gap-3 sm:grid-cols-4`}><Mini label="Usuários" value={int(g.users)} href="/access-control" /><Mini label="Ativos (7 dias)" value={int(g.active7)} href="/access-control" /><Mini label="Aguardando permissão" value={int(g.pending)} href="/access-control" /><Mini label="Acessos (7 dias)" value={int(g.logs7)} href="/access-logs" /></div>}
+                {k && <div className="grid grid-cols-1 gap-3 sm:grid-cols-3"><Mini label="Clientes" value={int(k.clients)} href="/cadastros/pessoas" /><Mini label="Fornecedores" value={int(k.suppliers)} href="/cadastros/pessoas" /><Mini label="Técnicos" value={int(k.technicians)} href="/cadastros/pessoas" /><Mini label="Vendedores" value={int(k.sellers)} href="/cadastros/pessoas" /><Mini label="Serviços" value={int(k.services)} href="/cadastros/servicos" /><Mini label="Produtos" value={int(k.products)} href="/cadastros/produtos" /></div>}
+                {g && <div className={`${k ? "mt-4 " : ""}grid grid-cols-1 gap-3 sm:grid-cols-4`}><Mini label="Usuários" value={int(g.users)} href="/access-control" /><Mini label="Ativos (7 dias)" value={int(g.active7)} href="/access-control" /><Mini label="Aguardando permissão" value={int(g.pending)} href="/access-control" /><Mini label="Acessos (7 dias)" value={int(g.logs7)} href="/access-logs" /></div>}
               </Section>
             )}
           </div>

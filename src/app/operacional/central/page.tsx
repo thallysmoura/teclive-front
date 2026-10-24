@@ -58,7 +58,7 @@ function Central() {
             <Stat icon="engineering" label="Sem técnico" value={data.stats.withoutTech} />
             <Stat icon="event_busy" label="Sem agendamento" value={data.stats.withoutSchedule} />
           </div>
-          <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
             <section className="flex max-h-[calc(100vh-18rem)] min-h-[24rem] flex-col rounded-xl border border-ds-border-subtle bg-white">
               <div className="space-y-3 border-b border-ds-border-subtle p-3">
                 <div className="relative"><Icon name="search" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-ds-text-secondary" /><Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cliente, número ou endereço..." className="pl-10" aria-label="Pesquisar OS" /></div>
