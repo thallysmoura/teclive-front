@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
 import { money } from "@/lib/cadastros";
 import { OsComments } from "@/components/operacional/os-comments";
+import { ImageLightbox } from "@/components/operacional/image-lightbox";
 import { OS_STATUS, addressLine, fmtDate, fmtDateTime, formatMinutes, formatOsNumber, osClient, type OsDetail, type OsFilters } from "@/lib/operacional";
 import { formatQuoteNumber } from "@/lib/comercial";
 
@@ -117,6 +118,7 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
   const [closing, setClosing] = useState(false);
   const [histQ, setHistQ] = useState("");
   const [logs, setLogs] = useState(false);
+  const [zoom, setZoom] = useState<number | null>(null);
 
   useEffect(() => { osClient.get(id).then(setOs).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível carregar.")); osClient.filters().then(setFilters).catch(() => {}); }, [id]);
 
@@ -130,14 +132,14 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
   const history = (os?.history ?? []).filter((h) => (logs ? true : !h.isLog) && h.descricao.toLowerCase().includes(histQ.toLowerCase()));
 
   return (
-    <Modal open onClose={onClose} wide labelledBy="os-title">
-      <div className="flex max-h-[92vh] flex-col overflow-hidden">
-        <header className="flex items-center justify-between bg-ds-primary-deep px-5 py-3 text-white"><h2 id="os-title" className="text-sm font-bold">Ordem de Serviço</h2><button type="button" onClick={onClose} aria-label="Fechar" className="rounded p-1 hover:bg-white/15"><Icon name="close" className="text-[20px]" /></button></header>
-        {!os ? <div className="p-10 text-center text-sm text-ds-text-secondary">{error || "Carregando..."}</div> : (
+    <Modal open onClose={onClose} flush labelledBy="os-title">
+      <button type="button" onClick={onClose} aria-label="Fechar" title="Fechar (Esc)" className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full text-ds-text-secondary transition-colors hover:bg-ds-bg hover:text-ds-primary-deep"><Icon name="close" className="text-[24px]" /></button>
+      <div className="flex min-h-0 flex-1 flex-col">
+        {!os ? <div className="p-10 pt-16 text-center text-sm text-ds-text-secondary">{error || "Carregando..."}</div> : (
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4">
+            <div className="flex flex-wrap items-start justify-between gap-3 px-4 pb-1 pr-14 pt-4 sm:px-6 sm:pr-16">
               <div className="min-w-0">
-                <h3 className="truncate text-lg font-bold text-ds-primary-deep">{os.personName}</h3>
+                <h3 id="os-title" className="text-lg font-bold leading-snug text-ds-primary-deep sm:text-xl">{os.personName}</h3>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
                   <span className="rounded border border-ds-primary-deep px-2 py-0.5 text-ds-primary-deep">{formatOsNumber(os.number)}</span>
                   {status && <span className={`rounded px-2 py-0.5 ${status.className}`}>{status.label}</span>}
@@ -161,15 +163,15 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
               </div>
             </div>
 
-            <nav aria-label="Seções da OS" className="mt-4 flex overflow-x-auto border-b border-ds-border-subtle px-5 text-sm">
+            <nav aria-label="Seções da OS" className="mt-3 flex shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-ds-border-subtle px-2 text-sm sm:px-5">
               {TABS.map((t) => {
                 const count = t === "Serviços" ? os.services.length : t === "Produtos" ? os.products.length : t === "Atendimentos" ? os.calls.length : t === "Anexos" ? os.attachments.length : null;
                 return <button key={t} type="button" onClick={() => setTab(t)} aria-current={tab === t} className={`whitespace-nowrap border-b-2 px-3 py-2.5 font-medium ${tab === t ? "border-ds-primary-deep text-ds-primary-deep" : "border-transparent text-ds-text-muted hover:text-ds-primary"}`}>{t}{count ? <span className="ml-1 text-xs text-ds-text-secondary">({count})</span> : null}</button>;
               })}
             </nav>
-            {error && <p role="alert" className="mx-5 mt-3 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
+            {error && <p role="alert" className="mx-4 mt-3 sm:mx-6 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
 
-            <div className="p-5">
+            <div className="p-4 sm:p-6">
               {tab === "Resumo" && (
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
                   <section className="self-start rounded-xl border border-ds-border-subtle">
@@ -230,7 +232,7 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
               {tab === "Anexos" && (os.attachments.length ? (
                 <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{os.attachments.map((a) => (
                   <li key={a.ordemServicoArquivoId} className="overflow-hidden rounded-xl border border-ds-border-subtle text-xs">
-                    <a href={a.url} target="_blank" rel="noopener noreferrer" className="block aspect-video bg-ds-bg"><img src={a.url} alt={a.legenda ?? a.nomeArquivo} loading="lazy" className="h-full w-full object-cover" /></a>
+                    <button type="button" onClick={() => setZoom(os.attachments.indexOf(a))} aria-label={`Ampliar ${a.nomeArquivo}`} className="block aspect-video w-full cursor-zoom-in bg-ds-bg"><img src={a.url} alt={a.legenda ?? a.nomeArquivo} loading="lazy" className="h-full w-full object-cover" /></button>
                     <div className="p-2"><p className="truncate font-semibold text-ds-primary-deep">{a.nomeArquivo}.{a.extensaoArquivo}</p><p className="text-ds-text-secondary">{a.nomeUsuario} · {fmtDateTime(a.dataAnexo)}</p></div>
                   </li>))}</ul>
               ) : <Empty icon="attach_file" text="Nenhum anexo nesta OS." />)}
@@ -245,6 +247,7 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
           </div>
         )}
       </div>
+      {zoom !== null && os && <ImageLightbox items={os.attachments.map((a) => ({ name: `${a.nomeArquivo}.${a.extensaoArquivo}`, src: a.url }))} index={zoom} onIndex={setZoom} onClose={() => setZoom(null)} />}
       {closing && os && <CloseDialog os={os} filters={filters} onClose={() => setClosing(false)} onDone={(updated) => { setOs(updated); setClosing(false); onChanged(); }} />}
     </Modal>
   );
