@@ -49,7 +49,7 @@ export default function ProspectsPage() {
             <span className="block text-xs font-normal text-ds-text-secondary">Vendedor: {r.sellerName || "Não informado"}</span>
           </>
         ) },
-        { label: "CPF / CNPJ", render: (r) => formatDocument(r.document) },
+        { label: "CPF / CNPJ", sortKey: "document", render: (r) => formatDocument(r.document) },
         { label: "Status", sortKey: "isActive", render: (r) => activeBadge(r.isActive) },
       ]}
     />

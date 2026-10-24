@@ -43,7 +43,7 @@ export default function ServicesPage() {
       }}
       columns={[
         { label: "Descrição", sortKey: "description", strong: true, render: (r) => r.description },
-        { label: "Serviço para", render: (r) => (r.modality === 2 ? "Contratos" : "Ordens de Serviço") },
+        { label: "Serviço para", sortKey: "modality", render: (r) => (r.modality === 2 ? "Contratos" : "Ordens de Serviço") },
         { label: "Preço", sortKey: "price", className: "md:text-right", render: (r) => money(r.price) },
         { label: "Status", sortKey: "isActive", render: (r) => activeBadge(r.isActive) },
       ]}

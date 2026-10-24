@@ -11,6 +11,7 @@ import { AwaitingPermission } from "@/components/layout/awaiting-permission";
 import { FullScreenSpinner } from "@/components/ui/spinner";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SortButton } from "@/components/ui/sortable";
 import { Icon } from "@/components/ui/icon";
 
 const PERMISSION_KEY = "item_1661e6d3-c123-4b5b-9239-36f2d7b283fb";
@@ -141,8 +142,8 @@ export default function StockBalanceQueryPage() {
             <table className="ds-table">
               <thead>
                 <tr>
-                  <th><button type="button" onClick={() => sortBy("description")} className="font-bold uppercase">Produto{arrow("description")}</button></th>
-                  <th className="text-right"><button type="button" onClick={() => sortBy("balance")} className="font-bold uppercase">Saldo{arrow("balance")}</button></th>
+                  <th><SortButton label="Produto" active={orderBy === "description"} desc={desc} onClick={() => sortBy("description")} /></th>
+                  <th className="text-right"><SortButton label="Saldo" active={orderBy === "balance"} desc={desc} onClick={() => sortBy("balance")} /></th>
                 </tr>
               </thead>
               <tbody>

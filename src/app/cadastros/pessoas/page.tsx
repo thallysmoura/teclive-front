@@ -40,8 +40,8 @@ export default function PeoplePage() {
       }}
       columns={[
         { label: "Nome", sortKey: "name", strong: true, render: (r) => (<>{r.name}{r.nickname && <span className="ml-1 text-xs font-normal text-ds-text-secondary">({r.nickname})</span>}</>) },
-        { label: "CPF / CNPJ", render: (r) => formatDocument(r.document) },
-        { label: "Tipo", render: (r) => roleLabels(r) },
+        { label: "CPF / CNPJ", sortKey: "document", render: (r) => formatDocument(r.document) },
+        { label: "Tipo", sortKey: "roles", render: (r) => roleLabels(r) },
         { label: "Status", sortKey: "isActive", render: (r) => activeBadge(r.isActive) },
       ]}
     />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,6 +19,17 @@ const DEFAULT_ITEMS: NavigationItem[] = [
   { key: "log_acesso", label: "Log de acesso", href: "/access-logs", section: "admin", sortOrder: 1 },
   { key: "dados_empresa", label: "Dados da empresa", href: "/company", section: "admin", sortOrder: 2 },
 ];
+
+const MENU_ICONS: Record<string, string> = {
+  "Visão Geral": "home", Indicadores: "area_chart", Cadastros: "apartment", Comercial: "work", Estoque: "inventory_2", "Governança": "shield_person",
+};
+
+/** Ícone sólido do item principal do menu (mesmo estilo do eugestor). */
+function MenuIcon({ label }: { label: string }) {
+  const name = MENU_ICONS[label];
+  if (!name) return <span className="w-6 shrink-0" aria-hidden="true" />;
+  return <span aria-hidden="true" className="material-symbols-outlined w-6 shrink-0 text-center text-[22px] leading-none text-white/85" style={{ fontVariationSettings: '"FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24' }}>{name}</span>;
+}
 
 function DeleteItemButton({ item, disabled, onDelete }: { item: NavigationItem; disabled: boolean; onDelete: (item: NavigationItem) => void }) {
   return (
@@ -50,6 +61,40 @@ export function Sidebar({
   const [loaded, setLoaded] = useState(false);
   const [menuError, setMenuError] = useState(false);
   const [editor, setEditor] = useState<{ item: NavigationItem | null; parent?: NavigationItem } | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const tightRef = useRef(false);
+  const groupsRef = useRef<{ keys: string[]; current: string | null; adminCurrent: boolean }>({ keys: [], current: null, adminCurrent: false });
+  // Mede o menu e reduz fonte e espaçamentos (até 45%) para tudo caber sem rolar.
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    let frame = 0;
+    const fit = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        let scale = 1;
+        nav.style.setProperty("--fit", "1");
+        while (nav.scrollHeight > nav.clientHeight + 1 && scale > 0.45) {
+          scale = Math.round((scale - 0.03) * 100) / 100;
+          nav.style.setProperty("--fit", String(scale));
+        }
+        if (nav.scrollHeight > nav.clientHeight + 1 && !tightRef.current) {
+          tightRef.current = true;
+          const groups = groupsRef.current;
+          setExpandedItems(() => ({ ...Object.fromEntries(groups.keys.map((key) => [key, false])), ...(groups.current ? { [groups.current]: true } : {}) }));
+          if (!groups.adminCurrent) setAdminExpanded(false);
+        }
+      });
+    };
+    fit();
+    const resize = new ResizeObserver(fit);
+    resize.observe(nav);
+    const mutation = new MutationObserver(fit);
+    mutation.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+    const onResize = () => { tightRef.current = false; fit(); };
+    window.addEventListener("resize", onResize);
+    return () => { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect(); window.removeEventListener("resize", onResize); };
+  }, []);
   const [expandedItems, setExpandedItemsState] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(sessionStorage.getItem("sidebar:expanded") ?? "{}"); } catch { return {}; }
   });
@@ -60,6 +105,8 @@ export function Sidebar({
       return next;
     });
   };
+  const toggleGroup = (key: string, expanded: boolean) =>
+    setExpandedItems((previous) => (tightRef.current && !expanded ? { ...Object.fromEntries(groupsRef.current.keys.map((k) => [k, false])), [key]: true } : { ...previous, [key]: !expanded }));
   const isCurrent = (href: string | null) => !!href && (pathname === href || pathname.startsWith(href + "/"));
   const pathname = usePathname();
   const navigate = useNavigationTransition();
@@ -87,6 +134,11 @@ export function Sidebar({
   const navItems = visibleItems.filter((item) => item.section === "main" && !item.parentKey);
   const adminItems = visibleItems.filter((item) => item.section === "admin" && item.href && (user.role === "ADMIN" || item.key === "log_acesso" || item.key === "dados_empresa") && (item.key !== "log_acesso" || loaded || user.permissions?.includes("log_acesso")));
   const adminGroup = items.find((item) => item.key === "administrativo") ?? DEFAULT_ITEMS[1];
+  groupsRef.current = {
+    keys: navItems.filter((item) => items.some((child) => child.parentKey === item.key)).map((item) => item.key),
+    current: navItems.find((item) => items.some((child) => child.parentKey === item.key && isCurrent(child.href)))?.key ?? null,
+    adminCurrent: adminItems.some((item) => isCurrent(item.href)),
+  };
   const canDeleteItem = (item: NavigationItem) => user.role === "ADMIN" && item.createdById === user.id && !items.some((child) => child.parentKey === item.key && child.createdById !== user.id);
   const handleDeleted = (deleted: NavigationItem) => {
     const currentDeleted = pathname === deleted.href || items.some((item) => item.parentKey === deleted.key && item.href === pathname);
@@ -115,7 +167,7 @@ export function Sidebar({
         </button>
 
         <div className="flex items-center justify-center">
-          <Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-12 w-auto select-none" />
+          <Link href="/home" aria-label="Ir para a página inicial" title="Página inicial" onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate("/home"); }} className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-12 w-auto select-none" /></Link>
         </div>
       </header>
       {hasGrantedAccess && <NotificationsButton desktopInSidebar={pathname !== "/home"} />}
@@ -133,7 +185,7 @@ export function Sidebar({
         }`}
       >
         <div className="flex shrink-0 items-center justify-between px-5 py-5">
-          <Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-16 w-auto select-none md:h-20" />
+          <Link href="/home" aria-label="Ir para a página inicial" title="Página inicial" onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate("/home"); }} className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-16 w-auto select-none md:h-20" /></Link>
 
           <button
             type="button"
@@ -149,7 +201,7 @@ export function Sidebar({
 
         <div className="mx-5 border-t border-white/15" />
 
-        <nav className="sidebar-fit mt-2 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-3">
+        <nav ref={navRef} className="sidebar-fit mt-2 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-3">
           {navItems.map((item) => {
             const active = pathname === item.href;
             const children = items.filter((child) => child.parentKey === item.key);
@@ -161,8 +213,8 @@ export function Sidebar({
                   active ? "bg-black/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                {children.length > 0 ? <button type="button" onClick={() => setExpandedItems((previous) => ({ ...previous, [item.key]: !expanded }))} aria-expanded={expanded} aria-controls={`children-${item.key}`} className="min-w-0 flex-1 break-words rounded-lg px-3 py-2 text-left">{item.label}</button> : item.href ? <Link href={item.href} aria-current={active ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(item.href!); }} className={`min-w-0 flex-1 break-words rounded-lg px-3 py-2 `}>{item.label}</Link> : <span className="min-w-0 flex-1 break-words px-3 py-2">{item.label}</span>}
-                {children.length > 0 && <button type="button" onClick={() => setExpandedItems((previous) => ({ ...previous, [item.key]: !expanded }))} aria-label={`${expanded ? "Recolher" : "Expandir"} ${item.label}`} aria-expanded={expanded} aria-controls={`children-${item.key}`} className="flex h-8 shrink-0 items-center gap-1 rounded-md px-1 text-white/60 hover:bg-white/10"><span className="rounded-full bg-white/10 px-1.5 text-[9px]">{children.length}</span><Icon name={expanded ? "expand_less" : "expand_more"} className="text-[16px]" /></button>}
+                {children.length > 0 ? <button type="button" onClick={() => toggleGroup(item.key, expanded)} aria-expanded={expanded} aria-controls={`children-${item.key}`} className="min-w-0 flex-1 break-words rounded-lg px-3 py-2 text-left"><span className="flex items-center gap-3"><MenuIcon label={item.label} />{item.label}</span></button> : item.href ? <Link href={item.href} aria-current={active ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(item.href!); }} className={`min-w-0 flex-1 break-words rounded-lg px-3 py-2 `}><span className="flex items-center gap-3"><MenuIcon label={item.label} />{item.label}</span></Link> : <span className="min-w-0 flex-1 break-words px-3 py-2">{item.label}</span>}
+                {children.length > 0 && <button type="button" onClick={() => toggleGroup(item.key, expanded)} aria-label={`${expanded ? "Recolher" : "Expandir"} ${item.label}`} aria-expanded={expanded} aria-controls={`children-${item.key}`} className="flex h-8 shrink-0 items-center gap-1 rounded-md px-1 text-white/60 hover:bg-white/10"><span className="rounded-full bg-white/10 px-1.5 text-[9px]">{children.length}</span><Icon name={expanded ? "expand_less" : "expand_more"} className="text-[16px]" /></button>}
                 {user.role === "ADMIN" && item.createdById === user.id && item.href?.startsWith("/items/") && <button type="button" disabled={!loaded} onClick={() => { setOpen(false); setEditor({ item: null, parent: item }); }} aria-label={`Adicionar subitem em ${item.label}`} title="Adicionar subitem" className="mr-1 flex h-8 w-6 shrink-0 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"><Icon name="add" className="text-[16px]" /></button>}
                 {canDeleteItem(item) && <DeleteItemButton item={item} disabled={!loaded} onDelete={remove} />}
               </div>
@@ -194,7 +246,7 @@ export function Sidebar({
                 aria-controls={adminExpanded ? "sidebar-admin-items" : undefined}
                 className="flex min-w-0 flex-1 items-center justify-between gap-1 px-3 py-1.5 text-left text-sm font-medium text-white/50 hover:text-white/70"
               >
-                <span className="min-w-0 break-words">{adminGroup.label}</span>
+                <span className="flex min-w-0 items-center gap-3 break-words"><MenuIcon label={adminGroup.label} />{adminGroup.label}</span>
                 <Icon name={adminExpanded ? "expand_less" : "expand_more"} className="text-[18px]" />
               </button>
               </div>

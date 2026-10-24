@@ -11,6 +11,7 @@ import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { SortButton } from "@/components/ui/sortable";
 
 type Filters = { status: string; modality: string; personType: string; seller: string; reason: string; hideCancelled: boolean };
 const NONE: Filters = { status: "", modality: "", personType: "", seller: "", reason: "", hideCancelled: false };
@@ -164,10 +165,10 @@ export default function QuotesPage() {
             <table className="ds-table">
               <thead>
                 <tr>
-                  <th><button type="button" onClick={() => sortBy("number")} className="font-bold uppercase">Orçamento{arrow("number")}</button></th>
-                  <th className="md:text-right"><button type="button" onClick={() => sortBy("recurring")} className="font-bold uppercase">Recorrente{arrow("recurring")}</button></th>
-                  <th className="md:text-right"><button type="button" onClick={() => sortBy("total")} className="font-bold uppercase">Total{arrow("total")}</button></th>
-                  <th>Situação</th>
+                  <th><SortButton label="Orçamento" active={orderBy === "number"} desc={desc} onClick={() => sortBy("number")} /></th>
+                  <th className="md:text-right"><SortButton label="Recorrente" active={orderBy === "recurring"} desc={desc} onClick={() => sortBy("recurring")} /></th>
+                  <th className="md:text-right"><SortButton label="Total" active={orderBy === "total"} desc={desc} onClick={() => sortBy("total")} /></th>
+                  <th><SortButton label="Situação" active={orderBy === "status"} desc={desc} onClick={() => sortBy("status")} /></th>
                   <th className="text-center">Ações</th>
                 </tr>
               </thead>

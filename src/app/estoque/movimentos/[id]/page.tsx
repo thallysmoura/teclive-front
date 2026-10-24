@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, use, useEffect, useState } from "react";
+import { SortButton, useSort } from "@/components/ui/sortable";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getStockMovement, type StockMovementDetail } from "@/lib/api";
@@ -14,6 +15,7 @@ function Details({ id }: { id: string }) {
   const [movement, setMovement] = useState<StockMovementDetail | null | undefined>(undefined);
 
   useEffect(() => { getStockMovement(id).then(setMovement).catch(() => setMovement(null)); }, [id]);
+  const sort = useSort(movement?.items ?? [], { description: (i) => i.description, type: (i) => i.type, quantity: (i) => Number(i.quantity), cost: (i) => Number(i.cost), location: (i) => i.locationName });
   useEffect(() => {
     if (print && movement) { const t = setTimeout(() => window.print(), 300); return () => clearTimeout(t); }
   }, [print, movement]);
@@ -47,9 +49,9 @@ function Details({ id }: { id: string }) {
             <h2 className="mb-3 text-base font-semibold text-ds-primary-deep">Itens do Movimento <span className="font-normal text-ds-text-secondary">({movement.items.length})</span></h2>
             <div className="ds-table-wrap">
               <table className="ds-table">
-                <thead><tr><th>Descrição</th><th>Tipo</th><th className="text-right">Quant.</th><th className="text-right">Custo</th><th>Estoque</th></tr></thead>
+                <thead><tr><th aria-sort={sort.ariaSort("description")}><SortButton {...sort.header("description", "Descrição")} /></th><th aria-sort={sort.ariaSort("type")}><SortButton {...sort.header("type", "Tipo")} /></th><th className="text-right" aria-sort={sort.ariaSort("quantity")}><SortButton {...sort.header("quantity", "Quant.")} /></th><th className="text-right" aria-sort={sort.ariaSort("cost")}><SortButton {...sort.header("cost", "Custo")} /></th><th aria-sort={sort.ariaSort("location")}><SortButton {...sort.header("location", "Estoque")} /></th></tr></thead>
                 <tbody>
-                  {movement.items.map((item) => (
+                  {sort.sorted.map((item) => (
                     <tr key={item.id}>
                       <td data-label="Descrição">{item.description}</td>
                       <td data-label="Tipo"><span className={`inline-flex items-center gap-1 font-medium ${item.type === "IN" ? "text-ds-success" : "text-ds-danger-text"}`}><Icon name={item.type === "IN" ? "arrow_upward" : "arrow_downward"} className="text-[14px]" />{item.type === "IN" ? "Entrada" : "Saída"}</span></td>

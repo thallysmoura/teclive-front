@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { SortButton } from "@/components/ui/sortable";
 
 export type Column<T> = { label: string; sortKey?: string; render: (row: T) => ReactNode; className?: string; strong?: boolean };
 
@@ -172,7 +173,7 @@ export function CrudList<T extends Entity>(props: Props<T>) {
               <thead>
                 <tr>
                   {columns.map((c) => (
-                    <th key={c.label} className={c.className}>{c.sortKey ? <button type="button" onClick={() => sortBy(c.sortKey!)} className="font-bold uppercase">{c.label}{arrow(c.sortKey)}</button> : c.label}</th>
+                    <th key={c.label} className={c.className}>{c.sortKey ? <SortButton label={c.label} active={orderBy === c.sortKey} desc={desc} onClick={() => sortBy(c.sortKey!)} /> : c.label}</th>
                   ))}
                   <th className="text-center">Ações</th>
                 </tr>

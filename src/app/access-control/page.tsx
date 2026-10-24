@@ -29,6 +29,7 @@ import styles from "./access-control.module.css";
 import { usePresence } from "@/lib/presence";
 import { ListFilters } from "@/components/ui/list-filters";
 import { EMPTY_FILTERS, matchesListFilters } from "@/lib/list-filters";
+import { SortButton } from "@/components/ui/sortable";
 
 const presenceLabels = { online: "Online", away: "Ausente", offline: "Offline" };
 const presenceColors = { online: "text-ds-success", away: "text-ds-warning-text", offline: "text-ds-text-secondary" };
@@ -109,6 +110,8 @@ export default function AccessControlPage() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [groupPages, setGroupPages] = useState<Record<string, number>>({});
+  const [userSort, setUserSort] = useState<{ key: string; desc: boolean } | null>(null);
+  const toggleUserSort = (key: string) => setUserSort((current) => (current?.key === key ? { key, desc: !current.desc } : { key, desc: false }));
   const [catalog, setCatalog] = useState<Permission[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -198,14 +201,24 @@ export default function AccessControlPage() {
   const detailUser = displayedUsers.find((person) => person.id === detailsId) ?? null;
   const filteredUsers = displayedUsers.filter((person) => matchesListFilters(person.name, person.email, person.createdAt, filters));
   const hasAccess = (person: ManagedUser) => person.role === "ADMIN" || person.permissions.length > 0;
+  const sortUsers = (list: typeof filteredUsers) => {
+    if (!userSort) return list;
+    const dir = userSort.desc ? -1 : 1;
+    const value = (p: (typeof filteredUsers)[number]): string | number => (userSort.key === "name" ? p.name : userSort.key === "createdAt" ? new Date(p.createdAt).getTime() : userSort.key === "lastLoginAt" ? (p.lastLoginAt ? new Date(p.lastLoginAt).getTime() : 0) : p.role === "ADMIN" ? Number.MAX_SAFE_INTEGER : p.permissions.length);
+    return [...list].sort((a, b) => {
+      const x = value(a), y = value(b);
+      return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "pt-BR", { sensitivity: "base" })) * dir;
+    });
+  };
   const groups = [
     { id: "pending-access", title: "Aguardando permissão", pending: true, users: filteredUsers.filter((person) => !hasAccess(person)) },
     { id: "granted-access", title: "Usuários com acesso", pending: false, users: filteredUsers.filter(hasAccess) },
   ].map((group) => {
+    const sortedUsers = sortUsers(group.users);
     const pageCount = Math.max(1, Math.ceil(group.users.length / USERS_PER_PAGE));
     const page = Math.min(groupPages[group.id] ?? 1, pageCount);
     const start = (page - 1) * USERS_PER_PAGE;
-    return { ...group, page, pageCount, start, visibleUsers: group.users.slice(start, start + USERS_PER_PAGE) };
+    return { ...group, page, pageCount, start, visibleUsers: sortedUsers.slice(start, start + USERS_PER_PAGE) };
   });
 
   return (
@@ -295,10 +308,10 @@ export default function AccessControlPage() {
             <table className={styles.table} aria-label={group.title}>
               <thead className="text-xs font-bold uppercase tracking-wider text-white">
                 <tr>
-                  <th className="px-4 py-3">Usuário</th>
-                  <th className="px-4 py-3">Data de criação</th>
-                  <th className="px-4 py-3">Último acesso</th>
-                  <th className="px-4 py-3">Permissões</th>
+                  <th className="px-4 py-3"><SortButton label="Usuário" active={userSort?.key === "name"} desc={!!userSort?.desc} onClick={() => toggleUserSort("name")} /></th>
+                  <th className="px-4 py-3"><SortButton label="Data de criação" active={userSort?.key === "createdAt"} desc={!!userSort?.desc} onClick={() => toggleUserSort("createdAt")} /></th>
+                  <th className="px-4 py-3"><SortButton label="Último acesso" active={userSort?.key === "lastLoginAt"} desc={!!userSort?.desc} onClick={() => toggleUserSort("lastLoginAt")} /></th>
+                  <th className="px-4 py-3"><SortButton label="Permissões" active={userSort?.key === "permissions"} desc={!!userSort?.desc} onClick={() => toggleUserSort("permissions")} /></th>
                   <th className="px-4 py-3">Ações</th>
                 </tr>
               </thead>

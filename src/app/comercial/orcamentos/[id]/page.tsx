@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { SortButton, useSort } from "@/components/ui/sortable";
 
 type Tab = "info" | "products" | "services" | "recurring" | "payments" | "attachments" | "history";
 type ModalName = "basic" | "sheet" | "notes" | "address" | "contact" | "decision" | "payment" | "item" | "attachment" | "cancel" | null;
@@ -75,13 +76,14 @@ function FieldsModal({ title, fields, initial, open, onClose, onSave }: { title:
 function ItemsTable({ items, kind, onEdit, onRemove }: { items: QuoteItem[]; kind: QuoteItem["kind"]; onEdit: (item: QuoteItem) => void; onRemove: (item: QuoteItem) => void }) {
   const rows = items.filter((i) => i.kind === kind);
   const recurring = kind === "RECURRING";
+  const sort = useSort(rows, { description: (i) => i.description, quantity: (i) => Number(i.quantity), unit: (i) => Number(i.unitValue), discount: (i) => Number(i.discountValue), total: (i) => Number(i.total) });
   if (rows.length === 0) return <Empty icon={kind === "PRODUCT" ? "inventory_2" : "design_services"} text={`Nenhum ${kind === "PRODUCT" ? "Produto" : kind === "SERVICE" ? "Serviço" : "Serviço Recorrente"} Adicionado`} />;
   return (
     <div className="ds-table-wrap">
       <table className="ds-table">
-        <thead><tr><th>Descrição</th>{!recurring && <><th className="md:text-right">Quant.</th><th className="md:text-right">Unitário</th><th className="md:text-right">Desconto</th></>}<th className="md:text-right">{recurring ? "Valor mensal" : "Total"}</th><th className="text-center">Ações</th></tr></thead>
+        <thead><tr><th aria-sort={sort.ariaSort("description")}><SortButton {...sort.header("description", "Descrição")} /></th>{!recurring && <><th className="md:text-right" aria-sort={sort.ariaSort("quantity")}><SortButton {...sort.header("quantity", "Quant.")} /></th><th className="md:text-right" aria-sort={sort.ariaSort("unit")}><SortButton {...sort.header("unit", "Unitário")} /></th><th className="md:text-right" aria-sort={sort.ariaSort("discount")}><SortButton {...sort.header("discount", "Desconto")} /></th></>}<th className="md:text-right" aria-sort={sort.ariaSort("total")}><SortButton {...sort.header("total", recurring ? "Valor mensal" : "Total")} /></th><th className="text-center">Ações</th></tr></thead>
         <tbody>
-          {rows.map((i) => (
+          {sort.sorted.map((i) => (
             <tr key={i.id}>
               <td data-label="Descrição">{i.description}{i.identifier && <span className="ml-2 text-xs text-ds-text-secondary">{i.identifier}</span>}{i.rental && <span className="ml-2 rounded-full bg-ds-info/15 px-2 py-0.5 text-[10px] font-bold text-ds-info">Locado</span>}</td>
               {!recurring && <>
@@ -139,6 +141,8 @@ function Details({ id }: { id: string }) {
   useEffect(() => { quotesClient.get(id).then(setQuote).catch(() => setQuote(null)); }, [id]);
   useEffect(() => { if (print && quote) { const t = setTimeout(() => window.print(), 400); return () => clearTimeout(t); } }, [print, quote]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 5000); return () => clearTimeout(t); }, [toast]);
+  const paymentSort = useSort(quote?.payments ?? [], { condition: (p) => p.installments, method: (p) => p.method, total: (p) => Number(p.total) });
+  const attachmentSort = useSort(quote?.attachments ?? [], { file: (a) => a.fileName, user: (a) => a.userName, date: (a) => new Date(a.createdAt).getTime(), size: (a) => a.size });
 
   if (quote === undefined) return <p className="py-10 text-center text-sm text-ds-text-secondary">Carregando...</p>;
   if (quote === null) return <p className="text-sm text-ds-text-secondary">Orçamento não encontrado. <Link href="/comercial/orcamentos" className="text-ds-primary">Voltar à listagem</Link></p>;
@@ -161,7 +165,7 @@ function Details({ id }: { id: string }) {
     ["payments", "Formas de Pagamento", quote.payments.length], ["attachments", "Anexos"], ["history", "Histórico"],
   ];
   const kindOf: Partial<Record<Tab, QuoteItem["kind"]>> = { products: "PRODUCT", services: "SERVICE", recurring: "RECURRING" };
-  const attachments = quote.attachments.filter((a) => !attachmentSearch || `${a.fileName} ${a.caption ?? ""}`.toLowerCase().includes(attachmentSearch.toLowerCase()));
+  const attachments = attachmentSort.sorted.filter((a) => !attachmentSearch || `${a.fileName} ${a.caption ?? ""}`.toLowerCase().includes(attachmentSearch.toLowerCase()));
   const menuItem = "flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-ds-bg";
 
   return (
@@ -290,9 +294,9 @@ function Details({ id }: { id: string }) {
                   <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-semibold text-ds-text-muted">Propostas de Pagamento <span className="text-sm font-normal text-ds-text-secondary">({quote.payments.length})</span></h3><button type="button" onClick={() => guard(() => setModal("payment"))} className={outlineButton}>Adicionar</button></div>
                   {quote.payments.length === 0 ? <Empty icon="payments" text="Nenhuma Proposta de Pagamento" /> : (
                     <div className="ds-table-wrap"><table className="ds-table">
-                      <thead><tr><th>Condição</th><th>Forma de Pagto.</th><th className="md:text-right">Total</th><th className="text-center">Ações</th></tr></thead>
+                      <thead><tr><th aria-sort={paymentSort.ariaSort("condition")}><SortButton {...paymentSort.header("condition", "Condição")} /></th><th aria-sort={paymentSort.ariaSort("method")}><SortButton {...paymentSort.header("method", "Forma de Pagto.")} /></th><th className="md:text-right" aria-sort={paymentSort.ariaSort("total")}><SortButton {...paymentSort.header("total", "Total")} /></th><th className="text-center">Ações</th></tr></thead>
                       <tbody>
-                        {quote.payments.map((p) => (
+                        {paymentSort.sorted.map((p) => (
                           <tr key={p.id}>
                             <td data-label="Condição">{p.installments}x de {money(Number(p.total) / p.installments)}</td>
                             <td data-label="Forma de Pagto.">{p.method}{p.selected && <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-ds-success px-2 py-0.5 text-[10px] font-bold text-ds-success"><Icon name="check" className="text-[12px]" />Proposta Aceita</span>}</td>
@@ -312,7 +316,7 @@ function Details({ id }: { id: string }) {
                   <div className="mb-3 max-w-md"><div className="relative"><Input type="search" value={attachmentSearch} onChange={(e) => setAttachmentSearch(e.target.value)} placeholder="Pesquisar..." className="pr-12" /><span className="pointer-events-none absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-[10px] bg-ds-primary-deep text-white"><Icon name="search" className="text-[18px]" /></span></div></div>
                   {attachments.length === 0 ? <Empty icon="photo_library" text="Nenhum Anexo Encontrado" /> : (
                     <div className="ds-table-wrap"><table className="ds-table">
-                      <thead><tr><th>Arquivo</th><th>Usuário</th><th>Data</th><th className="md:text-right">Tamanho</th><th className="text-center">Ações</th></tr></thead>
+                      <thead><tr><th aria-sort={attachmentSort.ariaSort("file")}><SortButton {...attachmentSort.header("file", "Arquivo")} /></th><th aria-sort={attachmentSort.ariaSort("user")}><SortButton {...attachmentSort.header("user", "Usuário")} /></th><th aria-sort={attachmentSort.ariaSort("date")}><SortButton {...attachmentSort.header("date", "Data")} /></th><th className="md:text-right" aria-sort={attachmentSort.ariaSort("size")}><SortButton {...attachmentSort.header("size", "Tamanho")} /></th><th className="text-center">Ações</th></tr></thead>
                       <tbody>
                         {attachments.map((a) => (
                           <tr key={a.id}>

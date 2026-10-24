@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
+import { SortButton, useSort } from "@/components/ui/sortable";
 
 type Operation = MovementItemInput["operation"];
 type Draft = MovementItemInput & { key: number };
@@ -89,6 +90,8 @@ export default function NewStockMovementPage() {
   const locationName = (id?: string) => locations.find((l) => l.id === id)?.description ?? "";
   const operationLabel = (item: Draft) => (item.operation === "ADD" ? "Entrada" : item.operation === "REMOVE" ? "Saída" : "Transferência");
 
+  const sort = useSort(items, { description: (i) => productName(i.productId)?.description, type: (i) => operationLabel(i), quantity: (i) => i.quantity, cost: (i) => i.cost, location: (i) => locationName(i.fromLocationId ?? i.toLocationId) });
+
   return (
     <PageShell permissionKey={MOVEMENTS_PERMISSION_KEY}>
       {() => (
@@ -120,9 +123,9 @@ export default function NewStockMovementPage() {
             ) : (
               <div className="ds-table-wrap">
                 <table className="ds-table">
-                  <thead><tr><th>Descrição</th><th>Tipo</th><th className="text-right">Quant.</th><th className="text-right">Custo</th><th>Estoque</th><th /></tr></thead>
+                  <thead><tr><th aria-sort={sort.ariaSort("description")}><SortButton {...sort.header("description", "Descrição")} /></th><th aria-sort={sort.ariaSort("type")}><SortButton {...sort.header("type", "Tipo")} /></th><th className="text-right" aria-sort={sort.ariaSort("quantity")}><SortButton {...sort.header("quantity", "Quant.")} /></th><th className="text-right" aria-sort={sort.ariaSort("cost")}><SortButton {...sort.header("cost", "Custo")} /></th><th aria-sort={sort.ariaSort("location")}><SortButton {...sort.header("location", "Estoque")} /></th><th /></tr></thead>
                   <tbody>
-                    {items.map((item) => (
+                    {sort.sorted.map((item) => (
                       <tr key={item.key}>
                         <td data-label="Descrição">{productName(item.productId)?.description}</td>
                         <td data-label="Tipo">{operationLabel(item)}</td>

@@ -9,6 +9,7 @@ import { Breadcrumb, PageShell } from "@/components/layout/page-shell";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { LocationActionsModal, useLocationActions } from "@/components/stock/location-actions";
+import { SortButton } from "@/components/ui/sortable";
 
 const KEY = "item_b2681b6f-1f50-4d5b-b28a-98b27905e6ad";
 
@@ -84,8 +85,8 @@ export default function StockLocationsPage() {
             <table className="ds-table">
               <thead>
                 <tr>
-                  <th><button type="button" onClick={() => sortBy("description")} className="font-bold uppercase">Descrição{arrow("description")}</button></th>
-                  <th><button type="button" onClick={() => sortBy("isActive")} className="font-bold uppercase">Status{arrow("isActive")}</button></th>
+                  <th><SortButton label="Descrição" active={orderBy === "description"} desc={desc} onClick={() => sortBy("description")} /></th>
+                  <th><SortButton label="Status" active={orderBy === "isActive"} desc={desc} onClick={() => sortBy("isActive")} /></th>
                   <th className="text-center">Ações</th>
                 </tr>
               </thead>

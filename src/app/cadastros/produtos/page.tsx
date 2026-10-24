@@ -43,7 +43,7 @@ export default function ProductsPage() {
       }}
       columns={[
         { label: "Descrição", sortKey: "description", strong: true, render: (r) => (<>{r.description}<span className="block text-xs font-normal text-ds-text-secondary">{r.brand} · {r.productGroup}</span></>) },
-        { label: "Identificador", render: (r) => r.identifier || "—" },
+        { label: "Identificador", sortKey: "identifier", render: (r) => r.identifier || "—" },
         { label: "Preço de venda", sortKey: "salePrice", className: "md:text-right", render: (r) => money(r.salePrice) },
         { label: "Status", sortKey: "isActive", render: (r) => activeBadge(r.isActive) },
       ]}

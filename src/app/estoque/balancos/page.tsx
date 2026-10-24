@@ -9,6 +9,7 @@ import { FullScreenSpinner } from "@/components/ui/spinner";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { SortButton, useSort } from "@/components/ui/sortable";
 import { Icon } from "@/components/ui/icon";
 
 const PERMISSION_KEY = "item_e76d29e7-1b58-44db-99ca-87bc4787eb6c";
@@ -33,6 +34,7 @@ export default function StockBalancesPage() {
   const [filterType, setFilterType] = useState<"PRODUCTS" | "GROUPS">("PRODUCTS");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const sort = useSort(rows, { location: (r) => r.location.description, date: (r) => new Date(r.balanceDate).getTime(), user: (r) => r.userName, status: (r) => r.status });
 
   useEffect(() => {
     getMe().then((me) => {
@@ -92,9 +94,9 @@ export default function StockBalancesPage() {
 
           <div className="ds-table-wrap">
             <table className="ds-table">
-              <thead><tr><th>Estoque</th><th>Data</th><th>Usuário</th><th>Status</th><th>Ações</th></tr></thead>
+              <thead><tr><th aria-sort={sort.ariaSort("location")}><SortButton {...sort.header("location", "Estoque")} /></th><th aria-sort={sort.ariaSort("date")}><SortButton {...sort.header("date", "Data")} /></th><th aria-sort={sort.ariaSort("user")}><SortButton {...sort.header("user", "Usuário")} /></th><th aria-sort={sort.ariaSort("status")}><SortButton {...sort.header("status", "Status")} /></th><th>Ações</th></tr></thead>
               <tbody>
-                {rows.map((r) => (
+                {sort.sorted.map((r) => (
                   <tr key={r.id}>
                     <td data-label="Estoque" className="ds-strong">{r.location.description}</td>
                     <td data-label="Data" className="whitespace-nowrap">{new Date(r.balanceDate).toLocaleDateString("pt-BR")}</td>

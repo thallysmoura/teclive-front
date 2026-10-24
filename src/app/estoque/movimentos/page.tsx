@@ -7,6 +7,7 @@ import { formatMovementDate, MOVEMENTS_PERMISSION_KEY } from "@/lib/stock";
 import { Breadcrumb, PageShell } from "@/components/layout/page-shell";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
+import { SortButton } from "@/components/ui/sortable";
 
 type Column = "movementDate" | "description" | "userName";
 
@@ -79,9 +80,9 @@ export default function StockMovementsPage() {
             <table className="ds-table">
               <thead>
                 <tr>
-                  <th><button type="button" onClick={() => sortBy("description")} className="font-bold uppercase">Descrição{arrow("description")}</button></th>
-                  <th><button type="button" onClick={() => sortBy("movementDate")} className="font-bold uppercase">Data{arrow("movementDate")}</button></th>
-                  <th><button type="button" onClick={() => sortBy("userName")} className="font-bold uppercase">Usuário{arrow("userName")}</button></th>
+                  <th><SortButton label="Descrição" active={orderBy === "description"} desc={desc} onClick={() => sortBy("description")} /></th>
+                  <th><SortButton label="Data" active={orderBy === "movementDate"} desc={desc} onClick={() => sortBy("movementDate")} /></th>
+                  <th><SortButton label="Usuário" active={orderBy === "userName"} desc={desc} onClick={() => sortBy("userName")} /></th>
                   <th className="text-center">Ações</th>
                 </tr>
               </thead>
