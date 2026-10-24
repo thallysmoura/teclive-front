@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
 import { deleteNavigationItem, listNavigation, type NavigationItem, type Role } from "@/lib/api";
 import { acquirePresence, stopPresence, usePresence } from "@/lib/presence";
+import { recordRecent } from "@/lib/recent";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { NavigationItemModal } from "@/components/layout/navigation-item-modal";
 import { useNavigationTransition } from "@/components/layout/navigation-transition";
@@ -162,6 +163,12 @@ export function Sidebar({
   const livePresence = usePresence();
 
   useEffect(() => acquirePresence(), []);
+  // Histórico de telas abertas (alimenta o "Acessados recentemente" da Visão Geral).
+  useEffect(() => {
+    if (pathname === "/home") return;
+    const match = items.filter((i) => i.section === "main" && i.href && !i.href.startsWith("/items/") && (pathname === i.href || pathname.startsWith(i.href + "/"))).sort((a, b) => b.href!.length - a.href!.length)[0];
+    if (match) recordRecent(user.id, { href: match.href!, label: match.label, group: items.find((p) => p.key === match.parentKey)?.label });
+  }, [pathname, items, user.id]);
 
   useEffect(() => {
     let disposed = false;

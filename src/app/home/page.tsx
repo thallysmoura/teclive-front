@@ -10,6 +10,7 @@ import type { Me } from "@/lib/api";
 import { money } from "@/lib/cadastros";
 import { getOverview, type Overview } from "@/lib/dashboard";
 import { fmtDate, formatOsNumber } from "@/lib/operacional";
+import { MemberHome } from "./member-home";
 
 const WEEKDAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 const LONG_MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -203,5 +204,5 @@ function Home({ user }: { user: Me }) {
 }
 
 export default function HomePage() {
-  return <PageShell permissionKey="inicio">{(user) => <Home user={user} />}</PageShell>;
+  return <PageShell permissionKey="inicio">{(user) => (user.role === "ADMIN" ? <Home user={user} /> : <MemberHome user={user} />)}</PageShell>;
 }
