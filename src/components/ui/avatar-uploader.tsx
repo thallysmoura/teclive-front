@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { removeAvatar, uploadAvatar, type Me } from "@/lib/api";
+import { uploadAvatar, type Me } from "@/lib/api";
 
 const MAX_INPUT = 12 * 1024 * 1024; // arquivo de origem aceito (a tela reduz antes de enviar)
 
@@ -32,6 +33,14 @@ export function AvatarUploader({ user, size }: { user: Me; size: number }) {
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(false);
+
+  useEffect(() => {
+    if (!zoom) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setZoom(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoom]);
 
   async function send(file: File | undefined) {
     if (!file || busy) return;
@@ -45,26 +54,26 @@ export function AvatarUploader({ user, size }: { user: Me; size: number }) {
     finally { setBusy(false); }
   }
 
-  async function remove() {
-    if (busy || !confirm("Remover a sua foto de perfil?")) return;
-    setBusy(true); setMessage(null);
-    try { await removeAvatar(); window.dispatchEvent(new Event("eg:me-updated")); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível remover."); } finally { setBusy(false); }
-  }
-
   return (
     <div className="relative inline-block"
       onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setDrag(true); } }}
       onDragLeave={() => setDrag(false)}
       onDrop={(e) => { e.preventDefault(); setDrag(false); void send(e.dataTransfer.files[0]); }}>
-      <div className={`rounded-full transition-all ${drag ? "scale-105 ring-4 ring-white/80" : ""} ${busy ? "opacity-60" : ""}`}><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={size} /></div>
+      <button type="button" onClick={() => (user.avatarUrl ? setZoom(true) : input.current?.click())} aria-label={user.avatarUrl ? "Ampliar foto de perfil" : "Enviar foto de perfil"} className={`block rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-white ${user.avatarUrl ? "cursor-zoom-in" : "cursor-pointer"} ${drag ? "scale-105" : ""} ${busy ? "opacity-60" : ""}`}><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={size} /></button>
       {drag && <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full bg-black/45 text-center text-[11px] font-bold leading-tight text-white">Solte a imagem</span>}
       {busy && <span className="pointer-events-none absolute inset-0 flex items-center justify-center"><span className="h-7 w-7 animate-spin rounded-full border-[3px] border-white/40 border-t-white" /></span>}
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden onChange={(e) => { void send(e.target.files?.[0]); e.target.value = ""; }} />
       <button type="button" onClick={() => input.current?.click()} disabled={busy} aria-label="Enviar foto de perfil" title="Enviar foto (clique ou arraste uma imagem)"
-        className="absolute -bottom-0.5 -right-0.5 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-ds-primary text-white shadow-lg transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-60 sm:h-9 sm:w-9">
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px] sm:h-[19px] sm:w-[19px]"><path d="M12 16V5M7.5 9.5 12 5l4.5 4.5" /><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" /></svg>
+        className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#5F6B7A] text-white shadow-lg transition-colors hover:bg-[#4A5461] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-60 sm:h-9 sm:w-9">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor" className="h-[18px] w-[18px] sm:h-5 sm:w-5"><path d="M440-440ZM120-120q-33 0-56.5-23.5T40-200v-480q0-33 23.5-56.5T120-760h126l74-80h240v80H355l-73 80H120v480h640v-360h80v360q0 33-23.5 56.5T760-120H120Zm640-560v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80ZM440-260q75 0 127.5-52.5T620-440q0-75-52.5-127.5T440-620q-75 0-127.5 52.5T260-440q0 75 52.5 127.5T440-260Zm0-80q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29Z" /></svg>
       </button>
-      {user.avatarUrl && !busy && <button type="button" onClick={() => void remove()} aria-label="Remover foto de perfil" title="Remover foto" className="absolute -left-1 -top-1 hidden h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-black/60 text-white hover:bg-black group-hover:flex sm:flex"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" className="h-3 w-3"><path d="M6 6l12 12M18 6 6 18" /></svg></button>}
+      {zoom && user.avatarUrl && createPortal(
+        <div role="dialog" aria-label="Foto de perfil ampliada" onClick={() => setZoom(false)} className="fixed inset-0 z-[70] flex cursor-zoom-out items-center justify-center bg-black/80 p-6 backdrop-blur-sm [animation:overlay-in_180ms_ease-out_both]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={user.avatarUrl} alt={user.name} draggable={false} className="max-h-[85vh] max-w-[90vw] select-none rounded-3xl object-contain shadow-2xl" />
+        </div>,
+        document.body,
+      )}
       {message && <p role="alert" className="absolute left-1/2 top-full z-20 mt-2 w-max max-w-[220px] -translate-x-1/2 rounded-lg bg-ds-danger px-2.5 py-1.5 text-center text-xs font-medium text-white shadow-lg">{message}</p>}
     </div>
   );
