@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { toCanvas } from "html-to-image";
 import { Icon } from "@/components/ui/icon";
-import { createSuggestion, uploadSuggestionImage } from "@/lib/suggestions";
+import { createSuggestion, listMySuggestions, STATUS_INFO, uploadSuggestionImage, type MySuggestion } from "@/lib/suggestions";
 
 type Tool = "pin" | "draw";
 type Mark = { kind: "pin"; x: number; y: number; note: string } | { kind: "stroke"; points: [number, number][] };
@@ -124,7 +124,8 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
   const [editing, setEditing] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [view, setView] = useState<"form" | "list">("form");
+  const [sent, setSent] = useState(false);
   const size = { w: base?.width ?? 1200, h: base?.height ?? 700 };
 
   useEffect(() => { if (canvasRef.current) paint(canvasRef.current, base, marks); }, [base, marks]);
@@ -184,73 +185,123 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
       const imageUrl = base ? await uploadSuggestionImage(await toBlob(canvasRef.current!)) : undefined;
       const notes = marks.filter((m): m is Extract<Mark, { kind: "pin" }> => m.kind === "pin").map((m, i) => (m.note ? `${i + 1}) ${m.note}` : "")).filter(Boolean);
       await createSuggestion({ description: details.trim() + (notes.length ? `\n\nObservações nos pontos da imagem:\n${notes.join("\n")}` : ""), screenPath: path || pathname, screenTitle: title, imageUrl, viewport });
-      setDone(true);
-      setTimeout(onClose, 1800);
-    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar."); setSending(false); }
+      setSent(true);
+      window.dispatchEvent(new Event("sidebar:updated"));
+      setView("list");
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar."); }
+    finally { setSending(false); }
   }
 
-  const field = "h-11 w-full rounded-[10px] border border-ds-border bg-white px-3 text-sm text-ds-text outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20";
+
   const toolBtn = (active: boolean) => `inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors ${active ? "bg-ds-primary text-white" : "border border-ds-border bg-white text-ds-text-muted hover:border-ds-primary"}`;
+  const pinCount = marks.filter((m) => m.kind === "pin").length;
 
   return createPortal(
     <div className="fixed inset-0 z-[65] flex items-end justify-center bg-[#10202e]/60 sm:items-center sm:p-4" data-no-capture>
       <div className="absolute inset-0" onClick={() => !sending && onClose()} />
-      <div role="dialog" aria-modal="true" aria-label="Sugerir melhoria" className="relative flex max-h-[96vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl">
-        {done ? (
-          <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#12A262]/10 text-[#12A262]"><Icon name="check_circle" className="text-[34px]" /></span>
-            <h2 className="text-lg font-extrabold text-ds-primary-deep">Sugestão enviada!</h2>
-            <p className="text-sm text-ds-text-secondary">Obrigado por ajudar a melhorar o sistema.</p>
-          </div>
-        ) : (
+      <div role="dialog" aria-modal="true" aria-label="Sugerir melhoria" className="relative flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:h-auto sm:max-h-[94vh] sm:rounded-3xl">
+        <header className="flex items-center gap-3 border-b border-ds-border-subtle px-4 py-3 sm:px-5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ds-primary/10 text-ds-primary"><Icon name="lightbulb" className="text-[22px]" /></span>
+          <div className="min-w-0 flex-1"><h2 className="text-lg font-extrabold leading-tight text-ds-primary-deep">{view === "list" ? "Minhas sugestões" : "Sugerir melhoria"}</h2><p className="truncate text-xs text-ds-text-secondary">{view === "list" ? "Acompanhe a situação de cada envio" : `Tela: ${title}`}</p></div>
+          {view === "list" ? (
+            <button type="button" onClick={() => { setSent(false); setView("form"); }} className="hidden h-9 items-center gap-1.5 rounded-lg border border-ds-border px-3 text-xs font-semibold text-ds-text-muted hover:border-ds-primary sm:inline-flex"><Icon name="add" className="text-[16px]" />Nova sugestão</button>
+          ) : (
+            <button type="button" onClick={() => setView("list")} disabled={sending} className="hidden h-9 items-center gap-1.5 rounded-lg border border-ds-border px-3 text-xs font-semibold text-ds-text-muted hover:border-ds-primary sm:inline-flex"><Icon name="list_alt" className="text-[16px]" />Minhas sugestões</button>
+          )}
+          <button type="button" onClick={onClose} disabled={sending} aria-label="Fechar" className="flex h-9 w-9 items-center justify-center rounded-lg text-ds-text-secondary hover:bg-ds-bg"><Icon name="close" className="text-[20px]" /></button>
+        </header>
+
+        {view === "list" ? <MyList sent={sent} onNew={() => { setSent(false); setView("form"); }} /> : (
           <>
-            <header className="flex items-start gap-3 border-b border-ds-border-subtle px-5 py-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ds-primary/10 text-ds-primary"><Icon name="lightbulb" className="text-[22px]" /></span>
-              <div className="min-w-0 flex-1"><h2 className="text-lg font-extrabold leading-tight text-ds-primary-deep">Sugerir melhoria</h2><p className="truncate text-xs text-ds-text-secondary">Tela: {title}</p></div>
-              <button type="button" onClick={onClose} disabled={sending} aria-label="Fechar" className="flex h-9 w-9 items-center justify-center rounded-lg text-ds-text-secondary hover:bg-ds-bg"><Icon name="close" className="text-[20px]" /></button>
-            </header>
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-              <div>
-                <p className="mb-2 flex items-start gap-2 rounded-xl bg-ds-primary/5 px-3 py-2 text-xs leading-snug text-ds-text-muted"><Icon name="ads_click" className="mt-px shrink-0 text-[16px] text-ds-primary" />{base ? "Clique na imagem onde a melhoria deve entrar e escreva o que fazer ali (um ponto por vez). Arraste o ponto para reposicionar. Também dá para desenhar para destacar uma área." : "Não foi possível capturar a tela, mas você ainda pode enviar a sugestão descrevendo abaixo."}</p>
+            <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
+              <div className="flex min-h-0 min-w-0 flex-col gap-2 p-4 sm:p-5 lg:overflow-y-auto">
+                <p className="flex items-start gap-2 rounded-xl bg-ds-primary/5 px-3 py-2 text-xs leading-snug text-ds-text-muted"><Icon name="ads_click" className="mt-px shrink-0 text-[16px] text-ds-primary" />{base ? "Clique na imagem onde a melhoria deve entrar e escreva o que fazer ali (um ponto por vez). Arraste o ponto para reposicionar. Também dá para desenhar para destacar uma área." : "Não foi possível capturar a tela, mas você ainda pode enviar a sugestão descrevendo ao lado."}</p>
                 {base && (
                   <>
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button type="button" onClick={() => setTool("pin")} className={toolBtn(tool === "pin")}><Icon name="location_on" className="text-[16px]" />Marcar ponto</button>
                       <button type="button" onClick={() => setTool("draw")} className={toolBtn(tool === "draw")}><Icon name="draw" className="text-[16px]" />Desenhar</button>
                       <button type="button" onClick={() => { setEditing(null); setMarks((m) => m.slice(0, -1)); }} disabled={!marks.length} className={`${toolBtn(false)} disabled:opacity-40`}><Icon name="undo" className="text-[16px]" />Desfazer</button>
                       <button type="button" onClick={() => { setEditing(null); setMarks([]); }} disabled={!marks.length} className={`${toolBtn(false)} disabled:opacity-40`}><Icon name="delete" className="text-[16px]" />Limpar</button>
                     </div>
-                    <div className="overflow-hidden rounded-xl border border-ds-border bg-ds-bg">
-                      <div className="relative"><canvas ref={canvasRef} width={size.w} height={size.h} onPointerDown={down} onPointerMove={move} onPointerUp={release} onPointerCancel={release} className="block h-auto w-full cursor-crosshair touch-none select-none" />
-                      {editing !== null && marks[editing]?.kind === "pin" && (() => {
-                        const m = marks[editing] as Extract<Mark, { kind: "pin" }>;
-                        const left = (m.x / size.w) * 100, top = (m.y / size.h) * 100;
-                        return (
-                          <input autoFocus value={m.note} maxLength={120} placeholder="O que fazer aqui? (Enter para salvar)"
-                            onChange={(e) => setMarks((all) => all.map((x, i) => (i === editing && x.kind === "pin" ? { ...x, note: e.target.value } : x)))}
-                            onBlur={() => setEditing(null)}
-                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setEditing(null); } else if (e.key === "Escape") { e.stopPropagation(); setEditing(null); } }}
-                            style={{ top: `${top}%`, ...(left > 55 ? { right: `${100 - left + 3}%` } : { left: `${left + 3}%` }) }}
-                            className="absolute z-10 h-9 w-[min(260px,60%)] -translate-y-1/2 rounded-lg border-2 border-[#E5322D] bg-white px-2.5 text-xs font-medium text-ds-text shadow-lg outline-none" />
-                        );
-                      })()}
-                    </div>
+                    <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto rounded-xl border border-ds-border bg-ds-bg p-1.5">
+                      <div className="relative inline-block max-w-full">
+                        <canvas ref={canvasRef} width={size.w} height={size.h} onPointerDown={down} onPointerMove={move} onPointerUp={release} onPointerCancel={release} style={{ maxHeight: "calc(94vh - 250px)" }} className="block h-auto w-auto max-w-full cursor-crosshair touch-none select-none rounded-lg" />
+                        {editing !== null && marks[editing]?.kind === "pin" && (() => {
+                          const m = marks[editing] as Extract<Mark, { kind: "pin" }>;
+                          const left = (m.x / size.w) * 100, top = (m.y / size.h) * 100;
+                          return (
+                            <input autoFocus value={m.note} maxLength={120} placeholder="O que fazer aqui? (Enter para salvar)"
+                              onChange={(e) => setMarks((all) => all.map((x, i) => (i === editing && x.kind === "pin" ? { ...x, note: e.target.value } : x)))}
+                              onBlur={() => setEditing(null)}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setEditing(null); } else if (e.key === "Escape") { e.stopPropagation(); setEditing(null); } }}
+                              style={{ top: `${top}%`, ...(left > 55 ? { right: `${100 - left + 3}%` } : { left: `${left + 3}%` }) }}
+                              className="absolute z-10 h-9 w-[min(260px,60%)] -translate-y-1/2 rounded-lg border-2 border-[#E5322D] bg-white px-2.5 text-xs font-medium text-ds-text shadow-lg outline-none" />
+                          );
+                        })()}
+                      </div>
                     </div>
                   </>
                 )}
               </div>
-              <label className="block"><span className="mb-1 block text-xs font-bold text-ds-text-secondary">Detalhes</span>
-                <textarea value={details} onChange={(e) => setDetails(e.target.value)} maxLength={4000} rows={4} disabled={sending} placeholder="Descreva a melhoria: o que você gostaria que mudasse e por quê." className={`${field} h-auto resize-y py-2.5`} /></label>
-              {error && <p role="alert" className="text-sm font-medium text-ds-danger-text">{error}</p>}
+              <div className="flex min-w-0 flex-col gap-3 border-t border-ds-border-subtle p-4 sm:p-5 lg:overflow-y-auto lg:border-l lg:border-t-0">
+                <label className="flex min-h-0 flex-1 flex-col"><span className="mb-1 block text-xs font-bold text-ds-text-secondary">Detalhes da melhoria</span>
+                  <textarea value={details} onChange={(e) => setDetails(e.target.value)} maxLength={4000} rows={6} disabled={sending} placeholder="Descreva a melhoria: o que você gostaria que mudasse e por quê." className="min-h-[140px] w-full flex-1 resize-none rounded-[10px] border border-ds-border bg-white px-3 py-2.5 text-sm text-ds-text outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" /></label>
+                {pinCount > 0 && <p className="text-xs text-ds-text-secondary">{pinCount} {pinCount === 1 ? "ponto marcado" : "pontos marcados"} na imagem.</p>}
+                {error && <p role="alert" className="text-sm font-medium text-ds-danger-text">{error}</p>}
+              </div>
             </div>
-            <footer className="flex gap-2 border-t border-ds-border-subtle px-5 py-3">
+            <footer className="flex gap-2 border-t border-ds-border-subtle px-4 py-3 sm:px-5">
+              <button type="button" onClick={() => setView("list")} disabled={sending} aria-label="Minhas sugestões" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-[10px] border border-ds-border px-4 text-sm font-semibold text-ds-text-muted hover:border-ds-primary sm:hidden"><Icon name="list_alt" className="text-[18px]" /></button>
               <button type="button" onClick={onClose} disabled={sending} className="h-11 flex-1 rounded-[10px] border border-ds-border text-sm font-semibold text-ds-text-muted hover:border-ds-primary sm:flex-none sm:px-6">Cancelar</button>
-              <button type="button" onClick={() => void send()} disabled={sending} className="btn-add inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] text-sm font-bold text-white disabled:opacity-60 sm:flex-none sm:px-8">{sending ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />Enviando...</> : <><Icon name="send" className="text-[18px]" />Enviar sugestão</>}</button>
+              <button type="button" onClick={() => void send()} disabled={sending} className="btn-add inline-flex h-11 flex-[2] items-center justify-center gap-2 rounded-[10px] text-sm font-bold text-white disabled:opacity-60 sm:ml-auto sm:flex-none sm:px-8">{sending ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />Enviando...</> : <><Icon name="send" className="text-[18px]" />Enviar sugestão</>}</button>
             </footer>
           </>
         )}
       </div>
     </div>,
     document.body,
+  );
+}
+
+const fmt = (iso: string) => `${new Date(iso).toLocaleDateString("pt-BR")} às ${new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+
+function MyList({ sent, onNew }: { sent: boolean; onNew: () => void }) {
+  const [items, setItems] = useState<MySuggestion[] | null>(null);
+  const [error, setError] = useState("");
+  const [zoom, setZoom] = useState<string | null>(null);
+  useEffect(() => { listMySuggestions().then(setItems).catch((e) => { setError(e instanceof Error ? e.message : "Não foi possível carregar."); setItems([]); }); }, []);
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+      {sent && <p role="status" className="mb-4 flex items-center gap-2 rounded-xl bg-[#DDF6EA] px-3 py-2.5 text-sm font-semibold text-[#0B7A4B]"><Icon name="check_circle" className="text-[20px]" />Sugestão enviada! Ela aparece abaixo como pendente. Obrigado por ajudar a melhorar o sistema.</p>}
+      {error && <p role="alert" className="mb-3 text-sm text-ds-danger-text">{error}</p>}
+      {!items ? <p className="py-10 text-center text-sm text-ds-text-secondary">Carregando...</p> : items.length === 0 ? (
+        <div className="py-10 text-center text-sm text-ds-text-secondary">Você ainda não enviou sugestões.<br /><button type="button" onClick={onNew} className="mt-3 font-semibold text-ds-primary hover:underline">Enviar a primeira</button></div>
+      ) : (
+        <ul className="space-y-3">
+          {items.map((s) => (
+            <li key={s.id} className="flex gap-3 rounded-2xl border border-ds-border-subtle bg-white p-3">
+              {s.imageUrl ? (
+                <button type="button" onClick={() => setZoom(s.imageUrl)} aria-label="Ampliar imagem" className="shrink-0 cursor-zoom-in overflow-hidden rounded-xl border border-ds-border-subtle">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.imageUrl} alt="" className="h-20 w-28 object-cover object-top" />
+                </button>
+              ) : <span className="flex h-20 w-28 shrink-0 items-center justify-center rounded-xl bg-ds-bg text-ds-text-secondary"><Icon name="image_not_supported" className="text-[24px]" /></span>}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2"><span className="text-xs font-semibold text-ds-text-secondary">{s.screenTitle}</span><span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_INFO[s.status].cls}`}>{STATUS_INFO[s.status].label}</span></div>
+                <p className="mt-1 line-clamp-2 break-words text-sm text-ds-text">{s.description.split(/\n\nObservações/)[0]}</p>
+                <p className="mt-1 text-[11px] text-ds-text-secondary">{fmt(s.createdAt)}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {zoom && (
+        <div role="dialog" aria-label="Imagem ampliada" onClick={() => setZoom(null)} className="fixed inset-0 z-[70] flex cursor-zoom-out items-center justify-center bg-black/80 p-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={zoom} alt="" className="max-h-[90vh] max-w-[92vw] rounded-2xl object-contain shadow-2xl" />
+        </div>
+      )}
+    </div>
   );
 }

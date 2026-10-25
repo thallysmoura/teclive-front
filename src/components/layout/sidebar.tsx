@@ -19,6 +19,7 @@ const DEFAULT_ITEMS: NavigationItem[] = [
   { key: "administrativo", label: "Governança", href: null, section: "group", sortOrder: 0 },
   { key: "controle_acesso", label: "Equipe e Permissões", href: "/access-control", section: "admin", sortOrder: 0 },
   { key: "log_acesso", label: "Log de acesso", href: "/access-logs", section: "admin", sortOrder: 1 },
+  { key: "envios_melhorias", label: "Envios de melhorias", href: "/sugestoes", section: "admin", sortOrder: 2 },
 ];
 
 const MENU_ICONS: Record<string, string> = {
@@ -356,7 +357,7 @@ export function Sidebar({
                         }`}
                       >
                         <Link href={item.href!} aria-current={active ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(item.href!); }} className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2">
-                          <Icon name={item.key === "ajuda" ? "help" : item.key === "log_acesso" ? "history" : "admin_panel_settings"} className="shrink-0 text-[14px]" />
+                          <Icon name={item.key === "ajuda" ? "help" : item.key === "log_acesso" ? "history" : item.key === "envios_melhorias" ? "lightbulb" : "admin_panel_settings"} className="shrink-0 text-[14px]" />
                           <span className="min-w-0 break-words">{item.label}</span>
                         </Link>
                         {item.badge !== undefined && <span title={`${item.badge} usuários cadastrados`} aria-label={`${item.badge} usuários cadastrados`} className="mr-2 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-white/15 px-1 text-[9px] font-semibold tabular-nums text-white/80">{item.badge}</span>}
