@@ -226,7 +226,7 @@ export function Sidebar({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-30 grid h-16 grid-cols-[48px_1fr] items-center bg-ds-primary-hover px-3 md:hidden">
+      <header className="fixed inset-x-0 top-0 z-30 grid h-16 grid-cols-[48px_1fr_48px] items-center bg-ds-primary-hover px-3 md:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -238,7 +238,7 @@ export function Sidebar({
           </svg>
         </button>
 
-        <div className="flex items-center justify-start pl-1">
+        <div className="flex items-center justify-center">
           <Link href="/home" aria-label="Ir para a página inicial" title="Página inicial" onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate("/home"); }} className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-12 w-auto select-none" /></Link>
         </div>
       </header>
@@ -420,7 +420,7 @@ function MobileUserMenu({ user, navigate, onLogout }: { user: { name: string; av
   const go = (href: string) => { setOpen(false); navigate(href); };
   return createPortal(
     <div className="md:hidden" data-no-capture>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} aria-label="Menu do usuário" className="fixed right-3 top-[10px] z-30 flex h-10 w-10 items-center justify-center rounded-full"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={36} /></button>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} aria-label="Menu do usuário" className="fixed right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={36} /></button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
