@@ -40,12 +40,12 @@ function NotificationList({ items, unreadCount, onRead, onReadAll, loading }: { 
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h2 id="notifications-title" className="text-xl font-bold text-ds-primary-deep">Notificações</h2>
-        <button type="button" onClick={onReadAll} disabled={unreadCount === 0} className="text-xs font-semibold text-ds-primary hover:underline disabled:cursor-not-allowed disabled:opacity-40">Marcar todas como lidas</button>
       </div>
       <div role="tablist" className="mb-2 flex gap-2">
         {([["all", "Todas"], ["unread", `Não lidas${unreadCount ? ` (${unreadCount})` : ""}`]] as const).map(([key, label]) => (
           <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`rounded-full px-3 py-1 text-sm font-semibold ${tab === key ? "bg-ds-primary/10 text-ds-primary" : "text-ds-text-muted hover:bg-ds-bg"}`}>{label}</button>
         ))}
+        <button type="button" onClick={onReadAll} disabled={unreadCount === 0} className="ml-auto self-center whitespace-nowrap text-xs font-semibold text-ds-primary hover:underline disabled:cursor-not-allowed disabled:opacity-40">Marcar todas como lidas</button>
       </div>
       <ul className="-mx-2 min-h-0 flex-1 overflow-y-auto">
         {shown.map((n) => (
