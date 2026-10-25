@@ -9,6 +9,9 @@ export function PwaInstall() {
         console.error("Não foi possível registrar o service worker do euGestor.");
       });
     }
+    const keep = (event: Event) => { event.preventDefault(); window.__egInstall = event as never; };
+    window.addEventListener("beforeinstallprompt", keep);
+    return () => window.removeEventListener("beforeinstallprompt", keep);
   }, []);
 
   return null;
