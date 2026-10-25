@@ -83,6 +83,9 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
   const panel = useRef<HTMLDivElement>(null);
   const navigate = useNavigationTransition();
 
+  // Ao abrir, a contagem zera e tudo vira "visto"; o que era novo continua destacado só enquanto o painel está aberto.
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
+  useEffect(() => { if (!open) setFresh(new Set()); }, [open]);
   const navRef = useRef(navigate);
   navRef.current = navigate;
   const seen = useRef<Set<string> | null>(null);
@@ -141,12 +144,18 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
   }, [open, desktop]);
 
   function toggle() {
-    if (open) return setOpen(false);
+    if (open) { setOpen(false); setFresh(new Set()); return; }
+    const hadUnread = unread > 0;
+    if (hadUnread) {
+      setFresh(new Set(items.filter((n) => !n.readAt).map((n) => n.id)));
+      setUnread(0);
+      void markAllNotificationsRead().then(() => load()); // recarrega só depois de gravar, para a contagem não voltar
+    }
     if (typeof Notification !== "undefined" && Notification.permission === "default") void Notification.requestPermission(); // pede uma vez, no clique
     const rect = button.current?.getBoundingClientRect();
     if (rect) setPos(desktopInSidebar ? { top: rect.bottom + 8, left: Math.max(8, Math.min(rect.left, window.innerWidth - 424)) } : { top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
     setOpen(true);
-    void load();
+    if (!hadUnread) void load();
   }
 
   async function read(n: AppNotification) {
@@ -154,18 +163,20 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
     const url = (n.data as { url?: unknown } | null)?.url;
     if (typeof url === "string" && url.startsWith("/")) { setOpen(false); navigate(url); }
     if (n.readAt) return;
+    setFresh((f) => { const c = new Set(f); c.delete(n.id); return c; });
     setItems((list) => list.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)));
     setUnread((c) => Math.max(0, c - 1));
     await markNotificationRead(n.id);
   }
 
   async function readAll() {
+    setFresh(new Set());
     setItems((list) => list.map((x) => ({ ...x, readAt: x.readAt ?? new Date().toISOString() })));
     setUnread(0);
     await markAllNotificationsRead();
   }
 
-  const list = <NotificationList items={items} unreadCount={unread} onRead={read} onReadAll={readAll} loading={loading} />;
+  const list = <NotificationList items={items.map((n) => (fresh.has(n.id) ? { ...n, readAt: null } : n))} unreadCount={fresh.size || unread} onRead={read} onReadAll={readAll} loading={loading} />;
 
   return <>
     <button ref={button} type="button" onClick={toggle} aria-label={unread ? `Notificações (${unread} não lidas)` : "Notificações"} title="Notificações" aria-haspopup="dialog" aria-expanded={open} className={`fixed right-[68px] top-3 z-30 flex h-10 w-10 items-center justify-center rounded-xl text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white md:h-10 md:w-10 ${desktopInSidebar ? "md:left-48 md:right-auto md:top-10 md:bg-white/10 md:hover:bg-white/15" : "md:right-6 md:top-4 md:border md:border-ds-border-subtle md:bg-white md:text-ds-primary-deep md:shadow-sm md:hover:bg-ds-primary/10 md:focus-visible:ring-ds-primary"}`}>
