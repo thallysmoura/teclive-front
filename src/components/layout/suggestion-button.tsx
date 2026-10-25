@@ -208,11 +208,11 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ds-primary/10 text-ds-primary"><Icon name="lightbulb" className="text-[22px]" /></span>
           <div className="min-w-0 flex-1"><h2 className="text-lg font-extrabold leading-tight text-ds-primary-deep">{view === "list" ? "Minhas sugestões" : "Sugerir melhoria"}</h2><p className="truncate text-xs text-ds-text-secondary">{view === "list" ? "Acompanhe a situação de cada envio" : `Tela: ${title}`}</p></div>
           {view === "list" ? (
-            <button type="button" onClick={() => { setSent(false); setView("form"); }} className="hidden h-9 items-center gap-1.5 rounded-lg border border-ds-border px-3 text-xs font-semibold text-ds-text-muted hover:border-ds-primary sm:inline-flex"><Icon name="add" className="text-[16px]" />Nova sugestão</button>
+            <button type="button" onClick={() => { setSent(false); setView("form"); }} className="inline-flex h-9 items-center rounded-lg border border-ds-border px-3 text-xs font-semibold text-ds-text-muted hover:border-ds-primary">Nova sugestão</button>
           ) : (
-            <button type="button" onClick={() => setView("list")} disabled={sending} className="hidden h-9 items-center gap-1.5 rounded-lg border border-ds-border px-3 text-xs font-semibold text-ds-text-muted hover:border-ds-primary sm:inline-flex"><Icon name="list_alt" className="text-[16px]" />Minhas sugestões</button>
+            <button type="button" onClick={() => setView("list")} disabled={sending} className="inline-flex h-9 items-center rounded-lg border border-ds-border px-3 text-xs font-semibold text-ds-text-muted hover:border-ds-primary">Minhas sugestões</button>
           )}
-          <button type="button" onClick={onClose} disabled={sending} aria-label="Fechar" className="flex h-9 w-9 items-center justify-center rounded-lg text-ds-text-secondary hover:bg-ds-bg"><Icon name="close" className="text-[20px]" /></button>
+          <button type="button" onClick={onClose} disabled={sending} aria-label="Fechar" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#E5322D] hover:bg-[#E5322D]/10"><Icon name="close" className="text-[20px]" /></button>
         </header>
 
         {view === "list" ? <MyList sent={sent} onNew={() => { setSent(false); setView("form"); }} /> : (
@@ -256,9 +256,8 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
               </div>
             </div>
             <footer className="flex gap-2 border-t border-ds-border-subtle px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pb-3">
-              <button type="button" onClick={() => setView("list")} disabled={sending} aria-label="Minhas sugestões" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-[10px] border border-ds-border px-4 text-sm font-semibold text-ds-text-muted hover:border-ds-primary sm:hidden"><Icon name="list_alt" className="text-[18px]" /></button>
-              <button type="button" onClick={onClose} disabled={sending} className="h-11 flex-1 rounded-[10px] border border-ds-border text-sm font-semibold text-ds-text-muted hover:border-ds-primary sm:flex-none sm:px-6">Cancelar</button>
-              <button type="button" onClick={() => void send()} disabled={sending} className="btn-add inline-flex h-11 flex-[2] items-center justify-center gap-2 rounded-[10px] text-sm font-bold text-white disabled:opacity-60 sm:ml-auto sm:flex-none sm:px-8">{sending ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />Enviando...</> : <><Icon name="send" className="text-[18px]" />Enviar sugestão</>}</button>
+              <button type="button" onClick={onClose} disabled={sending} className="h-11 flex-1 rounded-[10px] border border-ds-border text-sm font-semibold text-ds-text-muted hover:border-ds-primary sm:flex-none sm:px-8">Cancelar</button>
+              <button type="button" onClick={() => void send()} disabled={sending} className="btn-add inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] text-sm font-bold text-white disabled:opacity-60 sm:ml-auto sm:flex-none sm:px-10">{sending ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />Enviando...</> : "Enviar sugestão"}</button>
             </footer>
           </>
         )}
