@@ -12,6 +12,7 @@ import { getOverview, type Overview } from "@/lib/dashboard";
 import { fmtDate, formatOsNumber } from "@/lib/operacional";
 import { MemberHome } from "./member-home";
 import { HomeBanner } from "@/components/layout/home-banner";
+import { RecentVisits } from "@/components/layout/recent-visits";
 import { InstallToast } from "@/components/layout/install-toast";
 
 const WEEKDAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
@@ -113,6 +114,8 @@ function Home({ user }: { user: Me }) {
   return (
     <div className="mx-auto max-w-[1400px]">
       <HomeBanner user={user} updatedAt={data?.generatedAt} onRefresh={load} subtitle="Painel executivo — visão consolidada de toda a operação da Teclive." />
+
+      <RecentVisits userId={user.id} className="mb-6" />
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
       {!data ? <p className="py-16 text-center text-sm text-ds-text-secondary">Carregando painel...</p> : (

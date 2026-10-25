@@ -5,30 +5,19 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { HomeBanner } from "@/components/layout/home-banner";
 import { listNavigation, type Me, type NavigationItem } from "@/lib/api";
-import { getRecent, type RecentVisit } from "@/lib/recent";
+import { RecentVisits } from "@/components/layout/recent-visits";
 
 const WEEKDAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 const LONG_MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const GROUP_ICON: Record<string, string> = { Administrativo: "apartment", Comercial: "work", Operacional: "build", Estoque: "inventory_2" };
 
-function ago(iso: string) {
-  const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
-  if (minutes < 1) return "agora";
-  if (minutes < 60) return `há ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `há ${hours} h`;
-  const days = Math.floor(hours / 24);
-  return days === 1 ? "ontem" : `há ${days} dias`;
-}
-
 /** Visão Geral para quem não é administrador: abertura com o histórico de telas recentes e atalhos para tudo que a pessoa pode acessar. */
 export function MemberHome({ user }: { user: Me }) {
   const [items, setItems] = useState<NavigationItem[] | null>(null);
-  const [recent, setRecent] = useState<RecentVisit[]>([]);
   const now = new Date();
   const first = user.name.trim().split(/\s+/)[0];
 
-  useEffect(() => { setRecent(getRecent(user.id)); listNavigation().then(setItems).catch(() => setItems([])); }, [user.id]);
+  useEffect(() => { listNavigation().then(setItems).catch(() => setItems([])); }, [user.id]);
 
   // Atalhos: somente telas reais (com endereço próprio) que a pessoa tem permissão de abrir, agrupadas pelo grupo do menu.
   const groups = useMemo(() => {
@@ -45,24 +34,7 @@ export function MemberHome({ user }: { user: Me }) {
     <div className="mx-auto max-w-[1100px]">
       <HomeBanner user={user} subtitle="Bem-vindo(a)! Continue de onde parou ou abra uma das suas áreas." />
 
-      <section aria-label="Acessados recentemente" className="mb-8">
-        <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ds-text-secondary"><Icon name="history" className="text-[18px]" />Acessados recentemente</h2>
-        {recent.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-ds-border bg-white px-5 py-6 text-center text-sm text-ds-text-secondary">Você ainda não abriu nenhuma tela por aqui. Escolha uma área abaixo para começar.</p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {recent.slice(0, 6).map((r) => (
-              <li key={r.href}>
-                <Link href={r.href} className="group flex items-center gap-3 rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-ds-primary hover:shadow-md">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ds-primary/10 text-ds-primary"><Icon name={GROUP_ICON[r.group ?? ""] ?? "article"} className="text-[22px]" /></span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-ds-primary-deep">{r.label}</span><span className="block truncate text-xs text-ds-text-secondary">{r.group ? `${r.group} · ` : ""}{ago(r.at)}</span></span>
-                  <Icon name="arrow_forward" className="text-[18px] text-ds-border transition-colors group-hover:text-ds-primary" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <RecentVisits userId={user.id} />
 
       <section aria-label="Suas áreas">
         <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ds-text-secondary"><Icon name="apps" className="text-[18px]" />Suas áreas</h2>
