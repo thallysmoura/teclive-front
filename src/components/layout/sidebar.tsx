@@ -186,7 +186,7 @@ export function Sidebar({
 
   const visibleItems = loaded || user.role === "ADMIN" ? items : items.filter((item) => user.permissions?.includes(item.key));
   const hasGrantedAccess = user.role === "ADMIN" || visibleItems.some((item) => Boolean(item.href));
-  const navItems = visibleItems.filter((item) => item.section === "main" && !item.parentKey);
+  const navItems = visibleItems.filter((item) => item.section === "main" && !item.parentKey && item.href !== "/gestao-obras"); // Gestão de Obras virou aba da Visão Geral
   const adminItems = visibleItems.filter((item) => item.section === "admin" && item.href && (user.role === "ADMIN" || item.key === "log_acesso" || item.key === "ajuda") && (item.key !== "log_acesso" || loaded || user.permissions?.includes("log_acesso")));
   const adminGroup = items.find((item) => item.key === "administrativo") ?? DEFAULT_ITEMS[1];
   const query = normalize(menuQuery.trim());

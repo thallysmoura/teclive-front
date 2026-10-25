@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { createSuggestion, SUGGESTION_CATEGORIES, uploadSuggestionImage } from "@/lib/suggestions";
 
 type Tool = "pin" | "draw";
-type Mark = { kind: "pin"; x: number; y: number } | { kind: "stroke"; points: [number, number][] };
+type Mark = { kind: "pin"; x: number; y: number; note: string } | { kind: "stroke"; points: [number, number][] };
 
 const MAX_WIDTH = 1400;
 const RED = "#E5322D";
@@ -28,6 +28,28 @@ async function capture(): Promise<HTMLCanvasElement | null> {
     small.getContext("2d")!.drawImage(canvas, 0, 0, small.width, small.height);
     return small;
   } catch { return null; }
+}
+
+function label(ctx: CanvasRenderingContext2D, m: { x: number; y: number; note: string }, unit: number, width: number) {
+  const size = 13 * unit, pad = 7 * unit, maxW = 230 * unit;
+  ctx.font = `600 ${size}px sans-serif`;
+  const lines: string[] = [];
+  let line = "";
+  for (const word of m.note.split(/\s+/)) {
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > maxW && line) { lines.push(line); line = word; } else line = next;
+  }
+  if (line) lines.push(line);
+  const shown = lines.slice(0, 4);
+  if (lines.length > 4) shown[3] = `${shown[3].slice(0, -1)}…`;
+  const w = Math.max(...shown.map((l) => ctx.measureText(l).width)) + pad * 2, h = shown.length * size * 1.25 + pad * 2 - size * 0.25;
+  const gap = 22 * unit;
+  const x = m.x + gap + w > width ? Math.max(4 * unit, m.x - gap - w) : m.x + gap;
+  const y = Math.max(4 * unit, m.y - h / 2);
+  ctx.fillStyle = "#fff"; ctx.strokeStyle = RED; ctx.lineWidth = 2 * unit;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 7 * unit); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#1B2B3A"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  shown.forEach((l, i) => ctx.fillText(l, x + pad, y + pad + i * size * 1.25));
 }
 
 function paint(canvas: HTMLCanvasElement, base: HTMLCanvasElement | null, marks: Mark[]) {
@@ -50,6 +72,7 @@ function paint(canvas: HTMLCanvasElement, base: HTMLCanvasElement | null, marks:
       ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       ctx.fillStyle = "#fff"; ctx.font = `bold ${15 * unit}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(String(n), m.x, m.y + unit);
+      if (m.note) label(ctx, m, unit, canvas.width);
     }
   }
 }
@@ -73,7 +96,9 @@ export function SuggestionButton() {
     if (busy) return;
     setBusy(true);
     const base = await capture();
-    const title = document.querySelector("main h1")?.textContent?.trim() || document.title || location.pathname;
+    const h1 = document.querySelector("main h1")?.cloneNode(true) as HTMLElement | undefined;
+    h1?.querySelectorAll(".material-symbols-outlined").forEach((n) => n.remove());
+    const title = h1?.textContent?.trim() || document.title || location.pathname;
     setShot({ base, title, path: location.pathname + location.search, viewport: `${window.innerWidth}x${window.innerHeight}` });
     setBusy(false);
   }
@@ -97,6 +122,7 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
   const [category, setCategory] = useState("");
   const [name, setName] = useState("");
   const [details, setDetails] = useState("");
+  const [editing, setEditing] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -116,8 +142,16 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
     return [((e.clientX - rect.left) * size.w) / rect.width, ((e.clientY - rect.top) * size.h) / rect.height];
   };
   const down = (e: React.PointerEvent) => {
+    e.preventDefault(); // evita que o clique no canvas tire o foco do campo da observação
     const p = point(e);
-    if (tool === "pin") { setMarks((m) => [...m, { kind: "pin", x: p[0], y: p[1] }]); return; }
+    if (tool === "pin") {
+      const unit = Math.max(1, size.w / 900);
+      const hit = marks.findIndex((m) => m.kind === "pin" && Math.hypot(m.x - p[0], m.y - p[1]) < 20 * unit);
+      if (hit >= 0) { setEditing(hit); return; } // clicar num ponto existente edita a observação
+      setMarks((m) => [...m, { kind: "pin", x: p[0], y: p[1], note: "" }]);
+      setEditing(marks.length);
+      return;
+    }
     (e.target as Element).setPointerCapture(e.pointerId);
     drawing.current = [p];
     setMarks((m) => [...m, { kind: "stroke", points: [p] }]);
@@ -137,7 +171,8 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
     setSending(true);
     try {
       const imageUrl = base ? await uploadSuggestionImage(await toBlob(canvasRef.current!)) : undefined;
-      await createSuggestion({ category, title: name.trim(), description: details.trim(), screenPath: path || pathname, screenTitle: title, imageUrl, viewport });
+      const notes = marks.filter((m): m is Extract<Mark, { kind: "pin" }> => m.kind === "pin").map((m, i) => (m.note ? `${i + 1}) ${m.note}` : "")).filter(Boolean);
+      await createSuggestion({ category, title: name.trim(), description: details.trim() + (notes.length ? `\n\nObservações nos pontos da imagem:\n${notes.join("\n")}` : ""), screenPath: path || pathname, screenTitle: title, imageUrl, viewport });
       setDone(true);
       setTimeout(onClose, 1800);
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar."); setSending(false); }
@@ -165,17 +200,30 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
             </header>
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
               <div>
-                <p className="mb-2 flex items-start gap-2 rounded-xl bg-ds-primary/5 px-3 py-2 text-xs leading-snug text-ds-text-muted"><Icon name="ads_click" className="mt-px shrink-0 text-[16px] text-ds-primary" />{base ? "Clique na imagem para marcar exatamente onde a melhoria deve entrar, ou use o lápis para desenhar e destacar uma área." : "Não foi possível capturar a tela, mas você ainda pode enviar a sugestão descrevendo abaixo."}</p>
+                <p className="mb-2 flex items-start gap-2 rounded-xl bg-ds-primary/5 px-3 py-2 text-xs leading-snug text-ds-text-muted"><Icon name="ads_click" className="mt-px shrink-0 text-[16px] text-ds-primary" />{base ? "Clique na imagem onde a melhoria deve entrar e escreva o que fazer ali (um ponto por vez). Também dá para desenhar para destacar uma área." : "Não foi possível capturar a tela, mas você ainda pode enviar a sugestão descrevendo abaixo."}</p>
                 {base && (
                   <>
                     <div className="mb-2 flex flex-wrap items-center gap-2">
                       <button type="button" onClick={() => setTool("pin")} className={toolBtn(tool === "pin")}><Icon name="location_on" className="text-[16px]" />Marcar ponto</button>
                       <button type="button" onClick={() => setTool("draw")} className={toolBtn(tool === "draw")}><Icon name="draw" className="text-[16px]" />Desenhar</button>
-                      <button type="button" onClick={() => setMarks((m) => m.slice(0, -1))} disabled={!marks.length} className={`${toolBtn(false)} disabled:opacity-40`}><Icon name="undo" className="text-[16px]" />Desfazer</button>
-                      <button type="button" onClick={() => setMarks([])} disabled={!marks.length} className={`${toolBtn(false)} disabled:opacity-40`}><Icon name="delete" className="text-[16px]" />Limpar</button>
+                      <button type="button" onClick={() => { setEditing(null); setMarks((m) => m.slice(0, -1)); }} disabled={!marks.length} className={`${toolBtn(false)} disabled:opacity-40`}><Icon name="undo" className="text-[16px]" />Desfazer</button>
+                      <button type="button" onClick={() => { setEditing(null); setMarks([]); }} disabled={!marks.length} className={`${toolBtn(false)} disabled:opacity-40`}><Icon name="delete" className="text-[16px]" />Limpar</button>
                     </div>
                     <div className="overflow-hidden rounded-xl border border-ds-border bg-ds-bg">
-                      <canvas ref={canvasRef} width={size.w} height={size.h} onPointerDown={down} onPointerMove={move} onPointerUp={() => { drawing.current = null; }} onPointerCancel={() => { drawing.current = null; }} className="block h-auto w-full cursor-crosshair touch-none select-none" />
+                      <div className="relative"><canvas ref={canvasRef} width={size.w} height={size.h} onPointerDown={down} onPointerMove={move} onPointerUp={() => { drawing.current = null; }} onPointerCancel={() => { drawing.current = null; }} className="block h-auto w-full cursor-crosshair touch-none select-none" />
+                      {editing !== null && marks[editing]?.kind === "pin" && (() => {
+                        const m = marks[editing] as Extract<Mark, { kind: "pin" }>;
+                        const left = (m.x / size.w) * 100, top = (m.y / size.h) * 100;
+                        return (
+                          <input autoFocus value={m.note} maxLength={120} placeholder="O que fazer aqui? (Enter para salvar)"
+                            onChange={(e) => setMarks((all) => all.map((x, i) => (i === editing && x.kind === "pin" ? { ...x, note: e.target.value } : x)))}
+                            onBlur={() => setEditing(null)}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setEditing(null); } else if (e.key === "Escape") { e.stopPropagation(); setEditing(null); } }}
+                            style={{ top: `${top}%`, ...(left > 55 ? { right: `${100 - left + 3}%` } : { left: `${left + 3}%` }) }}
+                            className="absolute z-10 h-9 w-[min(260px,60%)] -translate-y-1/2 rounded-lg border-2 border-[#E5322D] bg-white px-2.5 text-xs font-medium text-ds-text shadow-lg outline-none" />
+                        );
+                      })()}
+                    </div>
                     </div>
                   </>
                 )}

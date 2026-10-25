@@ -11,6 +11,10 @@ import { money } from "@/lib/cadastros";
 import { getOverview, type Overview } from "@/lib/dashboard";
 import { fmtDate, formatOsNumber } from "@/lib/operacional";
 import { MemberHome } from "./member-home";
+import { WorksDashboard } from "../gestao-obras/works-dashboard";
+import { HomeTabs, canSeeObras, type HomeTab } from "@/components/layout/home-tabs";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { HomeBanner } from "@/components/layout/home-banner";
 import { RecentVisits } from "@/components/layout/recent-visits";
 import { InstallToast } from "@/components/layout/install-toast";
@@ -92,7 +96,7 @@ function Mini({ label, value, href }: { label: string; value: string; href?: str
   return href ? <Link href={href} className="rounded-xl border border-ds-border-subtle bg-white p-3 hover:border-ds-primary">{body}</Link> : <div className="rounded-xl border border-ds-border-subtle bg-white p-3">{body}</div>;
 }
 
-function Home({ user }: { user: Me }) {
+function Home({ user, tab }: { user: Me; tab: HomeTab }) {
   const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState("");
   const load = useCallback(() => getOverview().then((d) => { setData(d); setError(""); }).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível carregar.")), []);
@@ -104,10 +108,10 @@ function Home({ user }: { user: Me }) {
 
   // Pontos de atenção do dia (cada um leva direto para a tela de ação).
   const alerts: { icon: string; tone: string; text: string; href: string }[] = [];
-  if (o?.late) alerts.push({ icon: "alarm", tone: "bg-ds-danger-bg text-ds-danger-text border-ds-danger-border", text: `${o.late} obras atrasadas`, href: "/gestao-obras?grupo=atraso" });
+  if (o?.late) alerts.push({ icon: "alarm", tone: "bg-ds-danger-bg text-ds-danger-text border-ds-danger-border", text: `${o.late} obras atrasadas`, href: "/home?tab=obras&grupo=atraso" });
   if (o?.pendingQuotes) alerts.push({ icon: "request_quote", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${o.pendingQuotes} vendas sem ordem de serviço aberta (${compact(o.pendingQuotesValue)})`, href: "/operacional/andamento" });
   if (c?.expiring) alerts.push({ icon: "hourglass_bottom", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${c.expiring} orçamentos vencem em 7 dias`, href: "/comercial/orcamentos?status=3" });
-  if (o?.ready) alerts.push({ icon: "task_alt", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${o.ready} obras prontas para fechar e faturar`, href: "/gestao-obras?grupo=fechamento" });
+  if (o?.ready) alerts.push({ icon: "task_alt", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${o.ready} obras prontas para fechar e faturar`, href: "/home?tab=obras&grupo=fechamento" });
   if (e?.negative) alerts.push({ icon: "inventory", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${e.negative} produtos com saldo negativo no estoque`, href: "/estoque/saldo" });
   if (g?.pending) alerts.push({ icon: "person_alert", tone: "bg-white text-ds-primary-deep border-ds-border-subtle", text: `${g.pending} usuários aguardando permissão`, href: "/access-control" });
 
@@ -115,6 +119,8 @@ function Home({ user }: { user: Me }) {
     <div className="mx-auto max-w-[1400px]">
       <HomeBanner user={user} updatedAt={data?.generatedAt} onRefresh={load} subtitle="Painel executivo — visão consolidada de toda a operação da Teclive." />
 
+      <HomeTabs tab={tab} user={user} />
+      {tab === "obras" && canSeeObras(user) ? <WorksDashboard embedded /> : (<>
       <RecentVisits userId={user.id} className="mb-5" />
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
@@ -133,16 +139,16 @@ function Home({ user }: { user: Me }) {
               </Hero>
             )}
             {o && (
-              <Hero href="/gestao-obras?grupo=execucao" icon="engineering" label="Obras em andamento" value={compact(o.openValue)} detail={`${o.active} obras em andamento`} foot={o.late ? `${o.late} em atraso (${o.active ? Math.round((o.late / o.active) * 100) : 0}%)` : "Todas dentro do prazo"}>
+              <Hero href="/home?tab=obras&grupo=execucao" icon="engineering" label="Obras em andamento" value={compact(o.openValue)} detail={`${o.active} obras em andamento`} foot={o.late ? `${o.late} em atraso (${o.active ? Math.round((o.late / o.active) * 100) : 0}%)` : "Todas dentro do prazo"}>
                 <span className="mt-4 block"><span className="mb-1 flex justify-between text-[11px] font-semibold text-ds-text-secondary"><span>Obras atrasadas</span><span className={o.late ? "text-ds-danger-text" : "text-ds-primary-deep"}>{o.late} / {o.active}</span></span><span className="flex h-2 overflow-hidden rounded-full bg-ds-bg"><span className="h-full bg-ds-primary" style={{ width: `${o.active ? ((o.active - o.late) / o.active) * 100 : 100}%` }} /><span className="h-full bg-ds-danger" style={{ width: `${o.active ? (o.late / o.active) * 100 : 0}%` }} /></span></span>
               </Hero>
             )}
-            {o && <Hero href="/gestao-obras?grupo=faturadas" icon="payments" label="Serviços já cobrados" value={compact(o.billedValue)} detail={`${o.billedCount} ordens de serviço faturadas`} series={o.monthly.map((m) => m.value)} delta={deltaOf(o.monthly.map((m) => m.value))} foot={`${o.pendingQuotes} vendas ainda sem ordem de serviço`} />}
+            {o && <Hero href="/home?tab=obras&grupo=faturadas" icon="payments" label="Serviços já cobrados" value={compact(o.billedValue)} detail={`${o.billedCount} ordens de serviço faturadas`} series={o.monthly.map((m) => m.value)} delta={deltaOf(o.monthly.map((m) => m.value))} foot={`${o.pendingQuotes} vendas ainda sem ordem de serviço`} />}
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {c && <Stat href="/comercial/orcamentos?status=4,7,8" label="Propostas que viram venda" value={`${String(c.conversionRate).replace(".", ",")}%`} hint={`${c.wonCount} fechadas de ${c.wonCount + (c.total - c.wonCount - c.openCount)} respondidas`} bad={c.conversionRate < 30} />}
-            {o && <Stat href="/gestao-obras?grupo=atraso" label="Obras atrasadas" value={String(o.late)} hint={`de ${compact(o.openValue)} em andamento`} bad={o.late > 0 && o.active > 0 && o.late / o.active >= 0.15} />}
-            {o && <Stat href="/gestao-obras?grupo=materiais" label="Materiais entregues" value={`${o.materialsPercent}%`} hint={`${int(o.pendingUnits)} unidades pendentes`} bad={o.materialsPercent < 50} />}
+            {o && <Stat href="/home?tab=obras&grupo=atraso" label="Obras atrasadas" value={String(o.late)} hint={`de ${compact(o.openValue)} em andamento`} bad={o.late > 0 && o.active > 0 && o.late / o.active >= 0.15} />}
+            {o && <Stat href="/home?tab=obras&grupo=materiais" label="Materiais entregues" value={`${o.materialsPercent}%`} hint={`${int(o.pendingUnits)} unidades pendentes`} bad={o.materialsPercent < 50} />}
             {e && <Stat href="/estoque/saldo" label="Valor em estoque" value={compact(e.costValue)} hint={`${int(e.units)} unidades · ${e.zero} sem saldo`} />}
           </div>
 
@@ -161,15 +167,15 @@ function Home({ user }: { user: Me }) {
           )}
 
           {o && (
-            <Section icon="build" title="Operacional" subtitle="Ordens de serviço, prazos, equipe e faturamento" href="/gestao-obras" linkLabel="Abrir Gestão de Obras">
+            <Section icon="build" title="Operacional" subtitle="Ordens de serviço, prazos, equipe e faturamento" href="/home?tab=obras" linkLabel="Abrir Gestão de Obras">
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <ChartCard title="OS por situação"><Donut data={o.byStatus} center={String(o.total)} palette={BLUES} /></ChartCard>
                 <ChartCard title="Valor das obras abertas por mês"><div className="pt-6"><Columns data={o.monthly.map((m) => ({ label: `${MONTHS[Number(m.month.slice(5)) - 1]}/${m.month.slice(2, 4)}`, value: m.value }))} format={compact} /></div></ChartCard>
                 <ChartCard title="Obras abertas por técnico"><BarList data={o.byTechnician.slice(0, 6)} /></ChartCard>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <Mini label="Materiais entregues" value={`${o.materialsPercent}%`} href="/gestao-obras?grupo=materiais" /><Mini label="Entregas no prazo" value={o.onTimePercent === null ? "—" : `${o.onTimePercent}%`} href="/gestao-obras" />
-                <Mini label="Tempo médio de execução" value={`${String(o.averageCloseDays).replace(".", ",")} dias`} /><Mini label="Prontas para fechar" value={String(o.ready)} href="/gestao-obras?grupo=fechamento" />
+                <Mini label="Materiais entregues" value={`${o.materialsPercent}%`} href="/home?tab=obras&grupo=materiais" /><Mini label="Entregas no prazo" value={o.onTimePercent === null ? "—" : `${o.onTimePercent}%`} href="/home?tab=obras" />
+                <Mini label="Tempo médio de execução" value={`${String(o.averageCloseDays).replace(".", ",")} dias`} /><Mini label="Prontas para fechar" value={String(o.ready)} href="/home?tab=obras&grupo=fechamento" />
               </div>
               {o.lateList.length > 0 && (
                 <div className="mt-4 rounded-2xl border border-ds-border-subtle bg-white p-4"><h3 className="mb-2 text-sm font-semibold text-ds-primary-deep">Obras mais atrasadas</h3>
@@ -195,10 +201,16 @@ function Home({ user }: { user: Me }) {
           </div>
         </div>
       )}
+      </>)}
     </div>
   );
 }
 
+function HomeHost({ user }: { user: Me }) {
+  const tab: HomeTab = useSearchParams().get("tab") === "obras" ? "obras" : "geral";
+  return user.role === "ADMIN" ? <Home user={user} tab={tab} /> : <MemberHome user={user} tab={tab} />;
+}
+
 export default function HomePage() {
-  return <PageShell permissionKey="inicio">{(user) => <>{user.role === "ADMIN" ? <Home user={user} /> : <MemberHome user={user} />}<InstallToast /></>}</PageShell>;
+  return <PageShell permissionKey="inicio">{(user) => <><Suspense fallback={null}><HomeHost user={user} /></Suspense><InstallToast /></>}</PageShell>;
 }
