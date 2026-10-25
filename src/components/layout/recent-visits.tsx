@@ -23,7 +23,7 @@ export function RecentVisits({ userId, limit = 3, className = "mb-8" }: { userId
   useEffect(() => { setRecent(getRecent(userId)); }, [userId]);
   return (
     <section aria-label="Acessados recentemente" className={className}>
-      <h2 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ds-text-secondary"><Icon name="history" className="text-[16px]" />Histórico de acesso</h2>
+      <h2 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ds-text-secondary"><Icon name="history" className="text-[16px]" />Itens acessados recentemente</h2>
       {recent.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-ds-border bg-white px-4 py-3 text-center text-xs text-ds-text-secondary">Você ainda não abriu nenhuma tela por aqui. Escolha uma área no menu para começar.</p>
       ) : (
