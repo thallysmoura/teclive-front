@@ -421,7 +421,7 @@ function MobileUserMenu({ user, navigate, onLogout }: { user: { name: string; av
   const go = (href: string) => { setOpen(false); navigate(href); };
   return createPortal(
     <div className="md:hidden" data-no-capture>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} aria-label="Menu do usuário" className="fixed right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={36} /></button>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} aria-label="Menu do usuário" className="fixed right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full ring-2 ring-white/80"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={36} tone="light" /></button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />

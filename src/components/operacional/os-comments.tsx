@@ -84,7 +84,7 @@ function Bubble({ os, e, mine, onEdit, onDelete, onOpen }: { os: OsDetail; e: Os
             {e.anexos.map((a, idx) => (
               <li key={a.id} className={`overflow-hidden rounded-xl border border-ds-border-subtle bg-ds-bg ${e.anexos!.length === 1 ? "max-w-md" : "aspect-square"}`}>
                 <button type="button" onClick={() => onOpen(idx)} aria-label={`Ampliar ${a.fileName}`} className="relative block h-full w-full cursor-zoom-in">
-                  <AuthImage osId={os.id} fileId={a.id} alt={a.fileName} className={`w-full ${e.anexos!.length === 1 ? "max-h-80 object-contain" : "h-full object-cover"}`} />
+                  <AuthImage osId={os.id} fileId={a.id} url={a.url} alt={a.fileName} className={`w-full ${e.anexos!.length === 1 ? "max-h-80 object-contain" : "h-full object-cover"}`} />
                 </button>
               </li>
             ))}
@@ -166,7 +166,7 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
           </article>
         )}
         {events.map((e, i) => {
-          const thread: LightboxItem[] = (e.anexos ?? []).map((a) => ({ name: a.fileName, osId: os.id, fileId: a.id }));
+          const thread: LightboxItem[] = (e.anexos ?? []).map((a) => ({ name: a.fileName, osId: os.id, fileId: a.id, src: a.url }));
           return (
             <Bubble key={e.id ?? i} os={os} e={e} mine={!!me && (me.role === "ADMIN" || e.usuarioId === me.id)}
               onEdit={async (t) => { editing.current = true; try { apply(await osClient.editComment(os.id, e.id!, t)); } finally { editing.current = false; } }}

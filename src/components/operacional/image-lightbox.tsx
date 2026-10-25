@@ -6,15 +6,16 @@ import { Icon } from "@/components/ui/icon";
 import { osClient } from "@/lib/operacional";
 
 /** Imagem protegida pela sessão: baixa com o cookie e exibe por URL local. */
-export function AuthImage({ osId, fileId, alt, className, onClick }: { osId: string; fileId: string; alt: string; className?: string; onClick?: () => void }) {
+export function AuthImage({ osId, fileId, alt, className, onClick, url }: { osId: string; fileId: string; alt: string; className?: string; onClick?: () => void; url?: string }) {
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let url: string | null = null; let live = true;
     setSrc(null); setFailed(false);
+    if (url) { setSrc(url); return; } // foto nova: vem direto do Cloudflare R2
     osClient.imageUrl(osId, fileId).then((u) => { url = u; if (live) setSrc(u); }).catch(() => live && setFailed(true));
     return () => { live = false; if (url) URL.revokeObjectURL(url); };
-  }, [osId, fileId]);
+  }, [osId, fileId, url]);
   if (failed) return <span className="flex h-full min-h-24 w-full items-center justify-center bg-ds-bg px-2 text-center text-xs text-ds-text-secondary">Imagem indisponível</span>;
   if (!src) return <span className="block h-full min-h-24 w-full animate-pulse bg-ds-bg" aria-label="Carregando imagem" />;
   // eslint-disable-next-line @next/next/no-img-element

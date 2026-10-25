@@ -65,7 +65,7 @@ export type OsRow = {
   total: number; pendencies: number; attachments: number;
 };
 export type OsItem = { ordemServicoItemId: number; quantidade: number; quantidadeEntregue?: number; cobrado?: boolean; valores?: { unitario?: number; total?: number; desconto?: { valor?: number } | number }; servico?: { descricao: string }; produto?: { descricao: string; identificador?: string; unidadeMedida?: string }; orcamento?: { numero: number } | null };
-export type OsComment = { id?: string; tipo: number; conteudo: string | null; dataRegistro: string; usuario: string; usuarioId?: string; editadoEm?: string; avatarUrl?: string | null; anexos?: { id: string; fileName: string; mimeType: string; size: number }[] };
+export type OsComment = { id?: string; tipo: number; conteudo: string | null; dataRegistro: string; usuario: string; usuarioId?: string; editadoEm?: string; avatarUrl?: string | null; anexos?: { id: string; fileName: string; mimeType: string; size: number; url?: string }[] };
 export type OsDetail = OsRow & {
   purpose: number; openedBy: string; interruptedAt: string | null; contact: { nome?: string; email?: string | null; telefone?: string | null } | null; technicalSheet: string | null; cause: string | null; solution: string | null;
   paymentMethod: string | null; installments: number | null; totalServices: number; totalProducts: number; personId: string | null;

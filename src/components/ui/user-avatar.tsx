@@ -20,11 +20,14 @@ export function UserAvatar({
   avatarUrl,
   presence,
   size = 36,
+  tone = "default",
 }: {
   name: string;
   avatarUrl?: string | null;
   presence?: Presence;
   size?: number;
+  /** "light": fundo branco com iniciais azuis, para usar sobre fundos azuis (cabeçalho do celular). */
+  tone?: "default" | "light";
 }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   return (
@@ -41,7 +44,7 @@ export function UserAvatar({
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-full bg-ds-primary text-xs font-bold text-white"
+          className={`flex h-full w-full items-center justify-center rounded-full text-xs font-bold ${tone === "light" ? "bg-white text-ds-primary-deep" : "bg-ds-primary text-white"}`}
           style={{ fontSize: size * 0.36 }}
         >
           {getInitials(name)}
