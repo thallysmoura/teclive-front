@@ -43,3 +43,17 @@ export async function getAiSummary(): Promise<AiSummary> {
   if (!res.ok) throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível gerar o resumo.");
   return body as AiSummary;
 }
+
+export type AiUsageSum = { calls: number; promptTokens: number; completionTokens: number; costUsd: number };
+export type AiUsageReport = {
+  total: AiUsageSum; today: AiUsageSum;
+  byFeature: (AiUsageSum & { key: string })[]; byModel: (AiUsageSum & { key: string })[]; byDay: (AiUsageSum & { key: string })[];
+  recent: { id: string; feature: string; model: string; promptTokens: number; completionTokens: number; costUsd: number; createdAt: string }[];
+  rate: { brl: number; source: string }; since: string | null;
+};
+
+export async function getAiUsage(): Promise<AiUsageReport> {
+  const res = await authFetch("/ai/usage", { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível carregar o custo da IA.");
+  return res.json();
+}
