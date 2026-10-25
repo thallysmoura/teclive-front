@@ -109,9 +109,8 @@ export function SuggestionButton({ user }: { user: Me }) {
   return (
     <>
       {/* Portal no <body>: um ancestral com transform (animação de entrada da página) quebraria o position: fixed. */}
-      {typeof document !== "undefined" && createPortal(<div data-no-capture className="fixed right-[100px] top-3 z-30 md:right-8 md:top-3 md:drop-shadow-md"><button type="button" data-no-capture onClick={() => void start()} disabled={busy} aria-label="Sugerir melhoria" title="Sugerir melhoria" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#F7941D] text-xs font-bold text-white transition-colors hover:bg-[#E5850F] disabled:opacity-60 md:h-9 md:w-auto md:gap-2 md:py-1 md:pl-1 md:pr-3.5">
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-[22px] w-[22px] md:hidden ${busy ? "animate-pulse" : ""}`}><path d="M9 18h6M10 21.5h4" /><path d="M12 2.5a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8V16h6v-.1c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 2.5Z" /></svg>
-        <span className="hidden md:contents"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={28} />{busy ? "Capturando..." : "Sugerir melhoria"}</span>
+      {typeof document !== "undefined" && createPortal(<div data-no-capture className="fixed right-3 top-[72px] z-30 drop-shadow-md md:right-8 md:top-3"><button type="button" data-no-capture onClick={() => void start()} disabled={busy} aria-label="Sugerir melhoria" title="Sugerir melhoria" className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#F7941D] py-0.5 pl-0.5 pr-3 text-[11px] font-bold text-white transition-colors hover:bg-[#E5850F] disabled:opacity-60 md:h-9 md:gap-2 md:py-1 md:pl-1 md:pr-3.5 md:text-xs">
+        <UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={26} />{busy ? "Capturando..." : "Sugerir melhoria"}
       </button></div>, document.body)}
       {busy && typeof document !== "undefined" && createPortal(
         <div data-no-capture role="alert" aria-live="assertive" className="fixed inset-0 z-[66] flex items-center justify-center bg-[#10202e]/40 backdrop-blur-[2px]">
