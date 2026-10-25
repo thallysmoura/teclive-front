@@ -5,8 +5,6 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { HomeBanner } from "@/components/layout/home-banner";
 import { listNavigation, type Me, type NavigationItem } from "@/lib/api";
-import { WorksDashboard } from "../gestao-obras/works-dashboard";
-import { HomeTabs, canSeeObras, type HomeTab } from "@/components/layout/home-tabs";
 import { RecentVisits } from "@/components/layout/recent-visits";
 
 const WEEKDAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
@@ -14,7 +12,7 @@ const LONG_MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
 const GROUP_ICON: Record<string, string> = { Administrativo: "apartment", Comercial: "work", Operacional: "build", Estoque: "inventory_2" };
 
 /** Visão Geral para quem não é administrador: abertura com o histórico de telas recentes e atalhos para tudo que a pessoa pode acessar. */
-export function MemberHome({ user, tab }: { user: Me; tab: HomeTab }) {
+export function MemberHome({ user }: { user: Me }) {
   const [items, setItems] = useState<NavigationItem[] | null>(null);
   const now = new Date();
   const first = user.name.trim().split(/\s+/)[0];
@@ -36,8 +34,6 @@ export function MemberHome({ user, tab }: { user: Me; tab: HomeTab }) {
     <div className="mx-auto max-w-[1100px]">
       <HomeBanner user={user} subtitle="Bem-vindo(a)! Continue de onde parou ou abra uma das suas áreas." />
 
-      <HomeTabs tab={tab} user={user} />
-      {tab === "obras" && canSeeObras(user) ? <WorksDashboard embedded /> : (<>
       <RecentVisits userId={user.id} />
 
       <section aria-label="Suas áreas">
@@ -57,7 +53,6 @@ export function MemberHome({ user, tab }: { user: Me; tab: HomeTab }) {
           </div>
         )}
       </section>
-      </>)}
     </div>
   );
 }
