@@ -30,10 +30,10 @@ export function RecentVisits({ userId, limit = 3, className = "mb-8" }: { userId
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {recent.slice(0, limit).map((r) => (
             <li key={r.href}>
-              <Link href={r.href} className="group flex items-center gap-2.5 rounded-xl border border-ds-border-subtle bg-white px-3 py-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-ds-primary hover:shadow-md">
+              <Link href={r.href} className="group flex items-center gap-2.5 rounded-xl border border-ds-border-subtle bg-white px-3 py-2 shadow-sm">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ds-primary/10 text-ds-primary"><Icon name={GROUP_ICON[r.group ?? ""] ?? "article"} className="text-[18px]" /></span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-bold leading-tight text-ds-primary-deep">{r.label}</span><span className="block truncate text-[11px] leading-tight text-ds-text-secondary">{r.group ? `${r.group} · ` : ""}{ago(r.at)}</span></span>
-                <Icon name="arrow_forward" className="text-[16px] text-ds-border transition-colors group-hover:text-ds-primary" />
+                <Icon name="arrow_forward" className="text-[16px] text-ds-border" />
               </Link>
             </li>
           ))}
