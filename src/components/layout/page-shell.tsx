@@ -32,7 +32,7 @@ export function PageShell({ permissionKey, children }: { permissionKey: string |
   return (
     <div className="flex min-h-screen bg-ds-bg">
       <Sidebar user={user} onLogout={async () => { await logout(); router.replace("/login"); }} />
-      {hasAccess ? <main className="relative min-w-0 flex-1 px-4 pb-10 pt-20 md:px-8 md:pt-10"><div className="fixed right-4 top-[68px] z-30 drop-shadow-md md:right-8 md:top-3"><SuggestionButton user={user} /></div>{children(user)}</main> : <AwaitingPermission user={user} />}
+      {hasAccess ? <main className="relative min-w-0 flex-1 px-4 pb-10 pt-20 md:px-8 md:pt-10"><SuggestionButton user={user} />{children(user)}</main> : <AwaitingPermission user={user} />}
     </div>
   );
 }

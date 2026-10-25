@@ -107,9 +107,10 @@ export function SuggestionButton({ user }: { user: Me }) {
 
   return (
     <>
-      <button type="button" data-no-capture onClick={() => void start()} disabled={busy} className="inline-flex h-9 items-center gap-2 rounded-full bg-[#F7941D] py-1 pl-1 pr-3.5 text-xs font-bold text-white transition-colors hover:bg-[#E5850F] disabled:opacity-60">
+      {/* Portal no <body>: um ancestral com transform (animação de entrada da página) quebraria o position: fixed. */}
+      {typeof document !== "undefined" && createPortal(<div data-no-capture className="fixed right-4 top-[68px] z-30 drop-shadow-md md:right-8 md:top-3"><button type="button" data-no-capture onClick={() => void start()} disabled={busy} className="inline-flex h-9 items-center gap-2 rounded-full bg-[#F7941D] py-1 pl-1 pr-3.5 text-xs font-bold text-white transition-colors hover:bg-[#E5850F] disabled:opacity-60">
         <UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={28} />{busy ? "Capturando..." : "Sugerir melhoria"}
-      </button>
+      </button></div>, document.body)}
       {shot && <SuggestionDialog {...shot} onClose={() => setShot(null)} />}
     </>
   );
