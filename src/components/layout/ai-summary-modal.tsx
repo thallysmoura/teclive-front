@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/icon";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import type { Me } from "@/lib/api";
 import { getAiSummary, type AiSummary } from "@/lib/dashboard";
 
 const PRIORITY: Record<string, { label: string; icon: string; chip: string; bar: string }> = {
@@ -36,13 +38,24 @@ function Section({ icon, title, hint, tone, children }: { icon: string; title: s
 }
 
 /** Janela do resumo executivo com IA: como está a empresa, o que pede atenção, como agir com o time e estratégia. */
-export function AiSummaryModal({ onClose }: { onClose: () => void }) {
+function summaryText(d: AiSummary) {
+  const lines = ["*Como estamos? — Teclive*", `_Resumo com IA em ${new Date(d.generatedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}_`, "", "*Como está a empresa*", d.panorama];
+  for (const i of d.indicadores) lines.push(`• ${i.rotulo}: ${i.valor} — ${i.leitura}`);
+  if (d.atencao.length) { lines.push("", "*O que precisa de atenção*"); for (const a of d.atencao) lines.push(`• [${a.prioridade}] ${a.titulo}: ${a.detalhe}`); }
+  if (d.time.length) { lines.push("", "*Como agir com o time*"); for (const t of d.time) lines.push(`• ${t.titulo}: ${t.detalhe}`); }
+  if (d.estrategia.length) { lines.push("", "*Estratégia*"); d.estrategia.forEach((e, k) => { lines.push(`${k + 1}. ${e.titulo}`); for (const p of e.passos ?? []) lines.push(`   - ${p}`); if (e.impacto) lines.push(`   Impacto: ${e.impacto}`); }); }
+  return lines.join("\n");
+}
+
+export function AiSummaryModal({ user, onClose }: { user: Me; onClose: () => void }) {
+  const [shareMenu, setShareMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [data, setData] = useState<AiSummary | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   const run = useCallback(() => {
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setData(null);
     getAiSummary().then(setData).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível gerar o resumo.")).finally(() => setLoading(false));
   }, []);
   useEffect(() => { run(); }, [run]);
@@ -54,15 +67,26 @@ export function AiSummaryModal({ onClose }: { onClose: () => void }) {
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
   }, [onClose]);
 
+  async function share() {
+    if (!data) return;
+    const text = summaryText(data);
+    if (typeof navigator.share === "function") {
+      try { await navigator.share({ title: "Como estamos? — Teclive", text }); return; } catch (e) { if ((e as Error).name === "AbortError") return; }
+    }
+    setShareMenu((v) => !v); // sem compartilhamento nativo (alguns navegadores de computador): oferece WhatsApp, e-mail e copiar
+  }
+  const shareText = data ? summaryText(data) : "";
+
   return createPortal(
     <div className="fixed inset-0 z-[65] flex items-stretch justify-center bg-[#10202e]/60 sm:items-center sm:p-4" data-no-capture>
       <div className="absolute inset-0" onClick={onClose} />
       <div role="dialog" aria-modal="true" aria-label="Resumo executivo com IA" className="relative flex h-[100dvh] w-full max-w-4xl flex-col overflow-hidden bg-ds-bg shadow-2xl sm:h-auto sm:max-h-[94vh] sm:rounded-3xl">
-        <header className="relative flex items-center gap-3 overflow-hidden bg-gradient-to-r from-ds-primary-deep to-ds-primary px-4 py-4 text-white sm:px-6">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25"><AiIcon className="h-6 w-6" /></span>
+        <header className="relative flex shrink-0 items-start gap-3 overflow-hidden bg-gradient-to-r from-ds-primary-deep to-ds-primary px-4 py-4 text-white sm:items-center sm:gap-4 sm:px-6 sm:py-5">
+          <span className="shrink-0 rounded-full ring-2 ring-white/40"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={52} /></span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-extrabold leading-tight tracking-tight">Resumo executivo com IA</h2>
-            <p className="truncate text-xs text-white/75">{data ? `Gerado em ${new Date(data.generatedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}` : "Análise dos números da empresa"}</p>
+            <h2 className="text-[26px] font-extrabold leading-tight tracking-tight sm:text-4xl">Como estamos?</h2>
+            <p className="mt-1.5 text-[13px] font-medium leading-snug text-white/85 sm:text-base">Inteligência artificial analisando os números da empresa para uma leitura precisa e objetiva.</p>
+            {data && <p className="mt-1 text-[11px] text-white/60 sm:text-xs">Gerado em {new Date(data.generatedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>}
           </div>
           <button type="button" onClick={run} disabled={loading} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white/15 px-3 text-xs font-bold text-white ring-1 ring-white/20 transition-colors hover:bg-white/25 disabled:opacity-50"><Icon name="refresh" className={`text-[17px] ${loading ? "animate-spin" : ""}`} /><span className="hidden sm:inline">Gerar novamente</span></button>
           <button type="button" onClick={onClose} aria-label="Fechar" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white ring-1 ring-white/20 transition-colors hover:bg-[#E5322D]"><Icon name="close" className="text-[20px]" /></button>
@@ -129,6 +153,18 @@ export function AiSummaryModal({ onClose }: { onClose: () => void }) {
             </>
           )}
         </div>
+        {!loading && data && (
+          <footer className="shrink-0 border-t border-ds-border-subtle bg-white px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
+            {shareMenu && (
+              <div className="mb-3 grid gap-2 sm:grid-cols-3">
+                <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#12A262] text-sm font-bold text-white"><Icon name="chat" className="text-[20px]" />WhatsApp</a>
+                <a href={`mailto:?subject=${encodeURIComponent("Como estamos? — Teclive")}&body=${encodeURIComponent(shareText)}`} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-ds-primary text-sm font-bold text-white"><Icon name="mail" className="text-[20px]" />E-mail</a>
+                <button type="button" onClick={() => { void navigator.clipboard?.writeText(shareText).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-ds-border text-sm font-bold text-ds-primary-deep"><Icon name={copied ? "check" : "content_copy"} className="text-[20px]" />{copied ? "Copiado!" : "Copiar texto"}</button>
+              </div>
+            )}
+            <button type="button" onClick={() => void share()} className="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-ds-primary-deep text-[15px] font-bold text-white transition-colors hover:bg-ds-primary sm:text-base"><Icon name="share" className="text-[22px]" />Compartilhar resumo</button>
+          </footer>
+        )}
       </div>
     </div>,
     document.body,

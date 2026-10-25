@@ -117,7 +117,7 @@ function Home({ user }: { user: Me }) {
     <div className="mx-auto max-w-[1400px]">
       <HomeBanner user={user} updatedAt={data?.generatedAt} onRefresh={load} onAi={() => setAiOpen(true)} subtitle="Painel executivo — visão consolidada de toda a operação da Teclive." />
 
-      {aiOpen && <AiSummaryModal onClose={() => setAiOpen(false)} />}
+      {aiOpen && <AiSummaryModal user={user} onClose={() => setAiOpen(false)} />}
       <RecentVisits userId={user.id} className="mb-5" />
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
