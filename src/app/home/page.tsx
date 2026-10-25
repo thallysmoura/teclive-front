@@ -12,6 +12,7 @@ import { getOverview, type Overview } from "@/lib/dashboard";
 import { fmtDate, formatOsNumber } from "@/lib/operacional";
 import { MemberHome } from "./member-home";
 import { HomeBanner } from "@/components/layout/home-banner";
+import { AiSummaryModal } from "@/components/layout/ai-summary-modal";
 import { RecentVisits } from "@/components/layout/recent-visits";
 import { InstallToast } from "@/components/layout/install-toast";
 
@@ -95,6 +96,7 @@ function Mini({ label, value, href }: { label: string; value: string; href?: str
 function Home({ user }: { user: Me }) {
   const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState("");
+  const [aiOpen, setAiOpen] = useState(false);
   const load = useCallback(() => getOverview().then((d) => { setData(d); setError(""); }).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível carregar.")), []);
   useEffect(() => { void load(); const t = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 120000); return () => clearInterval(t); }, [load]);
 
@@ -113,8 +115,9 @@ function Home({ user }: { user: Me }) {
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      <HomeBanner user={user} updatedAt={data?.generatedAt} onRefresh={load} subtitle="Painel executivo — visão consolidada de toda a operação da Teclive." />
+      <HomeBanner user={user} updatedAt={data?.generatedAt} onRefresh={load} onAi={() => setAiOpen(true)} subtitle="Painel executivo — visão consolidada de toda a operação da Teclive." />
 
+      {aiOpen && <AiSummaryModal onClose={() => setAiOpen(false)} />}
       <RecentVisits userId={user.id} className="mb-5" />
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}

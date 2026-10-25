@@ -26,3 +26,20 @@ export async function getOverview(): Promise<Overview> {
   if (!res.ok) throw new ApiError("Não foi possível carregar o painel executivo.");
   return res.json();
 }
+
+export type AiSummary = {
+  generatedAt: string;
+  panorama: string;
+  indicadores: { rotulo: string; valor: string; leitura: string }[];
+  atencao: { titulo: string; detalhe: string; prioridade: string }[];
+  time: { titulo: string; detalhe: string }[];
+  estrategia: { titulo: string; passos: string[]; impacto: string }[];
+};
+
+/** Resumo executivo gerado por IA (administradores). */
+export async function getAiSummary(): Promise<AiSummary> {
+  const res = await authFetch("/dashboard/ai-summary", { method: "POST" });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível gerar o resumo.");
+  return body as AiSummary;
+}
