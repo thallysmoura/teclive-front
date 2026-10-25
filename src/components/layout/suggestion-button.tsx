@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { toCanvas } from "html-to-image";
 import { Icon } from "@/components/ui/icon";
-import { createSuggestion, SUGGESTION_CATEGORIES, uploadSuggestionImage } from "@/lib/suggestions";
+import { createSuggestion, uploadSuggestionImage } from "@/lib/suggestions";
 
 type Tool = "pin" | "draw";
 type Mark = { kind: "pin"; x: number; y: number; note: string } | { kind: "stroke"; points: [number, number][] };
@@ -117,10 +117,9 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
   const pathname = usePathname();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef<[number, number][] | null>(null);
+  const dragPin = useRef<{ index: number; moved: boolean } | null>(null);
   const [marks, setMarks] = useState<Mark[]>([]);
   const [tool, setTool] = useState<Tool>("pin");
-  const [category, setCategory] = useState("");
-  const [name, setName] = useState("");
   const [details, setDetails] = useState("");
   const [editing, setEditing] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
@@ -147,7 +146,7 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
     if (tool === "pin") {
       const unit = Math.max(1, size.w / 900);
       const hit = marks.findIndex((m) => m.kind === "pin" && Math.hypot(m.x - p[0], m.y - p[1]) < 20 * unit);
-      if (hit >= 0) { setEditing(hit); return; } // clicar num ponto existente edita a observação
+      if (hit >= 0) { (e.target as Element).setPointerCapture(e.pointerId); dragPin.current = { index: hit, moved: false }; return; } // arrastar move o ponto; clicar edita a observação
       setMarks((m) => [...m, { kind: "pin", x: p[0], y: p[1], note: "" }]);
       setEditing(marks.length);
       return;
@@ -157,22 +156,34 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
     setMarks((m) => [...m, { kind: "stroke", points: [p] }]);
   };
   const move = (e: React.PointerEvent) => {
+    if (dragPin.current) {
+      const p = point(e);
+      const { index } = dragPin.current;
+      dragPin.current.moved = true;
+      setEditing(null);
+      setMarks((all) => all.map((m, i) => (i === index && m.kind === "pin" ? { ...m, x: Math.min(Math.max(p[0], 0), size.w), y: Math.min(Math.max(p[1], 0), size.h) } : m)));
+      return;
+    }
     if (tool !== "draw" || !drawing.current) return;
     drawing.current.push(point(e));
     const points = [...drawing.current];
     setMarks((m) => { const copy = m.slice(); copy[copy.length - 1] = { kind: "stroke", points }; return copy; });
   };
 
+  const release = () => {
+    if (dragPin.current && !dragPin.current.moved) setEditing(dragPin.current.index);
+    dragPin.current = null;
+    drawing.current = null;
+  };
+
   async function send() {
     setError(null);
-    if (!category) return setError("Escolha o tipo de melhoria.");
-    if (name.trim().length < 3) return setError("Informe qual é a melhoria.");
     if (details.trim().length < 10) return setError("Descreva a melhoria com um pouco mais de detalhe.");
     setSending(true);
     try {
       const imageUrl = base ? await uploadSuggestionImage(await toBlob(canvasRef.current!)) : undefined;
       const notes = marks.filter((m): m is Extract<Mark, { kind: "pin" }> => m.kind === "pin").map((m, i) => (m.note ? `${i + 1}) ${m.note}` : "")).filter(Boolean);
-      await createSuggestion({ category, title: name.trim(), description: details.trim() + (notes.length ? `\n\nObservações nos pontos da imagem:\n${notes.join("\n")}` : ""), screenPath: path || pathname, screenTitle: title, imageUrl, viewport });
+      await createSuggestion({ description: details.trim() + (notes.length ? `\n\nObservações nos pontos da imagem:\n${notes.join("\n")}` : ""), screenPath: path || pathname, screenTitle: title, imageUrl, viewport });
       setDone(true);
       setTimeout(onClose, 1800);
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar."); setSending(false); }
@@ -200,7 +211,7 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
             </header>
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
               <div>
-                <p className="mb-2 flex items-start gap-2 rounded-xl bg-ds-primary/5 px-3 py-2 text-xs leading-snug text-ds-text-muted"><Icon name="ads_click" className="mt-px shrink-0 text-[16px] text-ds-primary" />{base ? "Clique na imagem onde a melhoria deve entrar e escreva o que fazer ali (um ponto por vez). Também dá para desenhar para destacar uma área." : "Não foi possível capturar a tela, mas você ainda pode enviar a sugestão descrevendo abaixo."}</p>
+                <p className="mb-2 flex items-start gap-2 rounded-xl bg-ds-primary/5 px-3 py-2 text-xs leading-snug text-ds-text-muted"><Icon name="ads_click" className="mt-px shrink-0 text-[16px] text-ds-primary" />{base ? "Clique na imagem onde a melhoria deve entrar e escreva o que fazer ali (um ponto por vez). Arraste o ponto para reposicionar. Também dá para desenhar para destacar uma área." : "Não foi possível capturar a tela, mas você ainda pode enviar a sugestão descrevendo abaixo."}</p>
                 {base && (
                   <>
                     <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -210,7 +221,7 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
                       <button type="button" onClick={() => { setEditing(null); setMarks([]); }} disabled={!marks.length} className={`${toolBtn(false)} disabled:opacity-40`}><Icon name="delete" className="text-[16px]" />Limpar</button>
                     </div>
                     <div className="overflow-hidden rounded-xl border border-ds-border bg-ds-bg">
-                      <div className="relative"><canvas ref={canvasRef} width={size.w} height={size.h} onPointerDown={down} onPointerMove={move} onPointerUp={() => { drawing.current = null; }} onPointerCancel={() => { drawing.current = null; }} className="block h-auto w-full cursor-crosshair touch-none select-none" />
+                      <div className="relative"><canvas ref={canvasRef} width={size.w} height={size.h} onPointerDown={down} onPointerMove={move} onPointerUp={release} onPointerCancel={release} className="block h-auto w-full cursor-crosshair touch-none select-none" />
                       {editing !== null && marks[editing]?.kind === "pin" && (() => {
                         const m = marks[editing] as Extract<Mark, { kind: "pin" }>;
                         const left = (m.x / size.w) * 100, top = (m.y / size.h) * 100;
@@ -228,14 +239,8 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
                   </>
                 )}
               </div>
-              <div className="grid gap-3 sm:grid-cols-[220px_1fr]">
-                <label className="block"><span className="mb-1 block text-xs font-bold text-ds-text-secondary">Tipo</span>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} disabled={sending} className={field}><option value="">Selecione...</option>{SUGGESTION_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></label>
-                <label className="block"><span className="mb-1 block text-xs font-bold text-ds-text-secondary">Qual melhoria?</span>
-                  <input value={name} onChange={(e) => setName(e.target.value)} maxLength={160} disabled={sending} placeholder="Ex.: Filtro por período na lista" className={field} /></label>
-              </div>
               <label className="block"><span className="mb-1 block text-xs font-bold text-ds-text-secondary">Detalhes</span>
-                <textarea value={details} onChange={(e) => setDetails(e.target.value)} maxLength={4000} rows={4} disabled={sending} placeholder="Explique o que você gostaria que mudasse e por quê." className={`${field} h-auto resize-y py-2.5`} /></label>
+                <textarea value={details} onChange={(e) => setDetails(e.target.value)} maxLength={4000} rows={4} disabled={sending} placeholder="Descreva a melhoria: o que você gostaria que mudasse e por quê." className={`${field} h-auto resize-y py-2.5`} /></label>
               {error && <p role="alert" className="text-sm font-medium text-ds-danger-text">{error}</p>}
             </div>
             <footer className="flex gap-2 border-t border-ds-border-subtle px-5 py-3">

@@ -13,7 +13,7 @@ export async function uploadSuggestionImage(image: Blob): Promise<string> {
   return (await res.json()).imageUrl as string;
 }
 
-export type SuggestionInput = { category: string; title: string; description: string; screenPath: string; screenTitle: string; imageUrl?: string; viewport?: string };
+export type SuggestionInput = { category?: string; title?: string; description: string; screenPath: string; screenTitle: string; imageUrl?: string; viewport?: string };
 
 export async function createSuggestion(input: SuggestionInput) {
   const res = await authFetch("/suggestions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });

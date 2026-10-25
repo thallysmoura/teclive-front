@@ -184,7 +184,7 @@ export function Sidebar({
     return () => { disposed = true; window.removeEventListener("sidebar:updated", load); window.removeEventListener("users:updated", load); window.removeEventListener("focus", load); };
   }, [user.id, user.role]);
 
-  const visibleItems = loaded || user.role === "ADMIN" ? items : items.filter((item) => user.permissions?.includes(item.key));
+  const visibleItems = (loaded || user.role === "ADMIN" ? items : items.filter((item) => user.permissions?.includes(item.key))).map((item) => (item.key === "inicio" ? { ...item, label: user.role === "ADMIN" ? "Visão Geral Diretoria" : "Visão Geral" } : item)); // diretoria só para administradores
   const hasGrantedAccess = user.role === "ADMIN" || visibleItems.some((item) => Boolean(item.href));
   const navItems = visibleItems.filter((item) => item.section === "main" && !item.parentKey);
   const adminItems = visibleItems.filter((item) => item.section === "admin" && item.href && (user.role === "ADMIN" || item.key === "log_acesso" || item.key === "ajuda") && (item.key !== "log_acesso" || loaded || user.permissions?.includes("log_acesso")));
