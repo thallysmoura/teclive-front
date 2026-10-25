@@ -23,7 +23,7 @@ export function HomeBanner({ user, subtitle, updatedAt, onRefresh }: { user: Me;
   return (
     <header style={{ backgroundImage: "url(/home/banner-bg.png)", backgroundSize: "cover", backgroundPosition: "center" }} className="relative mb-6 overflow-hidden rounded-[22px] bg-[#003B8E] shadow-[0_22px_44px_-20px_rgba(0,92,210,0.55)] ring-1 ring-inset ring-white/10">
       <div className="relative flex items-center gap-3 p-4 pr-16 sm:gap-5 sm:px-7 sm:py-6 sm:pr-7 xl:gap-6 xl:px-8 xl:py-7">
-        <span className="shrink-0 rounded-full shadow-[0_0_44px_rgba(30,144,255,0.45)]">
+        <span className="shrink-0 rounded-full">
           <span className="sm:hidden"><AvatarUploader user={user} size={56} /></span>
           <span className="hidden sm:block xl:hidden"><AvatarUploader user={user} size={72} /></span>
           <span className="hidden xl:block"><AvatarUploader user={user} size={92} /></span>
