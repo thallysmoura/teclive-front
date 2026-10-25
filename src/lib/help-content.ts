@@ -72,9 +72,9 @@ export const HELP_SECTIONS: HelpSection[] = [
     intro: "O ponto de partida e o painel para acompanhar o desempenho comercial.",
     topics: [
       {
-        id: "visao-geral", title: "Visão Geral", icon: "home", path: "Visão Geral", href: "/home",
+        id: "visao-geral", title: "Visão Geral Diretoria", icon: "home", path: "Visão Geral Diretoria", href: "/home",
         purpose: "Página inicial do sistema. A partir dela você acessa qualquer módulo pelo menu lateral.",
-        steps: ["Clique em Visão Geral no menu, ou no logo, para voltar ao início.", "Se aparecer a mensagem de aguardando permissão, peça a um administrador para liberar os itens do menu para você."],
+        steps: ["Clique em Visão Geral Diretoria no menu, ou no logo, para voltar ao início.", "Se aparecer a mensagem de aguardando permissão, peça a um administrador para liberar os itens do menu para você."],
       },
       {
         id: "indicadores", title: "Indicadores", icon: "area_chart", path: "Indicadores", href: "/indicadores",
