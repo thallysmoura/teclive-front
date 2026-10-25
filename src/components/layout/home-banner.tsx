@@ -22,22 +22,23 @@ export function HomeBanner({ user, subtitle, updatedAt, onRefresh }: { user: Me;
   const date = `${WEEKDAYS[now.getDay()]}, ${now.getDate()} de ${MONTHS[now.getMonth()]} de ${now.getFullYear()}`;
   return (
     <header style={{ backgroundImage: "url(/home/banner-bg.png)", backgroundSize: "cover", backgroundPosition: "center" }} className="relative mb-6 overflow-hidden rounded-[22px] bg-[#003B8E] shadow-[0_22px_44px_-20px_rgba(0,92,210,0.55)] ring-1 ring-inset ring-white/10">
-      <div className="relative flex items-center gap-4 p-4 pr-16 sm:gap-6 sm:px-8 sm:py-7 sm:pr-8">
+      <div className="relative flex items-center gap-3 p-4 pr-16 sm:gap-5 sm:px-7 sm:py-6 sm:pr-7 xl:gap-6 xl:px-8 xl:py-7">
         <span className="shrink-0 rounded-full shadow-[0_0_44px_rgba(30,144,255,0.45)]">
-          <span className="hidden sm:block"><AvatarUploader user={user} size={92} /></span>
-          <span className="sm:hidden"><AvatarUploader user={user} size={54} /></span>
+          <span className="sm:hidden"><AvatarUploader user={user} size={56} /></span>
+          <span className="hidden sm:block xl:hidden"><AvatarUploader user={user} size={72} /></span>
+          <span className="hidden xl:block"><AvatarUploader user={user} size={92} /></span>
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-extrabold leading-tight tracking-tight text-[#D4E6FF] sm:text-[40px]">Olá, {first}!</h1>
-          <p className="mt-0.5 flex items-center gap-2 text-[13px] font-medium leading-snug text-white/90 sm:mt-1 sm:gap-2.5 sm:text-xl">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0 text-white/80 sm:h-[22px] sm:w-[22px]"><rect x="3.5" y="5" width="17" height="15.5" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /><circle cx="12" cy="15" r="1.2" fill="currentColor" stroke="none" /></svg>
+          <h1 className="break-words text-[clamp(1.4rem,4.2vw,2.5rem)] font-extrabold leading-tight tracking-tight text-[#D4E6FF]">Olá, {first}!</h1>
+          <p className="mt-0.5 flex items-center gap-2 text-[clamp(0.78rem,1.9vw,1.25rem)] font-medium leading-snug text-white/90 sm:mt-1 sm:gap-2.5">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0 text-white/80 xl:h-[22px] xl:w-[22px]"><rect x="3.5" y="5" width="17" height="15.5" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /><circle cx="12" cy="15" r="1.2" fill="currentColor" stroke="none" /></svg>
             <span className="first-letter:uppercase">{date}</span>
           </p>
           <p className="mt-1 hidden text-sm text-white/65 lg:block">{subtitle}</p>
         </div>
         {onRefresh && (
-          <div className="absolute right-3 top-3 flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-1.5 shadow-lg backdrop-blur-md sm:static sm:pl-5 sm:pr-1.5">
-            {updatedAt && <span className="hidden text-sm font-medium text-white sm:inline">Atualizado às {new Date(updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
+          <div className="absolute right-3 top-3 flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-1.5 shadow-lg backdrop-blur-md sm:static sm:shrink-0 sm:p-1.5 xl:pl-5">
+            {updatedAt && <span className="hidden whitespace-nowrap text-sm font-medium text-white xl:inline">Atualizado às {new Date(updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
             <button type="button" onClick={() => void refresh()} disabled={spinning} aria-busy={spinning} aria-label="Atualizar painel" title="Atualizar" className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1C93FF] text-white shadow-inner transition-colors hover:bg-[#3AA3FF]"><Icon name="refresh" className={`text-[24px] ${spinning ? "animate-spin motion-reduce:animate-none" : ""}`} /></button>
           </div>
         )}
