@@ -201,9 +201,9 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
   const pinCount = marks.filter((m) => m.kind === "pin").length;
 
   return createPortal(
-    <div className="fixed inset-0 z-[65] flex items-end justify-center bg-[#10202e]/60 sm:items-center sm:p-4" data-no-capture>
+    <div className="fixed inset-0 z-[65] flex items-stretch justify-center bg-[#10202e]/60 sm:items-center sm:p-4" data-no-capture>
       <div className="absolute inset-0" onClick={() => !sending && onClose()} />
-      <div role="dialog" aria-modal="true" aria-label="Sugerir melhoria" className="relative flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:h-auto sm:max-h-[94vh] sm:rounded-3xl">
+      <div role="dialog" aria-modal="true" aria-label="Sugerir melhoria" className="relative flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[94vh] sm:rounded-3xl">
         <header className="flex items-center gap-3 border-b border-ds-border-subtle px-4 py-3 sm:px-5">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ds-primary/10 text-ds-primary"><Icon name="lightbulb" className="text-[22px]" /></span>
           <div className="min-w-0 flex-1"><h2 className="text-lg font-extrabold leading-tight text-ds-primary-deep">{view === "list" ? "Minhas sugestões" : "Sugerir melhoria"}</h2><p className="truncate text-xs text-ds-text-secondary">{view === "list" ? "Acompanhe a situação de cada envio" : `Tela: ${title}`}</p></div>
@@ -230,7 +230,7 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
                     </div>
                     <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto rounded-xl border border-ds-border bg-ds-bg p-1.5">
                       <div className="relative inline-block max-w-full">
-                        <canvas ref={canvasRef} width={size.w} height={size.h} onPointerDown={down} onPointerMove={move} onPointerUp={release} onPointerCancel={release} style={{ maxHeight: "calc(94vh - 250px)" }} className="block h-auto w-auto max-w-full cursor-crosshair touch-none select-none rounded-lg" />
+                        <canvas ref={canvasRef} width={size.w} height={size.h} onPointerDown={down} onPointerMove={move} onPointerUp={release} onPointerCancel={release} className="block h-auto max-h-[62dvh] w-auto max-w-full sm:max-h-[calc(94vh-250px)] cursor-crosshair touch-none select-none rounded-lg" />
                         {editing !== null && marks[editing]?.kind === "pin" && (() => {
                           const m = marks[editing] as Extract<Mark, { kind: "pin" }>;
                           const left = (m.x / size.w) * 100, top = (m.y / size.h) * 100;
@@ -255,7 +255,7 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
                 {error && <p role="alert" className="text-sm font-medium text-ds-danger-text">{error}</p>}
               </div>
             </div>
-            <footer className="flex gap-2 border-t border-ds-border-subtle px-4 py-3 sm:px-5">
+            <footer className="flex gap-2 border-t border-ds-border-subtle px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pb-3">
               <button type="button" onClick={() => setView("list")} disabled={sending} aria-label="Minhas sugestões" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-[10px] border border-ds-border px-4 text-sm font-semibold text-ds-text-muted hover:border-ds-primary sm:hidden"><Icon name="list_alt" className="text-[18px]" /></button>
               <button type="button" onClick={onClose} disabled={sending} className="h-11 flex-1 rounded-[10px] border border-ds-border text-sm font-semibold text-ds-text-muted hover:border-ds-primary sm:flex-none sm:px-6">Cancelar</button>
               <button type="button" onClick={() => void send()} disabled={sending} className="btn-add inline-flex h-11 flex-[2] items-center justify-center gap-2 rounded-[10px] text-sm font-bold text-white disabled:opacity-60 sm:ml-auto sm:flex-none sm:px-8">{sending ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />Enviando...</> : <><Icon name="send" className="text-[18px]" />Enviar sugestão</>}</button>

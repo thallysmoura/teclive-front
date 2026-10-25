@@ -48,7 +48,7 @@ export function InstallToast() {
   if (!visible) return null;
   // Portal no <body>: um ancestral com transform (animação de entrada da página) quebraria o position: fixed.
   return createPortal(
-    <div role="dialog" aria-label="Instalar o aplicativo" className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-md rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-2xl [animation:overlay-in_220ms_ease-out_both]">
+    <div role="dialog" data-no-capture aria-label="Instalar o aplicativo" className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-md rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-2xl [animation:overlay-in_220ms_ease-out_both]">
       <div className="flex items-start gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/pwa/icon-192.png" alt="" width={44} height={44} className="h-11 w-11 shrink-0 rounded-xl" />
