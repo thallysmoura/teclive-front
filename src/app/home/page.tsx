@@ -11,6 +11,7 @@ import { money } from "@/lib/cadastros";
 import { getOverview, type Overview } from "@/lib/dashboard";
 import { fmtDate, formatOsNumber } from "@/lib/operacional";
 import { MemberHome } from "./member-home";
+import { HomeBanner } from "@/components/layout/home-banner";
 import { InstallToast } from "@/components/layout/install-toast";
 
 const WEEKDAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
@@ -111,16 +112,7 @@ function Home({ user }: { user: Me }) {
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      <header className="relative mb-5 flex items-center gap-3 rounded-3xl bg-gradient-to-r from-ds-primary-deep via-[#00558c] to-ds-primary p-4 pr-16 text-white shadow-sm sm:mb-6 sm:gap-4 sm:p-6 sm:pr-6">
-        <span className="shrink-0 rounded-full bg-white/15 p-1 sm:p-1.5"><span className="hidden sm:block"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={72} presence="online" /></span><span className="sm:hidden"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={52} presence="online" /></span></span>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-extrabold tracking-tight sm:text-3xl">Olá, {first}!</h1>
-          <p className="mt-0.5 text-[13px] leading-snug first-letter:uppercase text-white/85 sm:mt-1 sm:text-sm">{WEEKDAYS[now.getDay()]}, {now.getDate()} de {LONG_MONTHS[now.getMonth()]}<span> de {now.getFullYear()}</span></p>
-          <p className="mt-0.5 hidden text-xs text-white/70 lg:block">Painel executivo — visão consolidada de toda a operação da Teclive.</p>
-        </div>
-        <div className="absolute right-3 top-3 flex items-center gap-2 text-xs text-white/80 sm:static">{data && <span className="hidden xl:inline">Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
-          <button type="button" onClick={() => void load()} aria-label="Atualizar painel" title="Atualizar" className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 hover:bg-white/25"><Icon name="refresh" className="text-[20px]" /></button></div>
-      </header>
+      <HomeBanner user={user} updatedAt={data?.generatedAt} onRefresh={() => void load()} subtitle="Painel executivo — visão consolidada de toda a operação da Teclive." />
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
       {!data ? <p className="py-16 text-center text-sm text-ds-text-secondary">Carregando painel...</p> : (

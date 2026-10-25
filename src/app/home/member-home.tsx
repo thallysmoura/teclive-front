@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
-import { UserAvatar } from "@/components/ui/user-avatar";
+import { HomeBanner } from "@/components/layout/home-banner";
 import { listNavigation, type Me, type NavigationItem } from "@/lib/api";
 import { getRecent, type RecentVisit } from "@/lib/recent";
 
@@ -43,14 +43,7 @@ export function MemberHome({ user }: { user: Me }) {
 
   return (
     <div className="mx-auto max-w-[1100px]">
-      <header className="mb-6 flex items-center gap-3 rounded-3xl bg-gradient-to-r from-ds-primary-deep via-[#00558c] to-ds-primary p-4 text-white shadow-sm sm:gap-4 sm:p-6">
-        <span className="shrink-0 rounded-full bg-white/15 p-1 sm:p-1.5"><span className="hidden sm:block"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={72} presence="online" /></span><span className="sm:hidden"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={52} presence="online" /></span></span>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-extrabold tracking-tight sm:text-3xl">Olá, {first}!</h1>
-          <p className="mt-0.5 text-[13px] leading-snug text-white/85 first-letter:uppercase sm:mt-1 sm:text-sm">{WEEKDAYS[now.getDay()]}, {now.getDate()} de {LONG_MONTHS[now.getMonth()]}<span> de {now.getFullYear()}</span></p>
-          <p className="mt-0.5 hidden text-xs text-white/70 sm:block">Bem-vindo(a)! Continue de onde parou ou abra uma das suas áreas.</p>
-        </div>
-      </header>
+      <HomeBanner user={user} subtitle="Bem-vindo(a)! Continue de onde parou ou abra uma das suas áreas." />
 
       <section aria-label="Acessados recentemente" className="mb-8">
         <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ds-text-secondary"><Icon name="history" className="text-[18px]" />Acessados recentemente</h2>
