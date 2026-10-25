@@ -28,13 +28,14 @@ export function UserAvatar({
 }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
+    <div className="relative shrink-0 select-none" style={{ width: size, height: size }} onDragStart={(e) => e.preventDefault()}>
       {avatarUrl && avatarUrl !== failedUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={avatarUrl}
           alt={name}
           referrerPolicy="no-referrer"
+          draggable={false}
           onError={() => setFailedUrl(avatarUrl)}
           className="h-full w-full rounded-full object-cover"
         />
