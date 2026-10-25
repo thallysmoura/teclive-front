@@ -143,6 +143,7 @@ function MonthlyChart({ data, active, onPick }: { data: { key: string; label: st
 function Dashboard() {
   const [data, setData] = useState<WorksData | null>(null);
   const [error, setError] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [f, setF] = useState<Filters>(() => {
     if (typeof window === "undefined") return NONE;
     const q = new URLSearchParams(window.location.search);
@@ -294,33 +295,29 @@ function Dashboard() {
   return (
     <div className="mx-auto max-w-[1400px]">
       <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Gestão de Obras" }]} />
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <h1 className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-ds-primary-deep"><Icon name="engineering" className="!text-[32px]" />Gestão de Obras</h1>
-            <button type="button" onClick={() => void load()} aria-label="Atualizar" className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-[#F7941D] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[#E5850F]"><Icon name="refresh" className="text-[18px]" />Atualizar</button>
-            {data && <span className="text-xs text-ds-text-secondary">Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
-          </div>
-          <p className="mt-1 text-sm text-ds-text-secondary">Visão executiva da carteira de obras.</p>
-        </div>
-        <button type="button" onClick={exportCsv} disabled={!table.length} className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-[#12A262] pl-2 pr-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#0E8F55] disabled:opacity-40">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white"><ExcelIcon /></span>Exportar
+      <header className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2.5">
+        <h1 className="flex w-full items-center gap-3 text-2xl font-extrabold tracking-tight text-ds-primary-deep md:w-auto"><Icon name="engineering" className="!text-[32px]" />Gestão de Obras</h1>
+        <button type="button" onClick={() => void load()} aria-label="Atualizar" className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-[#F7941D] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[#E5850F]"><Icon name="refresh" className="text-[18px]" />Atualizar</button>
+        <button type="button" onClick={exportCsv} disabled={!table.length} className="inline-flex h-9 items-center gap-2 rounded-[10px] bg-[#12A262] pl-1.5 pr-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#0E8F55] disabled:opacity-40 md:ml-auto">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white"><ExcelIcon /></span>Exportar
         </button>
+        <button type="button" onClick={() => setFiltersOpen((v) => !v)} aria-expanded={filtersOpen} className={`inline-flex h-9 items-center gap-1.5 rounded-[10px] border px-3.5 text-sm font-bold transition-colors ${filtersOpen ? "border-ds-primary-deep bg-ds-primary-deep text-white" : "border-ds-border bg-white text-ds-text-muted hover:border-ds-primary"}`}><Icon name="filter_list" className="text-[18px]" />Filtrar{chips.length > 0 && <span className={`rounded-full px-1.5 text-xs ${filtersOpen ? "bg-white/20" : "bg-ds-primary/10 text-ds-primary"}`}>{chips.length}</span>}</button>
+        <p className="order-last w-full text-sm text-ds-text-secondary">Visão executiva da carteira de obras.{data && <span className="ml-2 text-xs">Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}</p>
       </header>
       {error && <p role="alert" className="mb-4 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
 
       {/* Filtros */}
-      <div className="sm:sticky sm:top-0 z-20 mb-5 rounded-2xl border border-ds-border-subtle bg-white/95 p-3 shadow-sm backdrop-blur">
-        <div className="flex flex-wrap items-center gap-2">
+      {(filtersOpen || chips.length > 0) && <div className="sm:sticky sm:top-0 z-20 mb-5 rounded-2xl border border-ds-border-subtle bg-white/95 p-3 shadow-sm backdrop-blur">
+        {filtersOpen && <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[240px] flex-1"><Icon name="search" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-ds-text-secondary" /><Input type="search" value={f.q} onChange={(e) => set({ q: e.target.value })} placeholder="Buscar obra por número, cliente, endereço, motivo ou técnico..." className="h-10 pl-10" aria-label="Buscar obras" /></div>
           <div className="flex w-full items-center gap-1.5 text-sm text-ds-text-muted sm:w-auto"><span className="hidden lg:inline">Aberta entre</span><Input type="date" aria-label="De" value={f.from} onChange={(e) => set({ from: e.target.value })} className="h-10 min-w-0 flex-1 sm:w-38 sm:flex-none" /><span>e</span><Input type="date" aria-label="Até" value={f.until} onChange={(e) => set({ until: e.target.value })} className="h-10 min-w-0 flex-1 sm:w-38 sm:flex-none" /></div>
           <select aria-label="Tipo" className={selectCls} value={f.type} onChange={(e) => set({ type: e.target.value })}><option value="">Todos os tipos</option>{Object.entries(OS_TYPES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           <select aria-label="Técnico" className={selectCls} value={f.technician} onChange={(e) => set({ technician: e.target.value })}><option value="">Todos os técnicos</option>{options.technicians.map((t) => <option key={t}>{t}</option>)}</select>
           <select aria-label="Vendedor" className={selectCls} value={f.seller} onChange={(e) => set({ seller: e.target.value })}><option value="">Todos os vendedores</option>{options.sellers.map((t) => <option key={t}>{t}</option>)}</select>
           {dirty && <button type="button" onClick={() => setF({ ...NONE, onlyActive: f.onlyActive })} className="h-10 rounded-[10px] px-3 text-sm font-semibold text-ds-primary hover:bg-ds-bg">Limpar filtros</button>}
-        </div>
-        {chips.length > 0 && <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Filtros ativos">{chips.map((c) => <li key={c.label}><button type="button" onClick={c.clear} className="inline-flex items-center gap-1 rounded-full bg-ds-primary-deep px-2.5 py-1 text-xs font-semibold text-white">{c.label}<Icon name="close" className="text-[14px]" /></button></li>)}</ul>}
-      </div>
+        </div>}
+        {chips.length > 0 && <ul className={`flex flex-wrap gap-1.5 ${filtersOpen ? "mt-2" : ""}`} aria-label="Filtros ativos">{chips.map((c) => <li key={c.label}><button type="button" onClick={c.clear} className="inline-flex items-center gap-1 rounded-full bg-ds-primary-deep px-2.5 py-1 text-xs font-semibold text-white">{c.label}<Icon name="close" className="text-[14px]" /></button></li>)}</ul>}
+      </div>}
 
       {!data ? <p className="py-16 text-center text-sm text-ds-text-secondary">Carregando painel...</p> : (
         <div className="space-y-5">

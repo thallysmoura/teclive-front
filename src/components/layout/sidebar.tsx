@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cacheNavigation, cachedNavigation } from "@/lib/session-cache";
 import Image from "next/image";
 import Link from "next/link";
@@ -225,7 +226,7 @@ export function Sidebar({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-30 grid h-16 grid-cols-[48px_1fr_48px] items-center bg-ds-primary-hover px-3 md:hidden">
+      <header className="fixed inset-x-0 top-0 z-30 grid h-16 grid-cols-[48px_1fr] items-center bg-ds-primary-hover px-3 md:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -237,11 +238,12 @@ export function Sidebar({
           </svg>
         </button>
 
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-start pl-1">
           <Link href="/home" aria-label="Ir para a página inicial" title="Página inicial" onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate("/home"); }} className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-12 w-auto select-none" /></Link>
         </div>
       </header>
       {hasGrantedAccess && <NotificationsButton desktopInSidebar />}
+      <MobileUserMenu user={user} navigate={navigate} onLogout={() => { stopPresence(); onLogout(); }} />
 
       {open && (
         <div
@@ -400,5 +402,37 @@ export function Sidebar({
         if ((creating || currentItem) && saved.href && saved.href !== pathname) navigate(saved.href);
       }} />}
     </>
+  );
+}
+
+
+/** Celular: foto da pessoa no cabeçalho (à direita das notificações) com o mesmo menu do rodapé do computador. */
+function MobileUserMenu({ user, navigate, onLogout }: { user: { name: string; avatarUrl?: string | null }; navigate: (href: string) => void; onLogout: () => void }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [open]);
+  if (typeof document === "undefined") return null;
+  const item = "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-ds-primary-deep transition-colors hover:bg-ds-bg";
+  const go = (href: string) => { setOpen(false); navigate(href); };
+  return createPortal(
+    <div className="md:hidden" data-no-capture>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} aria-label="Menu do usuário" className="fixed right-3 top-[10px] z-30 flex h-10 w-10 items-center justify-center rounded-full"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={36} /></button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div role="menu" className="fixed right-3 top-[58px] z-50 w-60 rounded-2xl border border-ds-border-subtle bg-white p-2 shadow-2xl motion-safe:animate-[overlay-in_160ms_ease-out_both]">
+            <Link role="menuitem" href="/meus-dados" onNavigate={(e) => { e.preventDefault(); go("/meus-dados"); }} className={item}><Icon name="person" className="text-[20px] text-ds-primary" />Meus Dados</Link>
+            <Link role="menuitem" href="/configuracoes" onNavigate={(e) => { e.preventDefault(); go("/configuracoes"); }} className={item}><Icon name="settings" className="text-[20px] text-ds-primary" />Configurações</Link>
+            <Link role="menuitem" href="/ajuda" onNavigate={(e) => { e.preventDefault(); go("/ajuda"); }} className={item}><Icon name="help" className="text-[20px] text-ds-primary" />Central de Ajuda</Link>
+            <button type="button" role="menuitem" onClick={onLogout} className={item}><Icon name="logout" className="text-[20px] text-ds-primary" />Sair</button>
+          </div>
+        </>
+      )}
+    </div>,
+    document.body,
   );
 }

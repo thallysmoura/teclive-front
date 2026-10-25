@@ -97,6 +97,7 @@ export function SuggestionButton({ user }: { user: Me }) {
   async function start() {
     if (busy) return;
     setBusy(true);
+    await new Promise((resolve) => setTimeout(resolve, 80)); // deixa o "Aguarde" aparecer antes da captura pesada
     const base = await capture();
     const h1 = document.querySelector("main h1")?.cloneNode(true) as HTMLElement | undefined;
     h1?.querySelectorAll(".material-symbols-outlined").forEach((n) => n.remove());
@@ -108,10 +109,19 @@ export function SuggestionButton({ user }: { user: Me }) {
   return (
     <>
       {/* Portal no <body>: um ancestral com transform (animação de entrada da página) quebraria o position: fixed. */}
-      {typeof document !== "undefined" && createPortal(<div data-no-capture className="fixed right-[68px] top-3 z-30 md:right-8 md:top-3 md:drop-shadow-md"><button type="button" data-no-capture onClick={() => void start()} disabled={busy} aria-label="Sugerir melhoria" title="Sugerir melhoria" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#F7941D] text-xs font-bold text-white transition-colors hover:bg-[#E5850F] disabled:opacity-60 md:h-9 md:w-auto md:gap-2 md:py-1 md:pl-1 md:pr-3.5">
+      {typeof document !== "undefined" && createPortal(<div data-no-capture className="fixed right-[100px] top-3 z-30 md:right-8 md:top-3 md:drop-shadow-md"><button type="button" data-no-capture onClick={() => void start()} disabled={busy} aria-label="Sugerir melhoria" title="Sugerir melhoria" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#F7941D] text-xs font-bold text-white transition-colors hover:bg-[#E5850F] disabled:opacity-60 md:h-9 md:w-auto md:gap-2 md:py-1 md:pl-1 md:pr-3.5">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-[22px] w-[22px] md:hidden ${busy ? "animate-pulse" : ""}`}><path d="M9 18h6M10 21.5h4" /><path d="M12 2.5a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8V16h6v-.1c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 2.5Z" /></svg>
         <span className="hidden md:contents"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={28} />{busy ? "Capturando..." : "Sugerir melhoria"}</span>
       </button></div>, document.body)}
+      {busy && typeof document !== "undefined" && createPortal(
+        <div data-no-capture role="alert" aria-live="assertive" className="fixed inset-0 z-[66] flex items-center justify-center bg-[#10202e]/40 backdrop-blur-[2px]">
+          <div className="flex items-center gap-3.5 rounded-2xl bg-white px-6 py-4 shadow-2xl">
+            <span className="h-7 w-7 animate-spin rounded-full border-[3px] border-[#F7941D]/25 border-t-[#F7941D]" />
+            <span><span className="block text-base font-extrabold text-ds-primary-deep">Aguarde...</span><span className="block text-xs text-ds-text-secondary">Capturando a tela</span></span>
+          </div>
+        </div>,
+        document.body,
+      )}
       {shot && <SuggestionDialog {...shot} onClose={() => setShot(null)} />}
     </>
   );
@@ -197,7 +207,8 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
   }
 
 
-  const toolBtn = (active: boolean) => `inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors ${active ? "bg-ds-primary text-white" : "border border-ds-border bg-white text-ds-text-muted hover:border-ds-primary"}`;
+  const toolBase = "flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-bold leading-none transition-colors disabled:opacity-40 sm:h-10 sm:flex-row sm:gap-1.5 sm:px-3 sm:text-xs";
+  const tools = { pin: ["bg-ds-primary text-white", "bg-ds-primary/10 text-ds-primary hover:bg-ds-primary/20"], draw: ["bg-[#F7941D] text-white", "bg-[#F7941D]/15 text-[#B85F00] hover:bg-[#F7941D]/25"], undo: ["", "bg-ds-primary-deep/10 text-ds-primary-deep hover:bg-ds-primary-deep/15"], clear: ["", "bg-[#E5322D]/10 text-[#C4231F] hover:bg-[#E5322D]/15"] };
   const pinCount = marks.filter((m) => m.kind === "pin").length;
 
   return createPortal(
@@ -219,14 +230,14 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
           <>
             <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
               <div className="flex min-h-0 min-w-0 flex-col gap-2 p-4 sm:p-5 lg:overflow-y-auto">
-                <p className="flex items-start gap-2 rounded-xl bg-ds-primary/5 px-3 py-2 text-xs leading-snug text-ds-text-muted"><Icon name="ads_click" className="mt-px shrink-0 text-[16px] text-ds-primary" />{base ? "Clique na imagem onde a melhoria deve entrar e escreva o que fazer ali (um ponto por vez). Arraste o ponto para reposicionar. Também dá para desenhar para destacar uma área." : "Não foi possível capturar a tela, mas você ainda pode enviar a sugestão descrevendo ao lado."}</p>
+                <p className="flex items-start gap-2 rounded-xl bg-ds-primary/5 px-3 py-2 text-[11px] leading-snug text-ds-text-muted"><Icon name="ads_click" className="mt-px shrink-0 text-[15px] text-ds-primary" />{base ? "Clique na imagem onde a melhoria deve entrar e escreva o que fazer ali. Arraste o ponto para mover. Use o lápis para destacar uma área." : "Não foi possível capturar a tela, mas você ainda pode enviar a sugestão descrevendo ao lado."}</p>
                 {base && (
                   <>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button type="button" onClick={() => setTool("pin")} className={toolBtn(tool === "pin")}><Icon name="location_on" className="text-[16px]" />Marcar ponto</button>
-                      <button type="button" onClick={() => setTool("draw")} className={toolBtn(tool === "draw")}><Icon name="draw" className="text-[16px]" />Desenhar</button>
-                      <button type="button" onClick={() => { setEditing(null); setMarks((m) => m.slice(0, -1)); }} disabled={!marks.length} className={`${toolBtn(false)} disabled:opacity-40`}><Icon name="undo" className="text-[16px]" />Desfazer</button>
-                      <button type="button" onClick={() => { setEditing(null); setMarks([]); }} disabled={!marks.length} className={`${toolBtn(false)} disabled:opacity-40`}><Icon name="delete" className="text-[16px]" />Limpar</button>
+                    <div className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
+                      <button type="button" onClick={() => setTool("pin")} aria-pressed={tool === "pin"} className={`${toolBase} ${tools.pin[tool === "pin" ? 0 : 1]}`}><Icon name="location_on" className="text-[18px]" />Marcar</button>
+                      <button type="button" onClick={() => setTool("draw")} aria-pressed={tool === "draw"} className={`${toolBase} ${tools.draw[tool === "draw" ? 0 : 1]}`}><Icon name="draw" className="text-[18px]" />Desenhar</button>
+                      <button type="button" onClick={() => { setEditing(null); setMarks((m) => m.slice(0, -1)); }} disabled={!marks.length} className={`${toolBase} ${tools.undo[1]}`}><Icon name="undo" className="text-[18px]" />Desfazer</button>
+                      <button type="button" onClick={() => { setEditing(null); setMarks([]); }} disabled={!marks.length} className={`${toolBase} ${tools.clear[1]}`}><Icon name="delete" className="text-[18px]" />Limpar</button>
                     </div>
                     <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto rounded-xl border border-ds-border bg-ds-bg p-1.5">
                       <div className="relative inline-block max-w-full">

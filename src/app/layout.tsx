@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description: "Gestão de usuários, acessos e aplicações tecLive.",
   applicationName: "euGestor",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "euGestor" },
-  icons: { apple: "/pwa/apple-touch-icon.png" },
+  icons: { icon: [{ url: "/icon.png", type: "image/png", sizes: "512x512" }], shortcut: "/icon.png", apple: "/pwa/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
