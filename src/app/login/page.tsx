@@ -20,6 +20,9 @@ export default function LoginPage() {
   const [keepConnected, setKeepConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [firstLogin, setFirstLogin] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [ready, setReady] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
@@ -38,18 +41,25 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [error]);
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent, keepCurrent = false) {
     e.preventDefault();
     if (loading) return;
     setError(null);
+    if (firstLogin && !keepCurrent) {
+      if (newPassword.length < 6) return setError("A nova senha deve ter pelo menos 6 caracteres.");
+      if (newPassword === password) return setError("A nova senha deve ser diferente da atual.");
+      if (newPassword !== confirmPassword) return setError("A confirmação não confere com a nova senha.");
+    }
     setLoading(true);
     try {
       await requestLoginNotifications();
       const location = await requestLoginLocation();
-      await login(email, password, keepConnected, location);
+      await login(email, password, keepConnected, location, firstLogin ? (keepCurrent ? { keepCurrentPassword: true } : { newPassword }) : undefined);
       router.push("/home");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Não foi possível entrar.");
+      // Primeiro acesso: a senha está certa, então pede a nova senha logo abaixo.
+      if ((err as { code?: string }).code === "FIRST_LOGIN") setFirstLogin(true);
+      else setError(err instanceof ApiError ? err.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
     }
@@ -117,6 +127,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                readOnly={firstLogin}
                 className="pl-10"
                 error={!!error}
                 required
@@ -136,6 +147,7 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                readOnly={firstLogin}
                 className="pl-10 pr-10"
                 error={!!error}
                 required
@@ -153,6 +165,21 @@ export default function LoginPage() {
             {error && <span className="text-xs text-ds-danger-text">{error}</span>}
           </label>
 
+          {firstLogin && (
+            <div className="mb-4 rounded-xl border border-ds-primary/25 bg-ds-primary/5 p-3.5">
+              <p className="mb-3 flex items-start gap-2 text-xs leading-snug text-ds-text-muted"><Icon name="verified_user" className="text-[18px] text-ds-primary" /><span><strong className="text-ds-primary-deep">Primeiro acesso.</strong> Escolha a sua senha para os próximos acessos.</span></p>
+              <label className="mb-3 flex flex-col gap-1.5" htmlFor="new-password">
+                <FieldLabel>Nova senha</FieldLabel>
+                <Input id="new-password" type={showPassword ? "text" : "password"} autoComplete="new-password" autoFocus value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={6} maxLength={72} required />
+              </label>
+              <label className="flex flex-col gap-1.5" htmlFor="confirm-password">
+                <FieldLabel>Confirmar nova senha</FieldLabel>
+                <Input id="confirm-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+              </label>
+              <button type="button" disabled={loading} onClick={(e) => void handleSubmit(e as unknown as FormEvent, true)} className="mt-3 text-xs font-semibold text-ds-primary hover:underline disabled:opacity-50">Entrar mantendo a senha atual</button>
+            </div>
+          )}
+
           <label className="mb-4 flex items-center gap-2 text-sm text-ds-text-muted">
             <input
               type="checkbox"
@@ -164,7 +191,7 @@ export default function LoginPage() {
           </label>
 
           <Button type="submit" disabled={loading} className="mb-4 w-full">
-            {loading ? "Carregando..." : "Entrar"}
+            {loading ? "Carregando..." : firstLogin ? "Salvar nova senha e entrar" : "Entrar"}
           </Button>
 
           <div className="mb-4 flex items-center gap-3">

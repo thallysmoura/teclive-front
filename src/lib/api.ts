@@ -42,17 +42,19 @@ export type NavigationItem = { key: string; label: string; href: string | null; 
 
 export type LoginLocation = { locationStatus: "not_requested" | "denied" | "unavailable" | "shared"; location?: { latitude: number; longitude: number; accuracy: number } };
 
-export async function login(email: string, password: string, keepConnected: boolean, location?: LoginLocation) {
+export async function login(email: string, password: string, keepConnected: boolean, location?: LoginLocation, first?: { newPassword?: string; keepCurrentPassword?: boolean }) {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email, password, keepConnected, ...location }),
+    body: JSON.stringify({ email, password, keepConnected, ...location, ...first }),
   });
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new ApiError(body?.message ?? "E-mail ou senha inválidos");
+    const failure = new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "E-mail ou senha inválidos") as ApiError & { code?: string };
+    failure.code = body?.code;
+    throw failure;
   }
 
   return res.json();
