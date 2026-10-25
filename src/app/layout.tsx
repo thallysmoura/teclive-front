@@ -19,9 +19,9 @@ export const metadata: Metadata = {
   title: "Teclive Serviços em Tecnologia",
   description: "Gestão de usuários, acessos e aplicações tecLive.",
   applicationName: "euGestor",
-  openGraph: { title: "Teclive Serviços em Tecnologia", description: "Gestão de usuários, acessos e aplicações tecLive.", siteName: "euGestor", locale: "pt_BR", type: "website", images: [{ url: "/pwa/icon-512.png", width: 512, height: 512 }] },
+  openGraph: { title: "Teclive Serviços em Tecnologia", description: "Gestão de usuários, acessos e aplicações tecLive.", siteName: "euGestor", locale: "pt_BR", type: "website", images: [{ url: "/pwa/icon-512.png?v=2", width: 512, height: 512 }] },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "euGestor" },
-  icons: { icon: [{ url: "/icon.png", type: "image/png", sizes: "512x512" }], shortcut: "/icon.png", apple: "/pwa/apple-touch-icon.png" },
+  icons: { icon: [{ url: "/icon.png?v=2", type: "image/png", sizes: "512x512" }], shortcut: "/icon.png?v=2", apple: "/pwa/apple-touch-icon.png?v=2" },
 };
 
 export const viewport: Viewport = {
