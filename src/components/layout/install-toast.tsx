@@ -52,7 +52,7 @@ export function InstallToast() {
     <div role="dialog" data-no-capture aria-label="Instalar o aplicativo" className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-md rounded-[28px] border border-white/80 bg-gradient-to-b from-white to-[#EEF3FB] p-4 shadow-[0_24px_60px_-12px_rgba(7,32,70,0.45)] [animation:overlay-in_220ms_ease-out_both]">
       <div className="flex items-start gap-3.5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/pwa/icon-192.png?v=2" alt="" width={64} height={64} className="h-16 w-16 shrink-0 rounded-[18px] shadow-md" />
+        <img src="/pwa/icon-192.png?v=3" alt="" width={64} height={64} className="h-16 w-16 shrink-0 rounded-[18px] shadow-md" />
         <div className="min-w-0 flex-1">
           <p className="text-[19px] font-extrabold leading-tight tracking-tight text-[#0E2A4D]">Instale o app da Teclive</p>
           <p className="mt-1 text-[13.5px] leading-snug text-[#7A869C]">Abra direto da tela inicial do celular, sem digitar o endereço, e acompanhe tudo mais rápido.</p>

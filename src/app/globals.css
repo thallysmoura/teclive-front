@@ -121,3 +121,7 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   main { animation: page-enter 240ms ease-out both; }
 }
+
+/* Abertura do app instalado: só aparece quando o site roda como aplicativo (PWA). */
+.app-splash { display: none; }
+@media (display-mode: standalone) { .app-splash { display: flex; } }
