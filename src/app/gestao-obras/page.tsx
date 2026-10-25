@@ -41,6 +41,12 @@ const norm = (v: string) => v.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
 
 /* ---------- peças visuais ---------- */
 
+function ExcelIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 32 32" className="h-[22px] w-[22px]"><rect x="11" y="3" width="19" height="26" rx="2.5" fill="#185C37" /><path d="M19 3h8.5A2.5 2.5 0 0 1 30 5.5V11H19z" fill="#33C481" /><rect x="19" y="11" width="11" height="8" fill="#21A366" /><path d="M19 19h11v5.5a2.5 2.5 0 0 1-2.5 2.5H19z" fill="#107C41" /><rect x="1" y="8" width="16" height="16" rx="2.5" fill="#107C41" /><path d="M5.2 11.5h2.6l1.5 3 1.5-3h2.6l-2.9 4.5 3 4.5h-2.7l-1.5-3.1-1.5 3.1H5.2l3-4.5z" fill="#fff" /></svg>
+  );
+}
+
 function Card({ title, subtitle, children, action, className = "" }: { title: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode; className?: string }) {
   return (
     <section className={`flex min-w-0 flex-col rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-sm sm:p-5 ${className}`}>
@@ -288,11 +294,18 @@ function Dashboard() {
   return (
     <div className="mx-auto max-w-[1400px]">
       <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Gestão de Obras" }]} />
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-ds-primary-deep"><Icon name="engineering" className="!text-[32px]" />Gestão de Obras</h1><p className="mt-1 text-sm text-ds-text-secondary">Visão executiva da carteira: prazo, materiais, equipe, faturamento e riscos. Clique em qualquer número ou gráfico para filtrar e abrir a obra.</p></div>
-        <div className="flex items-center gap-2 text-xs text-ds-text-secondary">{data && <span>Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
-          <button type="button" onClick={() => void load()} className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-ds-border bg-white px-3 text-sm font-semibold text-ds-text-muted hover:border-ds-primary hover:text-ds-primary"><Icon name="refresh" className="text-[18px]" />Atualizar</button>
-          <button type="button" onClick={exportCsv} disabled={!table.length} className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-ds-primary-deep bg-ds-primary-deep px-3 text-sm font-semibold text-white disabled:opacity-40"><Icon name="download" className="text-[18px]" />Exportar</button></div>
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <h1 className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-ds-primary-deep"><Icon name="engineering" className="!text-[32px]" />Gestão de Obras</h1>
+            <button type="button" onClick={() => void load()} aria-label="Atualizar" className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-[#F7941D] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[#E5850F]"><Icon name="refresh" className="text-[18px]" />Atualizar</button>
+            {data && <span className="text-xs text-ds-text-secondary">Atualizado às {new Date(data.generatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
+          </div>
+          <p className="mt-1 text-sm text-ds-text-secondary">Visão executiva da carteira de obras.</p>
+        </div>
+        <button type="button" onClick={exportCsv} disabled={!table.length} className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-[#12A262] pl-2 pr-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#0E8F55] disabled:opacity-40">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white"><ExcelIcon /></span>Exportar
+        </button>
       </header>
       {error && <p role="alert" className="mb-4 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
 
