@@ -21,6 +21,7 @@ export function UserAvatar({
   presence,
   size = 36,
   tone = "default",
+  spinner = false,
 }: {
   name: string;
   avatarUrl?: string | null;
@@ -28,8 +29,11 @@ export function UserAvatar({
   size?: number;
   /** "light": fundo branco com iniciais azuis, para usar sobre fundos azuis (cabeçalho do celular). */
   tone?: "default" | "light";
+  /** Mostra um indicador de carregamento enquanto a foto baixa. */
+  spinner?: boolean;
 }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
   return (
     <div className="relative shrink-0 select-none" style={{ width: size, height: size }} onDragStart={(e) => e.preventDefault()}>
       {avatarUrl && avatarUrl !== failedUrl ? (
@@ -39,6 +43,7 @@ export function UserAvatar({
           alt={name}
           referrerPolicy="no-referrer"
           draggable={false}
+          onLoad={() => setLoadedUrl(avatarUrl)}
           onError={() => setFailedUrl(avatarUrl)}
           className="h-full w-full rounded-full object-cover"
         />
@@ -49,6 +54,10 @@ export function UserAvatar({
         >
           {getInitials(name)}
         </div>
+      )}
+
+      {spinner && avatarUrl && avatarUrl !== failedUrl && loadedUrl !== avatarUrl && (
+        <span aria-label="Carregando foto" className="absolute inset-0 flex items-center justify-center rounded-full bg-white/90"><span className="h-1/2 w-1/2 animate-spin rounded-full border-2 border-ds-primary/25 border-t-ds-primary" /></span>
       )}
 
       {presence && (

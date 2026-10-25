@@ -21,6 +21,12 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      // Páginas nunca ficam em cache (cada publicação aparece na hora); os arquivos com hash em /_next/static continuam em cache longo.
+      { source: "/((?!_next/static|_next/image|pwa/|icon.png|favicon.ico|manifest.webmanifest).*)", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
+      { source: "/pwa/:path*", headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }] },
+      { source: "/icon.png", headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }] },
+      { source: "/favicon.ico", headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }] },
+      { source: "/manifest.webmanifest", headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }] },
       { source: "/sw.js", headers: [
         { key: "Content-Type", value: "application/javascript; charset=utf-8" },
         { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },

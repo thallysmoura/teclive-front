@@ -1,5 +1,5 @@
 /* Only public assets are cached. Authenticated pages and API responses stay on the network. */
-const CACHE_NAME = "eugestor-public-v1";
+const CACHE_NAME = "eugestor-public-v2";
 const PUBLIC_ASSETS = ["/offline.html", "/pwa/icon-192.png", "/pwa/icon-512.png", "/pwa/icon-maskable-512.png", "/pwa/apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {
@@ -19,6 +19,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (!url.search && PUBLIC_ASSETS.includes(url.pathname)) {
-    event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
+    event.respondWith(fetch(request).then((res) => { if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(request, copy)); } return res; }).catch(() => caches.match(request))); // rede primeiro: ícones novos aparecem; o cache só vale offline
   }
 });
