@@ -114,6 +114,18 @@ export async function authFetch(path: string, init?: RequestInit): Promise<Respo
   return res;
 }
 
+export async function uploadAvatar(image: Blob): Promise<string> {
+  const res = await authFetch("/auth/me/avatar", { method: "POST", headers: { "Content-Type": image.type }, body: image });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível enviar a foto.");
+  return body.avatarUrl as string;
+}
+
+export async function removeAvatar(): Promise<void> {
+  const res = await authFetch("/auth/me/avatar", { method: "DELETE" });
+  if (!res.ok) throw new ApiError("Não foi possível remover a foto.");
+}
+
 export async function getMe(): Promise<Me | null> {
   const res = await authFetch("/auth/me", { cache: "no-store" });
   if (!res.ok) { cacheMe(null); return null; }

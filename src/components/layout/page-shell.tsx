@@ -19,6 +19,12 @@ export function PageShell({ permissionKey, children }: { permissionKey: string |
     getMe().then((me) => { cacheMe(me); if (me) setUser(me); else router.replace("/login"); });
   }, [router]);
 
+  useEffect(() => {
+    const refresh = () => void getMe().then((me) => { if (me) setUser(me); });
+    window.addEventListener("eg:me-updated", refresh);
+    return () => window.removeEventListener("eg:me-updated", refresh);
+  }, []);
+
   if (!user) return <ShellLoading />;
   const hasAccess = permissionKey === null || user.role === "ADMIN" || user.permissions.includes(permissionKey);
 

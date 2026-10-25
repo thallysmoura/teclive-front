@@ -5,7 +5,7 @@ import { Breadcrumb, PageShell } from "@/components/layout/page-shell";
 import { SettingsShell } from "@/components/settings/settings-shell";
 import { Icon } from "@/components/ui/icon";
 import { FieldLabel, Input } from "@/components/ui/input";
-import { UserAvatar } from "@/components/ui/user-avatar";
+import { AvatarUploader } from "@/components/ui/avatar-uploader";
 import { changeMyPassword, getMe, updateMyProfile, type Me } from "@/lib/api";
 import { formatPhone } from "@/lib/company";
 
@@ -109,7 +109,7 @@ function Profile({ user }: { user: Me }) {
       <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Configurações", href: "/configuracoes" }, { label: "Meus Dados" }]} />
 
       <header className="mb-6 flex flex-wrap items-center gap-5 rounded-2xl bg-gradient-to-r from-ds-primary-deep to-ds-primary p-6 text-white shadow-sm">
-        <div className="scale-150 p-2"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} presence="online" /></div>
+        <div className="p-1"><AvatarUploader user={user} size={72} /></div>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-extrabold tracking-tight">{saved.name}</h1>
           <p className="truncate text-sm text-white/80">{user.email}</p>

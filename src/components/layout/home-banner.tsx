@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
-import { UserAvatar } from "@/components/ui/user-avatar";
+import { AvatarUploader } from "@/components/ui/avatar-uploader";
 import type { Me } from "@/lib/api";
 
 const WEEKDAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
@@ -24,8 +24,8 @@ export function HomeBanner({ user, subtitle, updatedAt, onRefresh }: { user: Me;
     <header style={{ backgroundImage: "url(/home/banner-bg.png)", backgroundSize: "cover", backgroundPosition: "center" }} className="relative mb-6 overflow-hidden rounded-[22px] bg-[#003B8E] shadow-[0_22px_44px_-20px_rgba(0,92,210,0.55)] ring-1 ring-inset ring-white/10">
       <div className="relative flex items-center gap-4 p-4 pr-16 sm:gap-6 sm:px-8 sm:py-7 sm:pr-8">
         <span className="shrink-0 rounded-full bg-white/10 p-2 shadow-[0_0_44px_rgba(30,144,255,0.45)] ring-1 ring-white/15 sm:p-3">
-          <span className="hidden sm:block"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={92} /></span>
-          <span className="sm:hidden"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={54} /></span>
+          <span className="hidden sm:block"><AvatarUploader user={user} size={92} /></span>
+          <span className="sm:hidden"><AvatarUploader user={user} size={54} /></span>
         </span>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-extrabold leading-tight tracking-tight text-[#D4E6FF] sm:text-[40px]">Olá, {first}!</h1>

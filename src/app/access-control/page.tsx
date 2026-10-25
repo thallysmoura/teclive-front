@@ -6,6 +6,7 @@ import {
   createUser,
   getMe,
   getPermissionsCatalog,
+  listNavigation,
   listUsers,
   logout,
   updateUserPermissions,
@@ -624,6 +625,8 @@ function NewUserModal({
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [allEugestor, setAllEugestor] = useState(false);
+  const [eugestorKeys, setEugestorKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
@@ -635,10 +638,26 @@ function NewUserModal({
     if (open) nameRef.current?.focus();
   }, [open]);
 
+  // "Todos os itens do eugestor": os grupos vindos do eugestor e tudo que estiver dentro deles (inclusive telas capturadas no futuro).
+  useEffect(() => {
+    if (!open) return;
+    listNavigation().then((items) => {
+      const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+      const groups = new Set(["indicadores", "administrativo", "comercial", "operacional", "estoque"]);
+      const main = items.filter((i) => i.section === "main");
+      const roots = main.filter((i) => !i.parentKey && groups.has(norm(i.label))).map((i) => i.key);
+      const keys = main.filter((i) => roots.includes(i.key) || (i.parentKey && roots.includes(i.parentKey))).map((i) => i.key);
+      setEugestorKeys(keys.filter((k) => catalog.some((c) => c.key === k)));
+    }).catch(() => setEugestorKeys([]));
+  }, [open, catalog]);
+
+  const effective = allEugestor ? [...new Set([...eugestorKeys, ...permissions])] : permissions;
+
   function reset() {
     setEmail("");
     setName("");
     setPermissions([]);
+    setAllEugestor(false);
     setError(null);
     setFieldErrors({});
     setCreated(null);
@@ -650,6 +669,7 @@ function NewUserModal({
   }
 
   function togglePermission(key: string) {
+    if (allEugestor && eugestorKeys.includes(key)) return; // já incluído pelo atalho; desmarque o atalho para ajustar um a um
     setPermissions((prev) => (prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]));
   }
 
@@ -665,7 +685,7 @@ function NewUserModal({
     }
     setLoading(true);
     try {
-      const result = await createUser({ email: email.trim().toLowerCase(), name: name.trim().replace(/\s+/g, " "), permissions });
+      const result = await createUser({ email: email.trim().toLowerCase(), name: name.trim().replace(/\s+/g, " "), permissions: effective });
       setCreated({ email: result.user.email, password: result.password });
       await onCreated();
     } catch (err) {
@@ -743,10 +763,18 @@ function NewUserModal({
           </label>
 
           <FieldLabel>Permissões</FieldLabel>
-          <div className="mb-4 mt-1.5">
+          <label className={`mt-1.5 flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${allEugestor ? "border-ds-primary bg-ds-primary/5" : "border-ds-border hover:border-ds-primary"}`}>
+            <input type="checkbox" checked={allEugestor} onChange={(e) => setAllEugestor(e.target.checked)} disabled={loading || eugestorKeys.length === 0} className="mt-0.5 h-4 w-4 shrink-0 accent-[#005CD2]" />
+            <span className="min-w-0 text-sm">
+              <span className="block font-bold text-ds-primary-deep">Todos os itens do eugestor</span>
+              <span className="block text-xs leading-snug text-ds-text-secondary">Libera de uma vez Indicadores, Administrativo, Comercial, Operacional e Estoque, com todas as telas de cada um. Equipe e Permissões, Log de acesso e os demais você escolhe abaixo.</span>
+            </span>
+          </label>
+          <p className="mb-1 mt-3 text-xs font-semibold text-ds-text-secondary">{allEugestor ? "Acessos adicionais (opcional)" : "Ou escolha item por item"}</p>
+          <div className="mb-4">
             <PermissionsDropdown
               catalog={catalog}
-              selected={permissions}
+              selected={effective}
               onToggle={togglePermission}
               disabled={loading}
               fullWidth
