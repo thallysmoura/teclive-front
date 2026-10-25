@@ -83,10 +83,33 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
   const panel = useRef<HTMLDivElement>(null);
   const navigate = useNavigationTransition();
 
+  const navRef = useRef(navigate);
+  navRef.current = navigate;
+  const seen = useRef<Set<string> | null>(null);
+
+  // Aviso do navegador (Notification API): só para notificações novas, quando a aba está em segundo plano. Clicar leva até a tela.
+  const announce = useCallback((list: AppNotification[]) => {
+    const known = seen.current;
+    seen.current = new Set([...(known ?? []), ...list.map((n) => n.id)]);
+    if (!known || typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    if (document.visibilityState === "visible" && document.hasFocus()) return;
+    for (const n of list) {
+      if (n.readAt || known.has(n.id)) continue;
+      const url = (n.data as { url?: unknown } | null)?.url;
+      const popup = new Notification(n.title, { body: n.message, icon: "/pwa/icon-192.png", tag: n.id });
+      popup.onclick = () => {
+        window.focus();
+        popup.close();
+        if (typeof url === "string" && url.startsWith("/")) navRef.current(url);
+        void markNotificationRead(n.id).then(() => window.dispatchEvent(new Event("eg:notifications")));
+      };
+    }
+  }, []);
+
   const load = useCallback(() => {
     setLoading(true);
-    return listNotifications().then((r) => { setItems(r.lista); setUnread(r.unreadCount); }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    return listNotifications().then((r) => { setItems(r.lista); setUnread(r.unreadCount); announce(r.lista); }).catch(() => {}).finally(() => setLoading(false));
+  }, [announce]);
 
   useEffect(() => {
     const query = window.matchMedia("(min-width: 768px)");
@@ -104,7 +127,7 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
 
   useEffect(() => {
     void load();
-    const timer = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 15000);
+    const timer = setInterval(() => void load(), 15000); // também em segundo plano, para avisar pelo navegador
     return () => clearInterval(timer);
   }, [load]);
 
@@ -119,6 +142,7 @@ export function NotificationsButton({ desktopInSidebar = false }: { desktopInSid
 
   function toggle() {
     if (open) return setOpen(false);
+    if (typeof Notification !== "undefined" && Notification.permission === "default") void Notification.requestPermission(); // pede uma vez, no clique
     const rect = button.current?.getBoundingClientRect();
     if (rect) setPos(desktopInSidebar ? { top: rect.bottom + 8, left: Math.max(8, Math.min(rect.left, window.innerWidth - 424)) } : { top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
     setOpen(true);
