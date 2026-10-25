@@ -64,7 +64,7 @@ export function AvatarUploader({ user, size }: { user: Me; size: number }) {
       {busy && <span className="pointer-events-none absolute inset-0 flex items-center justify-center"><span className="h-7 w-7 animate-spin rounded-full border-[3px] border-white/40 border-t-white" /></span>}
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden onChange={(e) => { void send(e.target.files?.[0]); e.target.value = ""; }} />
       <button type="button" onClick={() => input.current?.click()} disabled={busy} aria-label="Enviar foto de perfil" title="Enviar foto (clique ou arraste uma imagem)"
-        className="absolute -bottom-0.5 -right-0.5 flex h-7 w-7 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-60 sm:h-8 sm:w-8">
+        className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-60 sm:h-6 sm:w-6">
         <svg aria-hidden="true" viewBox="0 0 512 512" className="h-full w-full"><circle cx="256" cy="256" r="256" fill="#2962FF" /><path d="M256 122c-5 0-10 2-14 6l-52 52c-9 9-3 24 10 24h34v56c0 11 9 20 20 20h4c11 0 20-9 20-20v-56h34c13 0 19-15 10-24l-52-52c-4-4-9-6-14-6Z" fill="#fff" /><path d="M129 264l9 52c2 14 12 20 26 20h184c14 0 24-6 26-20l9-52" fill="none" stroke="#fff" strokeWidth="26" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
       {zoom && user.avatarUrl && createPortal(
