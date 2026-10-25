@@ -242,9 +242,9 @@ export function Sidebar({
         <div className="flex items-center justify-center">
           <Link href="/home" aria-label="Ir para a página inicial" title="Página inicial" onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate("/home"); }} className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Image src="/teclive-logo-white.png" alt="tecLive" width={1672} height={941} draggable={false} onDragStart={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()} className="h-12 w-auto select-none" /></Link>
         </div>
+        <MobileUserMenu user={user} navigate={navigate} onLogout={() => { stopPresence(); onLogout(); }} />
       </header>
       {hasGrantedAccess && <NotificationsButton desktopInSidebar />}
-      <MobileUserMenu user={user} navigate={navigate} onLogout={() => { stopPresence(); onLogout(); }} />
 
       {open && (
         <div
@@ -416,14 +416,14 @@ function MobileUserMenu({ user, navigate, onLogout }: { user: { name: string; av
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
   }, [open]);
-  if (typeof document === "undefined") return null;
   const item = "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-ds-primary-deep transition-colors hover:bg-ds-bg";
   const go = (href: string) => { setOpen(false); navigate(href); };
-  return createPortal(
-    <div className="md:hidden" data-no-capture>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} aria-label="Menu do usuário" className="fixed right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={36} tone="light" spinner /></button>
-      {open && (
-        <>
+  return (
+    // Dentro do próprio cabeçalho (3ª coluna): aparece junto com ele em todas as telas, sem depender de portal nem de camada.
+    <div className="flex justify-end">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} aria-label="Menu do usuário" className="flex h-10 w-10 items-center justify-center rounded-full"><UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={36} tone="light" spinner /></button>
+      {open && typeof document !== "undefined" && createPortal(
+        <div className="md:hidden" data-no-capture>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div role="menu" className="fixed right-3 top-[58px] z-50 w-60 rounded-2xl border border-ds-border-subtle bg-white p-2 shadow-2xl motion-safe:animate-[overlay-in_160ms_ease-out_both]">
             <Link role="menuitem" href="/meus-dados" onNavigate={(e) => { e.preventDefault(); go("/meus-dados"); }} className={item}><Icon name="person" className="text-[20px] text-ds-primary" />Meus Dados</Link>
@@ -431,9 +431,9 @@ function MobileUserMenu({ user, navigate, onLogout }: { user: { name: string; av
             <Link role="menuitem" href="/ajuda" onNavigate={(e) => { e.preventDefault(); go("/ajuda"); }} className={item}><Icon name="help" className="text-[20px] text-ds-primary" />Central de Ajuda</Link>
             <button type="button" role="menuitem" onClick={onLogout} className={item}><Icon name="logout" className="text-[20px] text-ds-primary" />Sair</button>
           </div>
-        </>
+        </div>,
+        document.body,
       )}
-    </div>,
-    document.body,
+    </div>
   );
 }

@@ -43,6 +43,7 @@ export function UserAvatar({
           alt={name}
           referrerPolicy="no-referrer"
           draggable={false}
+          ref={(el) => { if (el?.complete && el.naturalWidth > 0 && loadedUrl !== avatarUrl) setLoadedUrl(avatarUrl); }}
           onLoad={() => setLoadedUrl(avatarUrl)}
           onError={() => setFailedUrl(avatarUrl)}
           className="h-full w-full rounded-full object-cover"
