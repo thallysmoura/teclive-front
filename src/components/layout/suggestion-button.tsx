@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { toCanvas } from "html-to-image";
 import { Icon } from "@/components/ui/icon";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import type { Me } from "@/lib/api";
 import { createSuggestion, listMySuggestions, STATUS_INFO, uploadSuggestionImage, type MySuggestion } from "@/lib/suggestions";
 
 type Tool = "pin" | "draw";
@@ -88,7 +90,7 @@ async function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 type Shot = { base: HTMLCanvasElement | null; title: string; path: string; viewport: string };
 
 /** Botão "Sugerir melhoria": captura a tela, abre a janela com a imagem para marcar/desenhar e envia a sugestão. */
-export function SuggestionButton() {
+export function SuggestionButton({ user }: { user: Me }) {
   const [busy, setBusy] = useState(false);
   const [shot, setShot] = useState<Shot | null>(null);
 
@@ -105,8 +107,8 @@ export function SuggestionButton() {
 
   return (
     <>
-      <button type="button" data-no-capture onClick={() => void start()} disabled={busy} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-ds-border bg-white px-3 text-xs font-semibold text-ds-text-muted shadow-sm transition-colors hover:border-ds-primary hover:text-ds-primary disabled:opacity-60">
-        <Icon name="lightbulb" className="text-[16px]" />{busy ? "Capturando..." : "Sugerir melhoria"}
+      <button type="button" data-no-capture onClick={() => void start()} disabled={busy} className="inline-flex h-9 items-center gap-2 rounded-full bg-[#F7941D] py-1 pl-1 pr-3.5 text-xs font-bold text-white transition-colors hover:bg-[#E5850F] disabled:opacity-60">
+        <UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={28} />{busy ? "Capturando..." : "Sugerir melhoria"}
       </button>
       {shot && <SuggestionDialog {...shot} onClose={() => setShot(null)} />}
     </>
