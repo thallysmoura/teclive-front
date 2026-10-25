@@ -57,3 +57,19 @@ export async function getAiUsage(): Promise<AiUsageReport> {
   if (!res.ok) throw new ApiError("Não foi possível carregar o custo da IA.");
   return res.json();
 }
+
+export type R2Usage = {
+  files: number; bytes: number; storageGb: number; freeGb: number; percentOfFree: number; remainingBytes: number;
+  filesToday: number; bytesToday: number; filesMonth: number; avgBytes: number; filesUntilFull: number | null;
+  classA: { used: number; free: number };
+  costUsd: { today: number; month: number; storage: number; operations: number };
+  folders: { key: string; label: string; files: number; bytes: number }[];
+  generatedAt: string;
+};
+
+/** Uso e custo do Cloudflare R2 (administradores). */
+export async function getR2Usage(): Promise<R2Usage> {
+  const res = await authFetch("/storage/usage", { cache: "no-store" });
+  if (!res.ok) throw new ApiError("Não foi possível carregar o armazenamento.");
+  return res.json();
+}
