@@ -29,7 +29,7 @@ const exact = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone:
 /** Notificações de "nova pessoa aguardando permissão" trazem nome e foto de quem entrou. */
 function personOf(n: AppNotification): { name: string; avatarUrl: string | null } | null {
   const d = n.data as { type?: string; name?: string; avatarUrl?: string | null } | null;
-  return d?.type === "access-request" && d.name ? { name: d.name, avatarUrl: d.avatarUrl ?? null } : null;
+  return (d?.type === "access-request" || d?.type === "suggestion") && d.name ? { name: d.name, avatarUrl: d.avatarUrl ?? null } : null;
 }
 
 /** Lista de notificações no estilo das redes sociais (abas, ponto de não lida, "marcar todas"). */
