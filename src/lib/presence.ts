@@ -153,3 +153,23 @@ function start() {
   };
   client.connect();
 }
+
+// Painel de Acompanhamento: só quem está com a tela aberta entra na sala e recebe os eventos.
+const opsHandlers = new Set<(event: unknown) => void>();
+export function subscribeOps(handler: (event: unknown) => void) {
+  opsHandlers.add(handler);
+  const release = acquirePresence();
+  const join = () => socket?.emit("ops:join");
+  socket?.on("connect", join);
+  const bound = socket;
+  if (socket?.connected) join();
+  const relay = (event: unknown) => opsHandlers.forEach((h) => h(event));
+  socket?.on("ops:event", relay);
+  return () => {
+    opsHandlers.delete(handler);
+    bound?.off("connect", join);
+    bound?.off("ops:event", relay);
+    if (!opsHandlers.size) bound?.emit("ops:leave");
+    release();
+  };
+}
