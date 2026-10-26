@@ -8,10 +8,12 @@ import { Modal } from "@/components/ui/modal";
 import { money } from "@/lib/cadastros";
 import { OsComments } from "@/components/operacional/os-comments";
 import { ImageLightbox } from "@/components/operacional/image-lightbox";
+import { OsWorkPlans } from "@/components/operacional/os-work-plans";
+import { cachedMe } from "@/lib/session-cache";
 import { OS_STATUS, addressLine, fmtDate, fmtDateTime, formatMinutes, formatOsNumber, osClient, type OsDetail, type OsFilters } from "@/lib/operacional";
 import { formatQuoteNumber } from "@/lib/comercial";
 
-const TABS = ["Resumo", "Comentários", "Serviços", "Produtos", "Atendimentos", "Questionários", "Adiantamentos", "Fechamento/Cobrança", "Anexos", "Histórico"] as const;
+const TABS = ["Resumo", "Comentários", "Gestão de Obras", "Serviços", "Produtos", "Atendimentos", "Questionários", "Adiantamentos", "Fechamento/Cobrança", "Anexos", "Histórico"] as const;
 type Tab = (typeof TABS)[number];
 const selectClass = "h-11 w-full rounded-[10px] border border-ds-border bg-white px-3 text-sm text-ds-text outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20";
 const ADVANCE_STATUS: Record<number, string> = { 6: "Pago", 1: "Em aberto" };
@@ -252,6 +254,13 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
                     <dl className="grid grid-cols-3 gap-2 rounded-lg border border-ds-border-subtle p-3"><div><dt className="text-xs font-bold text-ds-primary-deep">Serviços</dt><dd>{money(os.totalServices)}</dd></div><div><dt className="text-xs font-bold text-ds-primary-deep">Produtos</dt><dd>{money(os.totalProducts)}</dd></div><div><dt className="text-xs font-bold text-ds-primary-deep">Total</dt><dd className="font-bold">{money(os.totalServices + os.totalProducts)}</dd></div></dl></section>
                 </div>
               )}
+
+              {tab === "Gestão de Obras" && (
+
+                <OsWorkPlans osId={os.id} canManage={cachedMe()?.role === "ADMIN"} />
+
+              )}
+
 
               {tab === "Anexos" && (os.attachments.length ? (
                 <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{os.attachments.map((a) => (
