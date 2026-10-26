@@ -236,7 +236,7 @@ function sectionBlocks(sections: StrategicSection[]): ReportBlock[] {
     }
     if (s.columns && s.rows) {
       const cols = s.columns;
-      out.push({ gap: 0, node: <div style={{ display: "flex", width: 689, marginLeft: 15, borderLeft: BORDER, height: 20 }}>{cols.map((c, i) => <div key={i} style={box(c.width, { fontSize: 10.6667, fontWeight: 700, background: "#f2f2f2", justifyContent: c.align === "right" ? "flex-end" : c.align === "center" ? "center" : "flex-start" })}>{c.label}</div>)}</div> });
+      out.push({ gap: 0, node: <div style={{ display: "flex", width: 689, marginLeft: 15, borderLeft: BORDER, minHeight: 20 }}>{cols.map((c, i) => <div key={i} style={box(c.width, { fontSize: 10.6667, fontWeight: 700, background: "#f2f2f2", justifyContent: c.align === "right" ? "flex-end" : c.align === "center" ? "center" : "flex-start" })}>{c.label}</div>)}</div> });
       s.rows.forEach((r) => out.push({ gap: 0, node: <div style={{ display: "flex", width: 689, marginLeft: 15, borderLeft: BORDER, minHeight: 19 }}>{cols.map((c, i) => <div key={i} style={box(c.width, { fontSize: 10.6667, paddingTop: 2, paddingBottom: 2, lineHeight: "13px", justifyContent: c.align === "right" ? "flex-end" : c.align === "center" ? "center" : "flex-start" })}>{r[i] ?? ""}</div>)}</div> }));
     }
     if (s.note) out.push({ gap: 0, node: <div style={{ width: 689, marginLeft: 15, padding: "4px 3px", fontFamily: ARIAL, fontSize: 10.6667, fontStyle: "italic" }}>{s.note}</div> });
