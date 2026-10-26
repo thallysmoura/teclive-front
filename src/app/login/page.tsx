@@ -222,9 +222,9 @@ export default function LoginPage() {
 
           <button
             type="button"
-            disabled
-            title="Em breve"
-            className="mb-4 flex h-11 w-full items-center justify-center gap-2.5 rounded-[10px] border border-ds-border bg-white text-sm font-bold text-ds-text-muted opacity-70 cursor-not-allowed"
+            disabled={loading}
+            onClick={() => void handleGoogle()}
+            className="mb-4 flex h-11 w-full items-center justify-center gap-2.5 rounded-[10px] border border-ds-border bg-white text-sm font-bold text-ds-text-muted transition-colors hover:border-ds-primary hover:text-ds-primary-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
             <GoogleIcon />
             Continuar com Google
