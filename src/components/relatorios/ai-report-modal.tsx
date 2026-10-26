@@ -66,7 +66,7 @@ export function AiReportModal({ onClose }: { onClose: () => void }) {
             <p className="mb-2 text-xs font-bold text-ds-text-secondary">Ideias</p>
             <div className="flex flex-wrap gap-2">{EXAMPLES.map((ex) => <button key={ex} type="button" disabled={loading} onClick={() => setText(ex)} className="rounded-full border border-ds-border bg-white px-3 py-1.5 text-xs font-semibold text-ds-text-muted hover:border-ds-primary hover:text-ds-primary">{ex}</button>)}</div>
           </div>
-          <p className="rounded-xl bg-ds-bg px-3 py-2.5 text-xs leading-relaxed text-ds-text-muted">A IA usa os dados de <strong>pessoas, orçamentos, ordens de serviço, produtos e estoque</strong>. Se o que você pedir não existir nesses dados, ela avisa que não encontrou.</p>
+          <p className="rounded-xl bg-ds-bg px-3 py-2.5 text-xs leading-relaxed text-ds-text-muted">A IA usa os dados de <strong>pessoas, orçamentos, ordens de serviço, produtos, estoque e dados da empresa</strong>. Se o que você pedir não existir nesses dados, ela avisa que não encontrou.</p>
           {notFound && <p role="status" className="flex items-start gap-2 rounded-xl border border-[#F7941D]/40 bg-[#FFF3D6] px-3 py-3 text-sm font-semibold text-[#8A5300]"><Icon name="search_off" className="mt-px shrink-0 text-[20px]" />{notFound}</p>}
           {error && <p role="alert" className="text-sm font-medium text-ds-danger-text">{error}</p>}
         </div>
