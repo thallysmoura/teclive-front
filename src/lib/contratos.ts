@@ -68,3 +68,33 @@ export const months = (start: string, end: string | null) => {
   return Math.max(0, (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()) + (b.getDate() >= a.getDate() ? 0 : -1) + 1);
 };
 export const dateBr = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR") : "");
+
+const KEY = (n: string) => `item_c0a1b2c3-0000-4d5e-8f60-aaaaaaaaaa${n}`;
+export const REAJUSTE_KEY = KEY("02"), GRUPOS_KEY = KEY("03"), MODELOS_KEY = KEY("04"), BONIF_KEY = KEY("05"), CANCEL_KEY = KEY("06"), BLOQUEIO_KEY = KEY("07");
+export const TEMPLATE_TYPES = ["Novo Contrato", "Aditivo de Contrato", "Reajuste Contratual", "Distrato"];
+export const CANCEL_STAGES = ["Aguardando Faturar Multa", "Gerar Distrato", "OS Pendente", "Contratos a Faturar", "Cancelar Serviços", "Revertido", "Finalizado"];
+
+export type Group = { id: string; description: string; isActive: boolean };
+export type Template = { id: string; description: string; type: number; isActive: boolean };
+export type Adjustment = { id: string; at: string; userName: string; filterType: string; months: number; indexId: number | null; groupName: string | null; percent: number; rounded: boolean; contractCount: number; valueBefore: number; valueAfter: number; canceledAt: string | null };
+export type Charge = { id: string; contractId: string; contractNo: string; personName: string; kind: number; competence: string; description: string; value: number; canceledAt: string | null };
+export type Cancellation = { id: string; contractId: string; contractNo: string; personName: string; stage: number; reason: string | null; effectiveDate: string; fine: number };
+export type Eligible = { id: string; number: string; personName: string; totalNet: number; adjustIndex: number | null; startDate: string };
+
+export const adminApi = {
+  groups: (q = "", inactive = false) => call<Group[]>(`/contract-admin/groups?q=${encodeURIComponent(q)}&inactive=${inactive}`),
+  saveGroup: (id: string | null, b: Record<string, unknown>) => call<Group>(id ? `/contract-admin/groups/${id}` : "/contract-admin/groups", { method: id ? "PUT" : "POST", body: JSON.stringify(b) }),
+  templates: (q = "", inactive = false) => call<Template[]>(`/contract-admin/templates?q=${encodeURIComponent(q)}&inactive=${inactive}`),
+  saveTemplate: (id: string | null, b: Record<string, unknown>) => call<Template>(id ? `/contract-admin/templates/${id}` : "/contract-admin/templates", { method: id ? "PUT" : "POST", body: JSON.stringify(b) }),
+  adjustments: (q = "") => call<Adjustment[]>(`/contract-admin/adjustments?q=${encodeURIComponent(q)}`),
+  searchAdjust: (b: Record<string, unknown>) => call<Eligible[]>("/contract-admin/adjustments/search", { method: "POST", body: JSON.stringify(b) }),
+  applyAdjust: (b: Record<string, unknown>) => call<Adjustment>("/contract-admin/adjustments", { method: "POST", body: JSON.stringify(b) }),
+  charges: (q = "", canceled = false) => call<Charge[]>(`/contract-admin/charges?q=${encodeURIComponent(q)}&canceled=${canceled}`),
+  createCharge: (b: Record<string, unknown>) => call<Charge>("/contract-admin/charges", { method: "POST", body: JSON.stringify(b) }),
+  cancelCharge: (id: string) => call<Charge>(`/contract-admin/charges/${id}/cancel`, { method: "POST" }),
+  cancellations: (q = "") => call<Cancellation[]>(`/contract-admin/cancellations?q=${encodeURIComponent(q)}`),
+  createCancellation: (b: Record<string, unknown>) => call<Cancellation>("/contract-admin/cancellations", { method: "POST", body: JSON.stringify(b) }),
+  moveCancellation: (id: string, stage: number) => call<Cancellation>(`/contract-admin/cancellations/${id}/stage`, { method: "PUT", body: JSON.stringify({ stage }) }),
+  blocks: () => call<{ id: string; personName: string; days: number; userName: string; at: string }[]>("/contract-admin/delinquency/blocks"),
+  searchDelinquency: (b: Record<string, unknown>) => call<unknown[]>("/contract-admin/delinquency/search", { method: "POST", body: JSON.stringify(b) }),
+};
