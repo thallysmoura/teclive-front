@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Breadcrumb, PageShell } from "@/components/layout/page-shell";
 import { Icon } from "@/components/ui/icon";
+import { SuggestionThumb } from "@/components/ui/suggestion-thumb";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { listAllSuggestions, setSuggestionStatus, STATUS_INFO, type AdminSuggestion, type SuggestionStatus } from "@/lib/suggestions";
 
@@ -59,12 +60,7 @@ function Suggestions() {
             const [text, notes] = s.description.split(/\n\nObservações nos pontos da imagem:\n/);
             return (
               <li key={s.id} className="grid gap-4 rounded-2xl border border-ds-border-subtle bg-white p-4 shadow-sm sm:grid-cols-[220px_1fr]">
-                {s.imageUrl ? (
-                  <button type="button" onClick={() => setZoom(s.imageUrl)} aria-label="Ampliar imagem" className="cursor-zoom-in overflow-hidden rounded-xl border border-ds-border-subtle">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.imageUrl} alt="" className="h-36 w-full object-cover object-top sm:h-full sm:min-h-[130px]" />
-                  </button>
-                ) : <span className="flex min-h-[110px] items-center justify-center rounded-xl bg-ds-bg text-ds-text-secondary"><Icon name="image_not_supported" className="text-[28px]" /></span>}
+                <SuggestionThumb id={s.id} legacyUrl={s.imageUrl} hasImage={s.hasImage} className="h-36 w-full sm:h-full sm:min-h-[130px]" onOpen={setZoom} />
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                     <span className="flex min-w-0 items-center gap-2"><UserAvatar name={s.author.name} avatarUrl={s.author.avatarUrl} size={28} /><span className="truncate text-sm font-bold text-ds-primary-deep">{s.author.name}</span></span>

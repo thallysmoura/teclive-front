@@ -7,13 +7,7 @@ async function fail(res: Response, fallback: string): Promise<never> {
   throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? fallback);
 }
 
-export async function uploadSuggestionImage(image: Blob): Promise<string> {
-  const res = await authFetch("/suggestions/image", { method: "POST", headers: { "Content-Type": image.type }, body: image });
-  if (!res.ok) return fail(res, "Não foi possível enviar a imagem.");
-  return (await res.json()).imageUrl as string;
-}
-
-export type SuggestionInput = { category?: string; title?: string; description: string; screenPath: string; screenTitle: string; imageUrl?: string; viewport?: string };
+export type SuggestionInput = { category?: string; title?: string; description: string; screenPath: string; screenTitle: string; imageData?: string; viewport?: string };
 
 export async function createSuggestion(input: SuggestionInput) {
   const res = await authFetch("/suggestions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
@@ -29,7 +23,7 @@ export const STATUS_INFO: Record<SuggestionStatus, { label: string; cls: string 
   DESCARTADA: { label: "Descartada", cls: "bg-[#ECEFF3] text-[#5B6775]" },
 };
 
-export type MySuggestion = { id: string; title: string; description: string; category: string; screenTitle: string; imageUrl: string | null; status: SuggestionStatus; createdAt: string };
+export type MySuggestion = { id: string; title: string; description: string; category: string; screenTitle: string; imageUrl: string | null; hasImage: boolean; status: SuggestionStatus; createdAt: string };
 export type AdminSuggestion = MySuggestion & { screenPath: string; viewport: string | null; author: { name: string; email: string; avatarUrl: string | null } };
 
 export async function listMySuggestions(): Promise<MySuggestion[]> {
@@ -47,4 +41,11 @@ export async function listAllSuggestions(): Promise<AdminSuggestion[]> {
 export async function setSuggestionStatus(id: string, status: SuggestionStatus) {
   const res = await authFetch(`/suggestions/${id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
   if (!res.ok) return fail(res, "Não foi possível alterar a situação.");
+}
+
+/** Baixa a captura de uma sugestão (guardada no banco) e devolve um endereço local para exibir. */
+export async function fetchSuggestionImage(id: string): Promise<string> {
+  const res = await authFetch(`/suggestions/${id}/image`);
+  if (!res.ok) throw new ApiError("Imagem indisponível.");
+  return URL.createObjectURL(await res.blob());
 }

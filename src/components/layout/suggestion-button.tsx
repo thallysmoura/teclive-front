@@ -5,9 +5,10 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { toCanvas } from "html-to-image";
 import { Icon } from "@/components/ui/icon";
+import { SuggestionThumb } from "@/components/ui/suggestion-thumb";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { Me } from "@/lib/api";
-import { createSuggestion, listMySuggestions, STATUS_INFO, uploadSuggestionImage, type MySuggestion } from "@/lib/suggestions";
+import { createSuggestion, listMySuggestions, STATUS_INFO, type MySuggestion } from "@/lib/suggestions";
 
 type Tool = "pin" | "draw";
 type Mark = { kind: "pin"; x: number; y: number; note: string } | { kind: "stroke"; points: [number, number][] };
@@ -195,9 +196,10 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
     if (details.trim().length < 10) return setError("Descreva a melhoria com um pouco mais de detalhe.");
     setSending(true);
     try {
-      const imageUrl = base ? await uploadSuggestionImage(await toBlob(canvasRef.current!)) : undefined;
+      // A captura vai em base64 e fica no Postgres (sem usar o armazenamento do Cloudflare).
+      const imageData = base ? await new Promise<string>((resolve, reject) => { void toBlob(canvasRef.current!).then((b) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = () => reject(new Error("Não foi possível ler a imagem.")); r.readAsDataURL(b); }, reject); }) : undefined;
       const notes = marks.filter((m): m is Extract<Mark, { kind: "pin" }> => m.kind === "pin").map((m, i) => (m.note ? `${i + 1}) ${m.note}` : "")).filter(Boolean);
-      await createSuggestion({ description: details.trim() + (notes.length ? `\n\nObservações nos pontos da imagem:\n${notes.join("\n")}` : ""), screenPath: path || pathname, screenTitle: title, imageUrl, viewport });
+      await createSuggestion({ description: details.trim() + (notes.length ? `\n\nObservações nos pontos da imagem:\n${notes.join("\n")}` : ""), screenPath: path || pathname, screenTitle: title, imageData, viewport });
       setSent(true);
       window.dispatchEvent(new Event("sidebar:updated"));
       setView("list");
@@ -294,12 +296,7 @@ function MyList({ sent, onNew }: { sent: boolean; onNew: () => void }) {
         <ul className="space-y-3">
           {items.map((s) => (
             <li key={s.id} className="flex gap-3 rounded-2xl border border-ds-border-subtle bg-white p-3">
-              {s.imageUrl ? (
-                <button type="button" onClick={() => setZoom(s.imageUrl)} aria-label="Ampliar imagem" className="shrink-0 cursor-zoom-in overflow-hidden rounded-xl border border-ds-border-subtle">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.imageUrl} alt="" className="h-20 w-28 object-cover object-top" />
-                </button>
-              ) : <span className="flex h-20 w-28 shrink-0 items-center justify-center rounded-xl bg-ds-bg text-ds-text-secondary"><Icon name="image_not_supported" className="text-[24px]" /></span>}
+              <SuggestionThumb id={s.id} legacyUrl={s.imageUrl} hasImage={s.hasImage} className="h-20 w-28 shrink-0" onOpen={setZoom} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2"><span className="text-xs font-semibold text-ds-text-secondary">{s.screenTitle}</span><span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_INFO[s.status].cls}`}>{STATUS_INFO[s.status].label}</span></div>
                 <p className="mt-1 line-clamp-2 break-words text-sm text-ds-text">{s.description.split(/\n\nObservações/)[0]}</p>
