@@ -27,3 +27,12 @@ export async function getStrategicReport(kind: string): Promise<StrategicReport>
   if (!res.ok) throw new ApiError("Não foi possível gerar o relatório.");
   return res.json();
 }
+
+/** Relatório personalizado com IA: devolve o relatório pronto ou o aviso de que a informação não existe. */
+export async function generateAiReport(request: string): Promise<{ found: true; report: StrategicReport } | { found: false; message: string }> {
+  const res = await authFetch("/reports/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ request }) });
+  const body = await res.json().catch(() => null);
+  if (res.status === 401) throw new ApiError("Sessão expirada. Entre novamente.");
+  if (!res.ok) throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível gerar o relatório.");
+  return body;
+}
