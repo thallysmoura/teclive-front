@@ -60,6 +60,20 @@ export async function login(email: string, password: string, keepConnected: bool
   return res.json();
 }
 
+export async function loginWithGoogle(idToken: string, keepConnected: boolean) {
+  const res = await fetch(`${API_URL}/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ idToken, keepConnected }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new ApiError(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível entrar com o Google.");
+  }
+  return res.json();
+}
+
 export async function checkEmail(email: string): Promise<boolean> {
   const res = await fetch(`${API_URL}/auth/check-email`, {
     method: "POST",

@@ -4,7 +4,8 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ApiError, login } from "@/lib/api";
+import { ApiError, login, loginWithGoogle } from "@/lib/api";
+import { googleIdToken } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
@@ -40,6 +41,23 @@ export default function LoginPage() {
     const timer = setTimeout(() => setError(null), 5000);
     return () => clearTimeout(timer);
   }, [error]);
+
+  async function handleGoogle() {
+    if (loading) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const idToken = await googleIdToken();
+      await loginWithGoogle(idToken, keepConnected);
+      router.push("/home");
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return;
+      setError(err instanceof ApiError ? err.message : "Não foi possível entrar com o Google.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent, keepCurrent = false) {
     e.preventDefault();
