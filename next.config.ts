@@ -13,6 +13,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  images: { remotePatterns: [{ protocol: "https", hostname: "*.googleusercontent.com" }] },
   cacheComponents: true,
   poweredByHeader: false,
   // Acesso pelo túnel do celular (cloudflared): libera os recursos de desenvolvimento para esse domínio.
