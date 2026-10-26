@@ -36,7 +36,7 @@ const cell = (w: number | string, extra: React.CSSProperties = {}): React.CSSPro
 
 function PersonBlock({ p }: { p: PeopleReportItem }) {
   return (
-    <div style={{ width: 689, marginLeft: 15, marginBottom: GAP, borderTop: BORDER, borderLeft: BORDER, boxSizing: "border-box", fontFamily: ARIAL }}>
+    <div style={{ width: 689, marginLeft: 15, borderTop: BORDER, borderLeft: BORDER, boxSizing: "border-box", fontFamily: ARIAL }}>
       <div style={{ display: "flex", height: 22, background: "#f2f2f2", borderRight: BORDER, borderBottom: BORDER, boxSizing: "border-box" }}>
         <div style={{ flex: 1, minWidth: 0, paddingLeft: 3, display: "flex", alignItems: "center", fontSize: 14.6667, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden" }}>{p.name}</div>
         <div style={{ width: 191, flexShrink: 0, paddingRight: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", fontSize: 12, whiteSpace: "nowrap", overflow: "hidden" }}>CPF/CNPJ: {p.document}</div>
@@ -69,27 +69,31 @@ function PersonBlock({ p }: { p: PeopleReportItem }) {
   );
 }
 
-function ReportHeader({ report }: { report: PeopleReport }) {
-  const rows: [string, string][] = [["Tipo de Pessoa:", report.filters.personType], ["Tipo de Contribuinte:", report.filters.taxpayer], ["Tipo de Cadastro:", report.filters.registerType], ["Status do Cadastro:", report.filters.status]];
+/* ---------- modelo genérico: qualquer relatório vira cabeçalho + blocos medidos e paginados ---------- */
+
+export type ReportBlock = { node: React.ReactNode; gap: number };
+type ReportMeta = { title: string; filters: [string, string][]; company: string; generatedBy: string; generatedAt: string };
+
+function ReportHeader({ meta }: { meta: ReportMeta }) {
   return (
     <div style={{ height: HEADER_H, position: "relative", fontFamily: ARIAL, boxSizing: "border-box" }}>
       <div style={{ position: "absolute", left: 15, top: 0, fontSize: 10.6667 }}>
-        {rows.map(([k, v]) => <div key={k} style={{ display: "flex", height: 15, alignItems: "center" }}><span style={{ width: 106 }}>{k}</span><span style={{ fontWeight: 700 }}>{v}</span></div>)}
+        {meta.filters.slice(0, 5).map(([k, v]) => <div key={k} style={{ display: "flex", height: 15, alignItems: "center" }}><span style={{ width: 106 }}>{k}</span><span style={{ fontWeight: 700 }}>{v}</span></div>)}
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/teclive-logo.png" alt="" style={{ position: "absolute", left: 513, top: 0, width: 191, height: 83, objectFit: "contain" }} />
-      <div style={{ position: "absolute", left: 15, width: 689, top: 83 + 23, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700 }}>Relatório de Cadastro de Pessoas</div>
+      <div style={{ position: "absolute", left: 15, width: 689, top: 83 + 23, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700 }}>{meta.title}</div>
     </div>
   );
 }
 
-function Page({ report, indices, number, total, first }: { report: PeopleReport; indices: number[]; number: number; total: number; first: boolean }) {
+function Page({ meta, blocks, number, total, first }: { meta: ReportMeta; blocks: ReportBlock[]; number: number; total: number; first: boolean }) {
   return (
     <div className="rv-page" data-page={number} style={{ overflow: "hidden", margin: 10, display: "inline-block", textAlign: "left", verticalAlign: "top", padding: 39, border: "1px solid gray", color: "#000", background: "#fff", boxSizing: "content-box", width: 718, height: PAGE_H, position: "relative", boxShadow: "2px 2px 6px rgba(0,0,0,.25)" }}>
-      {first && <ReportHeader report={report} />}
-      {indices.map((i) => <PersonBlock key={i} p={report.items[i]} />)}
+      {first && <ReportHeader meta={meta} />}
+      {blocks.map((b, i) => <div key={i} style={{ marginBottom: b.gap }}>{b.node}</div>)}
       <div style={{ position: "absolute", left: 39 + 15, right: 39 + 14, bottom: 39 - 6, fontFamily: ARIAL, fontSize: 9.3333, lineHeight: "11px", display: "flex", justifyContent: "space-between" }}>
-        <div><div>Gerado para {report.company}</div><div>Emitido por {report.generatedBy} em {fmtDateTime(report.generatedAt)}</div></div>
+        <div><div>Gerado para {meta.company}</div><div>Emitido por {meta.generatedBy} em {fmtDateTime(meta.generatedAt)}</div></div>
         <div>Página {number}/{total}</div>
       </div>
     </div>
@@ -102,7 +106,7 @@ type Mode = "single" | "continuous" | "multiple";
 const MODES: [Mode, string][] = [["single", "Single Page"], ["continuous", "Continuous"], ["multiple", "Multiple Pages"]];
 const ZOOMS = [25, 50, 75, 100, 125, 150, 200];
 
-export function PeopleReportViewer({ report }: { report: PeopleReport }) {
+export function ReportViewer({ meta, blocks, exportExcel }: { meta: ReportMeta; blocks: ReportBlock[]; exportExcel: () => void }) {
   const measure = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<number[][]>([]);
   const [page, setPage] = useState(1);
@@ -114,11 +118,11 @@ export function PeopleReportViewer({ report }: { report: PeopleReport }) {
   const [term, setTerm] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
 
-  // Quebra em páginas pela altura real de cada cadastro (como o relatório original).
+  // Quebra em páginas pela altura real de cada bloco (como o relatório original).
   useLayoutEffect(() => {
     const root = measure.current;
     if (!root) return;
-    const heights = [...root.children].map((el) => (el as HTMLElement).offsetHeight + GAP);
+    const heights = [...root.children].map((el, i) => (el as HTMLElement).offsetHeight + blocks[i].gap);
     const out: number[][] = [[]];
     let used = 0;
     let cap = PAGE_H - HEADER_H - FOOTER_H;
@@ -127,7 +131,7 @@ export function PeopleReportViewer({ report }: { report: PeopleReport }) {
       out[out.length - 1].push(i); used += h;
     });
     setPages(out);
-  }, [report]);
+  }, [blocks]);
 
   const total = pages.length || 1;
   const go = (n: number) => { const v = Math.min(Math.max(1, n), total); setPage(v); if (mode !== "single") scroller.current?.querySelector(`[data-page="${v}"]`)?.scrollIntoView({ block: "start" }); };
@@ -144,13 +148,6 @@ export function PeopleReportViewer({ report }: { report: PeopleReport }) {
     const t = setTimeout(() => window.print(), 150);
     return () => clearTimeout(t);
   }, [printing]);
-
-  const exportExcel = () => {
-    const rows = report.items.map((p) => `<tr><td>${p.name}</td><td>${p.document}</td><td>${p.rg}</td><td>${p.phone}</td><td>${p.municipalRegistration}</td><td>${p.address}</td><td>${p.active ? "ATIVO" : "INATIVO"}</td><td>${p.contacts.map((c) => [c.name, c.phone, c.email, c.type].filter(Boolean).join(" / ")).join("; ")}</td></tr>`).join("");
-    const html = `<html><head><meta charset="utf-8"></head><body><table border="1"><tr><th>Nome</th><th>CPF/CNPJ</th><th>RG/Inscrição Estadual</th><th>Telefone</th><th>Inscrição Municipal</th><th>Endereço</th><th>Status</th><th>Contatos</th></tr>${rows}</table></body></html>`;
-    const url = URL.createObjectURL(new Blob([html], { type: "application/vnd.ms-excel" }));
-    const a = document.createElement("a"); a.href = url; a.download = "Relatorio de Cadastro de Pessoas.xls"; a.click(); URL.revokeObjectURL(url);
-  };
 
   const visible = useMemo(() => (printing || mode !== "single" ? pages.map((_, i) => i + 1) : [page]), [printing, mode, pages, page]);
 
@@ -192,14 +189,67 @@ export function PeopleReportViewer({ report }: { report: PeopleReport }) {
 
       <div className="rv-scroll" ref={scroller} style={{ padding: 4, textAlign: mode === "multiple" ? "left" : "center", overflow: "auto" }}>
         <div style={{ zoom: zoom / 100, display: mode === "multiple" ? "flex" : "block", flexWrap: "wrap", justifyContent: "center" }}>
-          {pages.length === 0 ? <p style={{ padding: 40, font: `14px ${ARIAL}` }}>Gerando relatório...</p> : visible.map((n) => <div key={n} style={{ display: mode === "multiple" ? "inline-block" : "block" }}><Page report={report} indices={pages[n - 1]} number={n} total={total} first={n === 1} /></div>)}
+          {pages.length === 0 ? <p style={{ padding: 40, font: `14px ${ARIAL}` }}>Gerando relatório...</p> : visible.map((n) => <div key={n} style={{ display: mode === "multiple" ? "inline-block" : "block" }}><Page meta={meta} blocks={pages[n - 1].map((i) => blocks[i])} number={n} total={total} first={n === 1} /></div>)}
         </div>
       </div>
 
       {/* Medição invisível para quebrar as páginas */}
       <div ref={measure} className="rv-measure" aria-hidden="true" style={{ position: "absolute", visibility: "hidden", left: -9999, top: 0, width: 718 }}>
-        {report.items.map((p, i) => <PersonBlock key={i} p={p} />)}
+        {blocks.map((b, i) => <div key={i}>{b.node}</div>)}
       </div>
     </div>
   );
+}
+
+const downloadXls = (html: string, name: string) => {
+  const url = URL.createObjectURL(new Blob([`<html><head><meta charset="utf-8"></head><body>${html}</body></html>`], { type: "application/vnd.ms-excel" }));
+  const a = document.createElement("a"); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
+};
+
+/* ---------- Relatório de Cadastro de Pessoas ---------- */
+
+export function PeopleReportViewer({ report }: { report: PeopleReport }) {
+  const meta: ReportMeta = useMemo(() => ({ title: "Relatório de Cadastro de Pessoas", company: report.company, generatedBy: report.generatedBy, generatedAt: report.generatedAt, filters: [["Tipo de Pessoa:", report.filters.personType], ["Tipo de Contribuinte:", report.filters.taxpayer], ["Tipo de Cadastro:", report.filters.registerType], ["Status do Cadastro:", report.filters.status]] }), [report]);
+  const blocks = useMemo<ReportBlock[]>(() => report.items.map((p) => ({ node: <PersonBlock p={p} />, gap: GAP })), [report]);
+  const exportExcel = () => {
+    const rows = report.items.map((p) => `<tr><td>${p.name}</td><td>${p.document}</td><td>${p.rg}</td><td>${p.phone}</td><td>${p.municipalRegistration}</td><td>${p.address}</td><td>${p.active ? "ATIVO" : "INATIVO"}</td><td>${p.contacts.map((c) => [c.name, c.phone, c.email, c.type].filter(Boolean).join(" / ")).join("; ")}</td></tr>`).join("");
+    downloadXls(`<table border="1"><tr><th>Nome</th><th>CPF/CNPJ</th><th>RG/Inscrição Estadual</th><th>Telefone</th><th>Inscrição Municipal</th><th>Endereço</th><th>Status</th><th>Contatos</th></tr>${rows}</table>`, "Relatorio de Cadastro de Pessoas.xls");
+  };
+  return <ReportViewer meta={meta} blocks={blocks} exportExcel={exportExcel} />;
+}
+
+/* ---------- Relatórios de dados estratégicos (seções com resumo e tabelas) ---------- */
+
+export type StrategicSection = { title: string; summary?: [string, string][]; columns?: { label: string; width: number; align?: "left" | "right" | "center" }[]; rows?: string[][]; note?: string };
+export type StrategicReport = ReportMeta & { sections: StrategicSection[] };
+
+function sectionBlocks(sections: StrategicSection[]): ReportBlock[] {
+  const out: ReportBlock[] = [];
+  const box = (w: number | string, extra: React.CSSProperties = {}): React.CSSProperties => ({ width: w, boxSizing: "border-box", borderRight: BORDER, borderBottom: BORDER, overflow: "hidden", display: "flex", alignItems: "center", fontSize: 12, fontFamily: ARIAL, color: "#000", padding: "0 4px", ...extra });
+  for (const s of sections) {
+    out.push({ gap: 0, node: <div style={{ width: 689, marginLeft: 15, boxSizing: "border-box", borderTop: BORDER, borderLeft: BORDER, borderRight: BORDER, borderBottom: BORDER, background: "#f2f2f2", height: 23, paddingLeft: 3, display: "flex", alignItems: "center", fontFamily: ARIAL, fontSize: 14.6667, fontWeight: 700 }}>{s.title}</div> });
+    if (s.summary?.length) {
+      // Resumo em duas colunas de rótulo/valor
+      const pairs: [string, string][][] = [];
+      for (let i = 0; i < s.summary.length; i += 2) pairs.push(s.summary.slice(i, i + 2));
+      pairs.forEach((row, i) => out.push({ gap: 0, node: <div style={{ display: "flex", width: 689, marginLeft: 15, borderLeft: BORDER, height: 22 }}>{[0, 1].map((k) => <div key={k} style={{ display: "flex", width: 344.5, boxSizing: "border-box", borderRight: BORDER, borderBottom: BORDER }}>{row[k] ? <><div style={box(200, { border: 0, flexShrink: 0 })}>{row[k][0]}</div><div style={box(144, { border: 0, fontWeight: 700, justifyContent: "flex-end" })}>{row[k][1]}</div></> : null}</div>)}</div> }));
+    }
+    if (s.columns && s.rows) {
+      const cols = s.columns;
+      out.push({ gap: 0, node: <div style={{ display: "flex", width: 689, marginLeft: 15, borderLeft: BORDER, height: 20 }}>{cols.map((c, i) => <div key={i} style={box(c.width, { fontSize: 10.6667, fontWeight: 700, background: "#f2f2f2", justifyContent: c.align === "right" ? "flex-end" : c.align === "center" ? "center" : "flex-start" })}>{c.label}</div>)}</div> });
+      s.rows.forEach((r) => out.push({ gap: 0, node: <div style={{ display: "flex", width: 689, marginLeft: 15, borderLeft: BORDER, minHeight: 19 }}>{cols.map((c, i) => <div key={i} style={box(c.width, { fontSize: 10.6667, paddingTop: 2, paddingBottom: 2, lineHeight: "13px", justifyContent: c.align === "right" ? "flex-end" : c.align === "center" ? "center" : "flex-start" })}>{r[i] ?? ""}</div>)}</div> }));
+    }
+    if (s.note) out.push({ gap: 0, node: <div style={{ width: 689, marginLeft: 15, padding: "4px 3px", fontFamily: ARIAL, fontSize: 10.6667, fontStyle: "italic" }}>{s.note}</div> });
+    out.push({ gap: GAP - 1, node: <div style={{ height: 1 }} /> });
+  }
+  return out;
+}
+
+export function StrategicReportViewer({ report }: { report: StrategicReport }) {
+  const blocks = useMemo(() => sectionBlocks(report.sections), [report]);
+  const exportExcel = () => {
+    const html = report.sections.map((s) => `<table border="1"><tr><th colspan="${Math.max(2, s.columns?.length ?? 2)}">${s.title}</th></tr>${(s.summary ?? []).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}${s.columns ? `<tr>${s.columns.map((c) => `<th>${c.label}</th>`).join("")}</tr>${(s.rows ?? []).map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}` : ""}</table><br>`).join("");
+    downloadXls(html, `${report.title}.xls`);
+  };
+  return <ReportViewer meta={report} blocks={blocks} exportExcel={exportExcel} />;
 }

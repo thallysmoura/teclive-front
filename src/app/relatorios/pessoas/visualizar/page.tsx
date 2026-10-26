@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PeopleReportViewer } from "@/components/relatorios/people-report-viewer";
+import { PeopleReportViewer } from "@/components/relatorios/report-viewer";
 import { getPeopleReport, type PeopleReport } from "@/lib/relatorios";
 
 export default function PeopleReportViewPage() {
