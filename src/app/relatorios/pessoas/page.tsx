@@ -26,7 +26,7 @@ function PeopleReportForm() {
 
   return (
     <div className="mx-auto max-w-[1100px]">
-      <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Administrativo" }, { label: "Relatórios", href: "/relatorios" }, { label: "Cadastro de Pessoas" }]} />
+      <Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Relatórios", href: "/relatorios" }, { label: "Cadastro de Pessoas" }]} />
       <h1 className="mb-4 text-2xl font-extrabold tracking-tight text-ds-primary-deep">Relatório de Cadastro de Pessoas</h1>
       <div className="grid gap-8 rounded-2xl border border-ds-border-subtle bg-white p-5 shadow-sm md:grid-cols-[minmax(0,420px)_1fr] md:p-7">
         <form onSubmit={(e) => { e.preventDefault(); generate(); }} className="space-y-4">
