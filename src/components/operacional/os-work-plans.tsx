@@ -12,9 +12,18 @@ type Plan = { id: string; title: string; fileUrl: string; userName: string; crea
 const KINDS: { key: Kind; label: string; icon: string; bg: string }[] = [
   { key: "point", label: "Ponto", icon: "location_on", bg: "#F7941D" },
   { key: "ok", label: "OK", icon: "check", bg: "#12A262" },
-  { key: "x", label: "X (problema)", icon: "close", bg: "#E11D48" },
+  { key: "x", label: "Objeção", icon: "close", bg: "#E11D48" },
 ];
 const kindOf = (k: Kind) => KINDS.find((x) => x.key === k) ?? KINDS[0];
+/** Marca "X" da objeção: traço vermelho grosso com contorno branco, para ler sobre qualquer planta. */
+function ObjectionMark({ size = 30, active = false }: { size?: number; active?: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className={`drop-shadow-lg ${active ? "scale-125" : ""}`}>
+      <path d="M6 6 L26 26 M26 6 L6 26" stroke="#fff" strokeWidth="9" strokeLinecap="round" />
+      <path d="M6 6 L26 26 M26 6 L6 26" stroke="#E11D48" strokeWidth="5" strokeLinecap="round" />
+    </svg>
+  );
+}
 const COLORS = ["#E11D48", "#005CD2", "#12A262", "#111827"];
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -165,16 +174,16 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
                 const k = kindOf(p.kind), flip = p.x > 0.62, short = p.description.length > 48 ? `${p.description.slice(0, 46)}…` : p.description;
                 return (
                   <button key={p.id} type="button" data-pin onClick={() => { setActive(p.id); setDraft(null); }} style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }} aria-label={`${k.label} ${p.number}`} className={`absolute -translate-x-1/2 -translate-y-1/2 ${active === p.id ? "z-20" : "z-10"}`}>
-                    <span style={{ background: p.done ? "#12A262" : k.bg }} className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-xs font-extrabold text-white shadow-lg ${active === p.id ? "scale-125 ring-4 ring-ds-primary/40" : ""}`}>{p.kind === "point" ? p.number : <Icon name={k.icon} className="text-[16px]" />}</span>
+                    {p.kind === "x" && !p.done ? <span className="flex h-7 w-7 items-center justify-center"><ObjectionMark active={active === p.id} /></span> : <span style={{ background: p.done ? "#12A262" : k.bg }} className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-xs font-extrabold text-white shadow-lg ${active === p.id ? "scale-125 ring-4 ring-ds-primary/40" : ""}`}>{p.kind === "point" ? p.number : <Icon name={p.done ? "check" : k.icon} className="text-[16px]" />}</span>}
                     <span style={{ borderColor: k.bg }} className={`absolute top-1/2 -translate-y-1/2 rounded-md border bg-white/95 px-1.5 py-0.5 text-left text-[11px] font-semibold leading-tight text-ds-text shadow ${flip ? "right-full mr-2" : "left-full ml-2"} ${active === p.id ? "w-max max-w-[260px] whitespace-normal" : "max-w-[170px] truncate whitespace-nowrap"}`}>{active === p.id ? p.description : short}</span>
                   </button>
                 );
               })}
-              {draft && <span style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%`, background: kindOf(kind).bg }} className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full border-2 border-white shadow-lg" />}
+              {draft && (kind === "x" ? <span style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 animate-pulse"><ObjectionMark /></span> : <span style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%`, background: kindOf(kind).bg }} className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full border-2 border-white shadow-lg" />)}
             </div>
             {draft && (
               <div className="mt-3 rounded-xl border border-ds-primary/40 bg-white p-3 shadow-sm">
-                <div className="mb-2 flex flex-wrap gap-2">{KINDS.map((k) => <button key={k.key} type="button" onClick={() => setKind(k.key)} aria-pressed={kind === k.key} style={kind === k.key ? { background: k.bg, borderColor: k.bg } : undefined} className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-bold ${kind === k.key ? "text-white" : "border-ds-border bg-white text-ds-primary-deep"}`}><Icon name={k.icon} className="text-[18px]" />{k.label}</button>)}</div>
+                <div className="mb-2 flex flex-wrap gap-2">{KINDS.map((k) => <button key={k.key} type="button" onClick={() => setKind(k.key)} aria-pressed={kind === k.key} style={kind === k.key ? { background: k.bg, borderColor: k.bg } : undefined} className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-bold ${kind === k.key ? "text-white" : "border-ds-border bg-white text-ds-primary-deep"}`}>{k.key === "x" ? <ObjectionMark size={18} /> : <Icon name={k.icon} className="text-[18px]" />}{k.label}</button>)}</div>
                 <label className="mb-1 block text-xs font-bold text-ds-text-secondary">Descrição *</label>
                 <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={1000} placeholder="O que deve ser feito neste ponto?" className="w-full resize-y rounded-[10px] border border-ds-border px-3 py-2 text-sm outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" />
                 <div className="mt-2 flex gap-2">
@@ -193,7 +202,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
                 {plan.points.length === 0 && <li className="px-3 py-5 text-center text-sm text-ds-text-secondary">Nenhum ponto marcado.</li>}
                 {plan.points.map((p) => (
                   <li key={p.id} onClick={() => setActive(p.id)} className={`flex gap-2.5 px-3 py-2.5 ${active === p.id ? "bg-ds-primary/5" : ""}`}>
-                    <span style={{ background: p.done ? "#12A262" : kindOf(p.kind).bg }} className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold text-white">{p.kind === "point" ? p.number : <Icon name={kindOf(p.kind).icon} className="text-[14px]" />}</span>
+                    {p.kind === "x" && !p.done ? <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center"><ObjectionMark size={22} /></span> : <span style={{ background: p.done ? "#12A262" : kindOf(p.kind).bg }} className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold text-white">{p.kind === "point" ? p.number : <Icon name={p.done ? "check" : kindOf(p.kind).icon} className="text-[14px]" />}</span>}
                     <div className="min-w-0 flex-1">
                       <p className={`whitespace-pre-wrap break-words text-sm ${p.done ? "text-ds-text-secondary line-through" : "text-ds-text"}`}>{p.description}</p>
                       <p className="mt-0.5 text-[11px] text-ds-text-secondary">{p.userName} · {fmtDateTime(p.createdAt)}</p>
