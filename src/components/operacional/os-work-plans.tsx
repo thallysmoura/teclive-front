@@ -5,8 +5,17 @@ import { Icon } from "@/components/ui/icon";
 import { ApiError, authFetch } from "@/lib/api";
 import { fmtDateTime } from "@/lib/operacional";
 
-type Point = { id: string; number: number; x: number; y: number; description: string; done: boolean; userName: string; createdAt: string };
-type Plan = { id: string; title: string; fileUrl: string; userName: string; createdAt: string; points: Point[] };
+type Kind = "point" | "ok" | "x";
+type Point = { id: string; number: number; x: number; y: number; kind: Kind; description: string; done: boolean; userName: string; createdAt: string };
+type Stroke = { id: string; color: string; points: number[][]; userName: string };
+type Plan = { id: string; title: string; fileUrl: string; userName: string; createdAt: string; points: Point[]; strokes: Stroke[] };
+const KINDS: { key: Kind; label: string; icon: string; bg: string }[] = [
+  { key: "point", label: "Ponto", icon: "location_on", bg: "#F7941D" },
+  { key: "ok", label: "OK", icon: "check", bg: "#12A262" },
+  { key: "x", label: "X (problema)", icon: "close", bg: "#E11D48" },
+];
+const kindOf = (k: Kind) => KINDS.find((x) => x.key === k) ?? KINDS[0];
+const COLORS = ["#E11D48", "#005CD2", "#12A262", "#111827"];
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await authFetch(path, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
@@ -38,6 +47,11 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [active, setActive] = useState<string | null>(null);
+  const [tool, setTool] = useState<"pin" | "draw">("pin");
+  const [kind, setKind] = useState<Kind>("point");
+  const [color, setColor] = useState(COLORS[0]);
+  const [live, setLive] = useState<number[][] | null>(null);
+  const drawing = useRef<number[][] | null>(null);
   const file = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => call<Plan[]>(`/service-orders/${osId}/plans`).then((p) => { setPlans(p); setSel((s) => s ?? p[0]?.id ?? null); }).catch((e) => setError(e instanceof Error ? e.message : "Falha ao carregar.")), [osId]);
@@ -60,7 +74,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
     if (!plan || !draft) return;
     setError(""); setBusy(true);
     try {
-      const p = await call<Point>(`/service-orders/${osId}/plans/${plan.id}/points`, { method: "POST", body: JSON.stringify({ ...draft, description: text }) });
+      const p = await call<Point>(`/service-orders/${osId}/plans/${plan.id}/points`, { method: "POST", body: JSON.stringify({ ...draft, kind, description: text }) });
       setPlans((all) => all?.map((x) => (x.id === plan.id ? { ...x, points: [...x.points, p] } : x)) ?? all);
       setDraft(null); setText(""); setActive(p.id);
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar o ponto."); }
@@ -78,11 +92,42 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível excluir."); }
   }
 
+  const pos = (e: React.PointerEvent | React.MouseEvent, el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))];
+  };
   function place(e: React.MouseEvent<HTMLDivElement>) {
-    if ((e.target as HTMLElement).closest("[data-pin]")) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    setDraft({ x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) });
+    if (tool !== "pin" || (e.target as HTMLElement).closest("[data-pin]")) return;
+    const [x, y] = pos(e, e.currentTarget);
+    setDraft({ x, y });
     setText(""); setActive(null);
+  }
+  function down(e: React.PointerEvent<HTMLDivElement>) {
+    if (tool !== "draw") return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drawing.current = [pos(e, e.currentTarget)]; setLive(drawing.current); setDraft(null);
+  }
+  function move(e: React.PointerEvent<HTMLDivElement>) {
+    if (!drawing.current) return;
+    const p = pos(e, e.currentTarget), last = drawing.current[drawing.current.length - 1];
+    if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.002) return;
+    drawing.current = [...drawing.current, p]; setLive(drawing.current);
+  }
+  async function up() {
+    const pts = drawing.current; drawing.current = null; setLive(null);
+    if (!pts || pts.length < 2 || !plan) return;
+    try {
+      const st = await call<Stroke>(`/service-orders/${osId}/plans/${plan.id}/strokes`, { method: "POST", body: JSON.stringify({ color, points: pts.slice(0, 800) }) });
+      setPlans((all) => all?.map((x) => (x.id === plan.id ? { ...x, strokes: [...x.strokes, st] } : x)) ?? all);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar o rabisco."); }
+  }
+  async function undo() {
+    const last = plan?.strokes[plan.strokes.length - 1];
+    if (!plan || !last) return;
+    try {
+      await call(`/service-orders/${osId}/plans/${plan.id}/strokes/${last.id}`, { method: "DELETE" });
+      setPlans((all) => all?.map((x) => (x.id === plan.id ? { ...x, strokes: x.strokes.filter((q) => q.id !== last.id) } : x)) ?? all);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível desfazer."); }
   }
 
   return (
@@ -103,18 +148,34 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
           <div>
-            <p className="mb-2 flex items-center gap-2 text-xs text-ds-text-secondary"><Icon name="touch_app" className="text-[16px]" />Clique na planta para marcar um ponto e descrever. <b className="text-ds-primary-deep">{plan.title}</b> · enviada por {plan.userName} em {fmtDateTime(plan.createdAt)}</p>
-            <div className="relative cursor-crosshair select-none overflow-hidden rounded-xl border border-ds-border bg-ds-bg" onClick={place}>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setTool("pin")} aria-pressed={tool === "pin"} className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold ${tool === "pin" ? "bg-ds-primary text-white" : "border border-ds-border bg-white text-ds-primary-deep"}`}><Icon name="location_on" className="text-[18px]" />Marcar</button>
+              <button type="button" onClick={() => { setTool("draw"); setDraft(null); }} aria-pressed={tool === "draw"} className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold ${tool === "draw" ? "bg-ds-primary text-white" : "border border-ds-border bg-white text-ds-primary-deep"}`}><Icon name="draw" className="text-[18px]" />Desenhar</button>
+              {tool === "draw" && COLORS.map((c) => <button key={c} type="button" onClick={() => setColor(c)} aria-label={`Cor ${c}`} style={{ background: c }} className={`h-7 w-7 rounded-full border-2 shadow ${color === c ? "border-ds-primary-deep ring-2 ring-ds-primary/40" : "border-white"}`} />)}
+              <button type="button" disabled={!plan.strokes.length} onClick={() => void undo()} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-ds-border bg-white px-3 text-sm font-semibold text-ds-primary-deep disabled:opacity-40"><Icon name="undo" className="text-[18px]" />Desfazer rabisco</button>
+            </div>
+            <p className="mb-2 flex items-center gap-2 text-xs text-ds-text-secondary"><Icon name="touch_app" className="text-[16px]" />{tool === "pin" ? "Clique na planta para marcar e descrever." : "Arraste sobre a planta para desenhar."} <b className="text-ds-primary-deep">{plan.title}</b> · enviada por {plan.userName} em {fmtDateTime(plan.createdAt)}</p>
+            <div className={`relative cursor-crosshair select-none overflow-hidden rounded-xl border border-ds-border bg-ds-bg ${tool === "draw" ? "touch-none" : ""}`} onClick={place} onPointerDown={down} onPointerMove={move} onPointerUp={() => void up()} onPointerCancel={() => void up()}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={plan.fileUrl} alt={plan.title} draggable={false} className="block h-auto w-full" />
-              {plan.points.map((p) => (
-                <button key={p.id} type="button" data-pin onClick={() => { setActive(p.id); setDraft(null); }} style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }} aria-label={`Ponto ${p.number}`} className={`absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-xs font-extrabold text-white shadow-lg ${p.done ? "bg-[#12A262]" : "bg-[#F7941D]"} ${active === p.id ? "scale-125 ring-4 ring-ds-primary/40" : ""}`}>{p.number}</button>
-              ))}
-              {draft && <span style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%` }} className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full border-2 border-white bg-ds-primary shadow-lg" />}
+              <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
+                {[...plan.strokes, ...(live ? [{ id: "live", color, points: live, userName: "" }] : [])].map((st) => <polyline key={st.id} points={st.points.map((q) => q.join(",")).join(" ")} fill="none" stroke={st.color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
+              </svg>
+              {plan.points.map((p) => {
+                const k = kindOf(p.kind), flip = p.x > 0.62, short = p.description.length > 48 ? `${p.description.slice(0, 46)}…` : p.description;
+                return (
+                  <button key={p.id} type="button" data-pin onClick={() => { setActive(p.id); setDraft(null); }} style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }} aria-label={`${k.label} ${p.number}`} className={`absolute -translate-x-1/2 -translate-y-1/2 ${active === p.id ? "z-20" : "z-10"}`}>
+                    <span style={{ background: p.done ? "#12A262" : k.bg }} className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-xs font-extrabold text-white shadow-lg ${active === p.id ? "scale-125 ring-4 ring-ds-primary/40" : ""}`}>{p.kind === "point" ? p.number : <Icon name={k.icon} className="text-[16px]" />}</span>
+                    <span style={{ borderColor: k.bg }} className={`absolute top-1/2 -translate-y-1/2 rounded-md border bg-white/95 px-1.5 py-0.5 text-left text-[11px] font-semibold leading-tight text-ds-text shadow ${flip ? "right-full mr-2" : "left-full ml-2"} ${active === p.id ? "w-max max-w-[260px] whitespace-normal" : "max-w-[170px] truncate whitespace-nowrap"}`}>{active === p.id ? p.description : short}</span>
+                  </button>
+                );
+              })}
+              {draft && <span style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%`, background: kindOf(kind).bg }} className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full border-2 border-white shadow-lg" />}
             </div>
             {draft && (
               <div className="mt-3 rounded-xl border border-ds-primary/40 bg-white p-3 shadow-sm">
-                <label className="mb-1 block text-xs font-bold text-ds-text-secondary">Descrição do ponto *</label>
+                <div className="mb-2 flex flex-wrap gap-2">{KINDS.map((k) => <button key={k.key} type="button" onClick={() => setKind(k.key)} aria-pressed={kind === k.key} style={kind === k.key ? { background: k.bg, borderColor: k.bg } : undefined} className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-bold ${kind === k.key ? "text-white" : "border-ds-border bg-white text-ds-primary-deep"}`}><Icon name={k.icon} className="text-[18px]" />{k.label}</button>)}</div>
+                <label className="mb-1 block text-xs font-bold text-ds-text-secondary">Descrição *</label>
                 <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={1000} placeholder="O que deve ser feito neste ponto?" className="w-full resize-y rounded-[10px] border border-ds-border px-3 py-2 text-sm outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" />
                 <div className="mt-2 flex gap-2">
                   <button type="button" disabled={busy || !text.trim()} onClick={() => void savePoint()} className="inline-flex h-10 items-center rounded-[10px] bg-[#F7941D] px-5 text-sm font-bold text-white hover:bg-[#E5850F] disabled:opacity-60">{busy ? "Salvando..." : "Salvar ponto"}</button>
@@ -132,7 +193,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
                 {plan.points.length === 0 && <li className="px-3 py-5 text-center text-sm text-ds-text-secondary">Nenhum ponto marcado.</li>}
                 {plan.points.map((p) => (
                   <li key={p.id} onClick={() => setActive(p.id)} className={`flex gap-2.5 px-3 py-2.5 ${active === p.id ? "bg-ds-primary/5" : ""}`}>
-                    <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold text-white ${p.done ? "bg-[#12A262]" : "bg-[#F7941D]"}`}>{p.number}</span>
+                    <span style={{ background: p.done ? "#12A262" : kindOf(p.kind).bg }} className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold text-white">{p.kind === "point" ? p.number : <Icon name={kindOf(p.kind).icon} className="text-[14px]" />}</span>
                     <div className="min-w-0 flex-1">
                       <p className={`whitespace-pre-wrap break-words text-sm ${p.done ? "text-ds-text-secondary line-through" : "text-ds-text"}`}>{p.description}</p>
                       <p className="mt-0.5 text-[11px] text-ds-text-secondary">{p.userName} · {fmtDateTime(p.createdAt)}</p>
