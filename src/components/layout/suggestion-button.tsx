@@ -94,6 +94,17 @@ type Shot = { base: HTMLCanvasElement | null; title: string; path: string; viewp
 export function SuggestionButton({ user }: { user: Me }) {
   const [busy, setBusy] = useState(false);
   const [shot, setShot] = useState<Shot | null>(null);
+  const [modal, setModal] = useState(false);
+
+  // Com uma janela aberta, o botão passa para o canto inferior e fica acima dela, para a sugestão nascer no contexto atual.
+  useEffect(() => {
+    let raf = 0;
+    const check = () => { raf = 0; setModal(!!document.querySelector('body > div.fixed.inset-0:not([data-no-capture]), [role="dialog"]:not([data-no-capture]), [aria-modal="true"]:not([data-no-capture])')); };
+    const obs = new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(check); });
+    obs.observe(document.body, { childList: true, subtree: true });
+    check();
+    return () => { obs.disconnect(); if (raf) cancelAnimationFrame(raf); };
+  }, []);
 
   async function start() {
     if (busy) return;
@@ -110,7 +121,7 @@ export function SuggestionButton({ user }: { user: Me }) {
   return (
     <>
       {/* Portal no <body>: um ancestral com transform (animação de entrada da página) quebraria o position: fixed. */}
-      {typeof document !== "undefined" && createPortal(<div data-no-capture className="fixed right-3 top-[72px] z-30 drop-shadow-md md:right-8 md:top-3"><button type="button" data-no-capture onClick={() => void start()} disabled={busy} aria-label="Sugerir melhoria" title="Sugerir melhoria" className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#F7941D] py-0.5 pl-0.5 pr-3 text-[11px] font-bold text-white transition-colors hover:bg-[#E5850F] disabled:opacity-60 md:h-9 md:gap-2 md:py-1 md:pl-1 md:pr-3.5 md:text-xs">
+      {typeof document !== "undefined" && !shot && createPortal(<div data-no-capture className={`fixed z-[200] drop-shadow-md ${modal ? "bottom-4 right-4 md:bottom-6 md:right-6" : "right-3 top-[72px] md:right-8 md:top-3"}`}><button type="button" data-no-capture onClick={() => void start()} disabled={busy} aria-label="Sugerir melhoria" title="Sugerir melhoria" className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#F7941D] py-0.5 pl-0.5 pr-3 text-[11px] font-bold text-white transition-colors hover:bg-[#E5850F] disabled:opacity-60 md:h-9 md:gap-2 md:py-1 md:pl-1 md:pr-3.5 md:text-xs">
         <UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={26} />{busy ? "Capturando..." : "Sugerir melhoria"}
       </button></div>, document.body)}
       {busy && typeof document !== "undefined" && createPortal(
