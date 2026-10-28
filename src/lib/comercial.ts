@@ -39,7 +39,7 @@ export type QuoteRow = {
   id: string; number: number; title: string | null; personName: string; personNickname: string | null; personIsLead: boolean; personId: string | null;
   sellerName: string | null; modality: number; status: number; openedAt: string; validUntil: string; total: number; recurring: number; refusalReason: string | null;
 };
-export type QuoteItem = { id: string; kind: "PRODUCT" | "SERVICE" | "RECURRING"; description: string; identifier: string | null; unit: string | null; quantity: string; unitValue: string; discountValue: string; discountPercent: string; total: string; cost: string; rental: boolean };
+export type QuoteItem = { id: string; kind: "PRODUCT" | "SERVICE" | "RECURRING"; description: string; identifier: string | null; unit: string | null; quantity: string; unitValue: string; discountValue: string; discountPercent: string; total: string; cost: string; rental: boolean; groupName?: string | null };
 export type QuotePayment = { id: string; method: string; installments: number; total: string; selected: boolean };
 export type QuoteHistoryRow = { id: string; userName: string; description: string; at: string };
 export type QuoteAttachment = { id: string; fileName: string; caption: string | null; mimeType: string; size: number; userName: string; createdAt: string };
@@ -57,7 +57,7 @@ export type QuoteStats = {
   statuses: Datum[]; monthlyCount: Datum[]; monthlyWon: Datum[]; bySeller: Datum[]; topClients: Datum[];
 };
 export type QuoteIndicators = { month: string; groups: { status: number; label: string; count: number; value: number }[]; totalCount: number; totalValue: number };
-export type QuoteItemInput = { kind: "PRODUCT" | "SERVICE" | "RECURRING"; description: string; identifier?: string; unit?: string; quantity: number; unitValue: number; discountValue?: number; cost?: number; rental?: boolean };
+export type QuoteItemInput = { kind: "PRODUCT" | "SERVICE" | "RECURRING"; description: string; identifier?: string; unit?: string; quantity: number; unitValue: number; discountValue?: number; cost?: number; rental?: boolean; groupName?: string | null };
 export type QuoteInput = { personId?: string; title?: string; validUntil?: string; sellerName?: string; contactName?: string; contactEmail?: string; contactPhone?: string; technicalSheet?: string; notes?: string; showNotes?: boolean; address?: Record<string, string> };
 
 const action = async (path: string, body?: unknown) => parse<QuoteDetail>(await authFetch(path, send("POST", body)), "Não foi possível concluir a operação.");

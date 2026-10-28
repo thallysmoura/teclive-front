@@ -77,13 +77,27 @@ function ItemsTable({ items, kind, onEdit, onRemove }: { items: QuoteItem[]; kin
   const rows = items.filter((i) => i.kind === kind);
   const recurring = kind === "RECURRING";
   const sort = useSort(rows, { description: (i) => i.description, quantity: (i) => Number(i.quantity), unit: (i) => Number(i.unitValue), discount: (i) => Number(i.discountValue), total: (i) => Number(i.total) });
+  // Quando algum item tem grupo (ex.: Sala / Cozinha), a tabela mostra uma faixa por grupo com o subtotal.
+  const hasGroups = !recurring && rows.some((r) => r.groupName);
+  type Entry = { header?: string; count: number; sum: number; item?: QuoteItem };
+  const grouped: Entry[] = [];
+  if (hasGroups) {
+    const names = [...new Set(sort.sorted.map((r) => r.groupName || ""))].sort((a, b) => (a === "" ? 1 : b === "" ? -1 : 0));
+    for (const n of names) {
+      const items = sort.sorted.filter((r) => (r.groupName || "") === n);
+      grouped.push({ header: n, count: items.length, sum: items.reduce((s, r) => s + Number(r.total), 0) });
+      items.forEach((item) => grouped.push({ count: 0, sum: 0, item }));
+    }
+  } else sort.sorted.forEach((item) => grouped.push({ count: 0, sum: 0, item }));
   if (rows.length === 0) return <Empty icon={kind === "PRODUCT" ? "inventory_2" : "design_services"} text={`Nenhum ${kind === "PRODUCT" ? "Produto" : kind === "SERVICE" ? "Serviço" : "Serviço Recorrente"} Adicionado`} />;
   return (
     <div className="ds-table-wrap">
       <table className="ds-table">
         <thead><tr><th aria-sort={sort.ariaSort("description")}><SortButton {...sort.header("description", "Descrição")} /></th>{!recurring && <><th className="md:text-right" aria-sort={sort.ariaSort("quantity")}><SortButton {...sort.header("quantity", "Quant.")} /></th><th className="md:text-right" aria-sort={sort.ariaSort("unit")}><SortButton {...sort.header("unit", "Unitário")} /></th><th className="md:text-right" aria-sort={sort.ariaSort("discount")}><SortButton {...sort.header("discount", "Desconto")} /></th></>}<th className="md:text-right" aria-sort={sort.ariaSort("total")}><SortButton {...sort.header("total", recurring ? "Valor mensal" : "Total")} /></th><th className="text-center">Ações</th></tr></thead>
         <tbody>
-          {sort.sorted.map((i) => (
+          {grouped.map((entry) => entry.header !== undefined ? (
+            <tr key={`g-${entry.header}`} className="ds-group-row"><td colSpan={recurring ? 3 : 6} className="bg-ds-bg font-bold text-ds-primary-deep"><span className="inline-flex items-center gap-2"><Icon name="folder" className="text-[18px] text-[#F7941D]" />{entry.header || "Sem grupo"}<span className="rounded-full bg-white px-2 text-xs font-semibold text-ds-text-secondary">{entry.count} {entry.count === 1 ? "item" : "itens"} · {money(entry.sum)}</span></span></td></tr>
+          ) : entry.item && (() => { const i = entry.item!; return (
             <tr key={i.id}>
               <td data-label="Descrição">{i.description}{i.identifier && <span className="ml-2 text-xs text-ds-text-secondary">{i.identifier}</span>}{i.rental && <span className="ml-2 rounded-full bg-ds-info/15 px-2 py-0.5 text-[10px] font-bold text-ds-info">Locado</span>}</td>
               {!recurring && <>
@@ -99,7 +113,7 @@ function ItemsTable({ items, kind, onEdit, onRemove }: { items: QuoteItem[]; kin
                 </span>
               </td>
             </tr>
-          ))}
+          ); })())}
         </tbody>
       </table>
     </div>
@@ -359,7 +373,7 @@ function Details({ id }: { id: string }) {
       <FieldsModal title="Endereço" open={modal === "address"} onClose={() => setModal(null)} fields={[["titulo", "Título"], ["cep", "CEP"], ["logradouro", "Logradouro"], ["numero", "Número"], ["bairro", "Bairro"], ["complemento", "Complemento"], ["cidade", "Cidade"], ["uf", "UF"]]}
         initial={{ titulo: addr?.titulo ?? "", cep: addr?.cep ?? "", logradouro: addr?.logradouro ?? "", numero: addr?.numero ?? "", bairro: addr?.bairro ?? "", complemento: addr?.complemento ?? "", cidade: addr?.cidade ?? "", uf: addr?.uf ?? "" }}
         onSave={(v) => update({ address: v })} />
-      <ItemModal kind={itemKind} editing={editingItem} open={modal === "item"} onClose={() => setModal(null)}
+      <ItemModal kind={itemKind} editing={editingItem} groups={[...new Set(quote.items.map((i) => i.groupName).filter((g): g is string => !!g))]} open={modal === "item"} onClose={() => setModal(null)}
         onSave={async (item) => { setQuote(editingItem ? await quotesClient.updateItem(quote.id, editingItem.id, item) : await quotesClient.addItem(quote.id, item)); }} />
       <PaymentModal open={modal === "payment"} onClose={() => setModal(null)} onSave={async (v) => { setQuote(await quotesClient.addPayment(quote.id, v)); }} />
       <AttachmentModal open={modal === "attachment"} onClose={() => setModal(null)} onSave={async (file, caption) => { setQuote(await quotesClient.addAttachment(quote.id, file, caption)); }} />

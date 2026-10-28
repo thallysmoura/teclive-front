@@ -36,7 +36,10 @@ function useSubmit(fn: () => Promise<void>, onDone: () => void) {
 export const KIND_LABEL = { PRODUCT: "Produto", SERVICE: "Serviço", RECURRING: "Serviço Recorrente" } as const;
 
 /** Adicionar produto, serviço ou serviço recorrente ao orçamento (busca no cadastro). */
-export function ItemModal({ kind, open, onClose, onSave, editing }: { kind: QuoteItemInput["kind"]; open: boolean; onClose: () => void; onSave: (item: QuoteItemInput) => Promise<void>; editing?: QuoteItem | null }) {
+const GROUP_SUGGESTIONS = ["Sala", "Cozinha", "Quarto", "Banheiro", "Área externa", "Escritório"];
+
+export function ItemModal({ kind, open, onClose, onSave, editing, groups = [] }: { kind: QuoteItemInput["kind"]; open: boolean; onClose: () => void; onSave: (item: QuoteItemInput) => Promise<void>; editing?: QuoteItem | null; groups?: string[] }) {
+  const [group, setGroup] = useState("");
   const [q, setQ] = useState("");
   const [results, setResults] = useState<{ id: string; description: string; unit?: string; price: number; cost: number; identifier?: string | null }[]>([]);
   const [picked, setPicked] = useState<(typeof results)[number] | null>(null);
@@ -49,10 +52,10 @@ export function ItemModal({ kind, open, onClose, onSave, editing }: { kind: Quot
     if (!open) return;
     if (editing) {
       setPicked({ id: editing.id, description: editing.description, unit: editing.unit ?? undefined, price: Number(editing.unitValue), cost: Number(editing.cost), identifier: editing.identifier });
-      setQuantity(String(Number(editing.quantity)).replace(".", ",")); setUnitValue(toInput(editing.unitValue)); setDiscount(toInput(editing.discountValue)); setRental(editing.rental);
+      setQuantity(String(Number(editing.quantity)).replace(".", ",")); setUnitValue(toInput(editing.unitValue)); setDiscount(toInput(editing.discountValue)); setRental(editing.rental); setGroup(editing.groupName ?? "");
       return;
     }
-    setQ(""); setPicked(null); setQuantity("1"); setUnitValue("0,00"); setDiscount("0,00"); setRental(false);
+    setQ(""); setPicked(null); setQuantity("1"); setUnitValue("0,00"); setDiscount("0,00"); setRental(false); setGroup("");
   }, [open, kind, editing]);
 
   useEffect(() => {
@@ -70,7 +73,7 @@ export function ItemModal({ kind, open, onClose, onSave, editing }: { kind: Quot
     if (!picked) throw new Error(`Selecione ${kind === "PRODUCT" ? "o produto" : "o serviço"}.`);
     const qty = toNumber(quantity);
     if (!(qty > 0)) throw new Error("Informe uma quantidade maior que zero.");
-    await onSave({ kind, description: picked.description, identifier: picked.identifier ?? undefined, unit: picked.unit, quantity: qty, unitValue: toNumber(unitValue), discountValue: toNumber(discount), cost: picked.cost, rental });
+    await onSave({ kind, description: picked.description, identifier: picked.identifier ?? undefined, unit: picked.unit, quantity: qty, unitValue: toNumber(unitValue), discountValue: toNumber(discount), cost: picked.cost, rental, groupName: kind === "RECURRING" ? null : group.trim() || null });
   }, onClose);
 
   const gross = toNumber(quantity) * toNumber(unitValue);
@@ -99,6 +102,12 @@ export function ItemModal({ kind, open, onClose, onSave, editing }: { kind: Quot
           <label className="flex flex-col gap-1.5"><FieldLabel>{kind === "RECURRING" ? "Valor mensal" : "Valor unitário"}</FieldLabel><Input inputMode="decimal" value={unitValue} onChange={(e) => setUnitValue(clean(e.target.value))} /></label>
           {kind !== "RECURRING" && <label className="flex flex-col gap-1.5"><FieldLabel>Desconto (R$)</FieldLabel><Input inputMode="decimal" value={discount} onChange={(e) => setDiscount(clean(e.target.value))} /></label>}
         </div>
+        {kind !== "RECURRING" && (
+          <label className="mt-3 flex flex-col gap-1.5"><FieldLabel>Grupo / ambiente (opcional)</FieldLabel>
+            <Input list="quote-groups" value={group} maxLength={60} onChange={(e) => setGroup(e.target.value)} placeholder="Ex.: Sala / Cozinha" />
+            <datalist id="quote-groups">{[...new Set([...groups, ...GROUP_SUGGESTIONS])].map((g) => <option key={g} value={g} />)}</datalist>
+          </label>
+        )}
         {kind === "PRODUCT" && <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-ds-text"><input type="checkbox" checked={rental} onChange={(e) => setRental(e.target.checked)} className="h-4 w-4 accent-ds-primary" />Item locado</label>}
         {kind !== "RECURRING" && <p className="mt-3 text-right text-sm text-ds-text-muted">Total: <strong className="text-ds-primary-deep">{money(Math.max(0, gross - toNumber(discount)))}</strong></p>}
         {form.error && <p role="alert" className="mt-3 text-sm text-ds-danger-text">{form.error}</p>}
