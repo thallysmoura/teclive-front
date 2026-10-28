@@ -9,7 +9,8 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { ApiError, authFetch, listUsers, type ManagedUser } from "@/lib/api";
 import { fmtDateTime } from "@/lib/operacional";
 
-type Post = { id: string; title: string; body: string; imageUrl: string | null; allowComments: boolean; toAll: boolean; authorName: string; authorAvatar: string | null; createdAt: string; commentCount: number; targets?: { id: string; name: string }[] };
+type Post = { id: string; title: string; body: string; imageUrl: string | null; allowComments: boolean; toAll: boolean; authorName: string; authorAvatar: string | null; createdAt: string; commentCount: number; targets?: { id: string; name: string }[]; viewers: Viewer2[] };
+type Viewer2 = { id: string; name: string; avatarUrl: string | null; at: string };
 type Comment = { id: string; userId: string | null; userName: string; avatarUrl: string | null; text: string; createdAt: string };
 type Viewer = { id: string; name: string; role: string; avatarUrl?: string | null };
 
@@ -91,12 +92,26 @@ function Comments({ post, me, onCount }: { post: Post; me: Viewer; onCount: (n: 
 function PostCard({ post, me, open, onToggle, onEdit, onChanged, setPost }: { post: Post; me: Viewer; open: boolean; onToggle: () => void; onEdit: () => void; onChanged: () => void; setPost: (p: Post) => void }) {
   const admin = me.role === "ADMIN";
   const [zoom, setZoom] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  const seen = post.viewers.some((v) => v.id === me.id);
+  // Quando a notícia aparece na tela, registra que a pessoa abriu: a foto dela entra no rodapé.
+  useEffect(() => {
+    if (seen || !ref.current) return;
+    const el = ref.current;
+    const obs = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      obs.disconnect();
+      void call<Viewer2>(`/news/${post.id}/view`, { method: "POST" }).then((v) => setPost({ ...post, viewers: post.viewers.some((x) => x.id === v.id) ? post.viewers : [...post.viewers, v] })).catch(() => undefined);
+    }, { threshold: 0.5 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [seen, post.id]); // eslint-disable-line react-hooks/exhaustive-deps
   async function remove() {
     if (!confirm(`Excluir a notícia "${post.title}"? Esta ação não pode ser desfeita.`)) return;
     try { await call(`/news/${post.id}`, { method: "DELETE" }); onChanged(); } catch (e) { alert(e instanceof Error ? e.message : "Não foi possível excluir."); }
   }
   return (
-    <article id={`post-${post.id}`} className={`${cardCls} scroll-mt-4`}>
+    <article ref={ref} id={`post-${post.id}`} className={`${cardCls} scroll-mt-4`}>
       {post.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <button type="button" onClick={() => setZoom(true)} aria-label="Ampliar imagem" className="block w-full cursor-zoom-in bg-ds-bg"><img src={post.imageUrl} alt={post.title} className="max-h-[420px] w-full object-cover" /></button>
@@ -120,9 +135,20 @@ function PostCard({ post, me, open, onToggle, onEdit, onChanged, setPost }: { po
         </header>
         <h2 className="mt-3 text-xl font-extrabold tracking-tight text-ds-primary-deep">{post.title}</h2>
         <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ds-text">{post.body}</p>
-        {(post.allowComments || post.commentCount > 0) && (
-          <button type="button" onClick={onToggle} aria-expanded={open} className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-ds-primary hover:underline"><Icon name="forum" className="text-[18px]" />{post.commentCount} {post.commentCount === 1 ? "comentário" : "comentários"}<Icon name={open ? "expand_less" : "expand_more"} className="text-[18px]" /></button>
-        )}
+        <footer className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          {post.allowComments || post.commentCount > 0 ? (
+            <button type="button" onClick={onToggle} aria-expanded={open} className="inline-flex items-center gap-1.5 text-sm font-bold text-ds-primary hover:underline"><Icon name="forum" className="text-[18px]" />{post.commentCount} {post.commentCount === 1 ? "comentário" : "comentários"}<Icon name={open ? "expand_less" : "expand_more"} className="text-[18px]" /></button>
+          ) : <span />}
+          {post.viewers.length > 0 && (
+            <div className="flex items-center gap-2" title={`Visualizado por: ${post.viewers.map((v) => v.name).join(", ")}`}>
+              <span className="text-[11px] font-semibold text-ds-text-secondary">Visualizado por</span>
+              <div className="flex -space-x-2">
+                {post.viewers.slice(0, 6).map((v) => <span key={v.id} title={`${v.name} · ${fmtDateTime(v.at)}`} className="rounded-full ring-2 ring-white"><UserAvatar name={v.name} avatarUrl={v.avatarUrl} size={26} /></span>)}
+                {post.viewers.length > 6 && <span className="flex h-[26px] min-w-[26px] items-center justify-center rounded-full bg-ds-bg px-1.5 text-[10px] font-bold text-ds-primary-deep ring-2 ring-white">+{post.viewers.length - 6}</span>}
+              </div>
+            </div>
+          )}
+        </footer>
       </div>
       {open && <Comments post={post} me={me} onCount={(n) => setPost({ ...post, commentCount: n })} />}
       {zoom && post.imageUrl && <ImageLightbox items={[{ name: post.title, src: post.imageUrl }]} index={0} onIndex={() => undefined} onClose={() => setZoom(false)} />}
