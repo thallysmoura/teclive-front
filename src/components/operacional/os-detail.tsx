@@ -9,6 +9,7 @@ import { money } from "@/lib/cadastros";
 import { OsComments } from "@/components/operacional/os-comments";
 import { ImageLightbox } from "@/components/operacional/image-lightbox";
 import { OsWorkPlans } from "@/components/operacional/os-work-plans";
+import { OsAttachments } from "@/components/operacional/os-attachments";
 import { cachedMe } from "@/lib/session-cache";
 import { OS_STATUS, addressLine, fmtDate, fmtDateTime, formatMinutes, formatOsNumber, osClient, type OsDetail, type OsFilters } from "@/lib/operacional";
 import { formatQuoteNumber } from "@/lib/comercial";
@@ -263,11 +264,7 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
 
 
               {tab === "Anexos" && (os.attachments.length ? (
-                <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{os.attachments.map((a) => (
-                  <li key={a.ordemServicoArquivoId} className="overflow-hidden rounded-xl border border-ds-border-subtle text-xs">
-                    <button type="button" onClick={() => setZoom(os.attachments.indexOf(a))} aria-label={`Ampliar ${a.nomeArquivo}`} className="block aspect-video w-full cursor-zoom-in bg-ds-bg"><img src={a.url} alt={a.legenda ?? a.nomeArquivo} loading="lazy" className="h-full w-full object-cover" /></button>
-                    <div className="p-2"><p className="truncate font-semibold text-ds-primary-deep">{a.nomeArquivo}.{a.extensaoArquivo}</p><p className="text-ds-text-secondary">{a.nomeUsuario} · {fmtDateTime(a.dataAnexo)}</p></div>
-                  </li>))}</ul>
+                <OsAttachments osId={os.id} attachments={os.attachments} canManage={cachedMe()?.role === "ADMIN"} onZoom={(i) => setZoom(i)} />
               ) : <Empty icon="attach_file" text="Nenhum anexo nesta OS." />)}
 
               {tab === "Histórico" && (
