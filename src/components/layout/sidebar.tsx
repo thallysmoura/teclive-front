@@ -25,7 +25,7 @@ const DEFAULT_ITEMS: NavigationItem[] = [
 ];
 
 const MENU_ICONS: Record<string, string> = {
-  "Visão Geral Diretoria": "home", "Relatórios": "print", "Painel de Acompanhamento": "tv", "Mural de Notícias": "campaign", Faturamento: "receipt_long", Contrato: "contract", Contratos: "description", "Visão Geral": "home", Indicadores: "area_chart", Administrativo: "apartment", Comercial: "work", Operacional: "build", "Gestão de Obras": "engineering", Estoque: "inventory_2", "Governança": "shield_person",
+  "Visão Geral Diretoria": "home", "Relatórios": "print", "Painel de Acompanhamento": "tv", "Mural de Notícias": "campaign", Faturamento: "receipt_long", Financeiro: "payments", Contrato: "contract", Contratos: "description", "Visão Geral": "home", Indicadores: "area_chart", Administrativo: "apartment", Comercial: "work", Operacional: "build", "Gestão de Obras": "engineering", Estoque: "inventory_2", "Governança": "shield_person",
 };
 
 /** Ícone sólido do item principal do menu (mesmo estilo do eugestor). */
