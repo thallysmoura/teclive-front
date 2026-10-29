@@ -78,7 +78,7 @@ export function ItemModal({ kind, open, onClose, onSave, editing, groups = [] }:
 
   const gross = toNumber(quantity) * toNumber(unitValue);
   return (
-    <Modal open={open} onClose={onClose} labelledBy="quote-item-title">
+    <Modal open={open} onClose={onClose} labelledBy="quote-item-title" wide>
       <form onSubmit={form.submit} noValidate>
         <h2 id="quote-item-title" className="mb-4 text-lg font-bold text-ds-primary-deep">{editing ? "Editar" : "Adicionar"} {KIND_LABEL[kind]}</h2>
         <div className="mb-4 flex flex-col gap-1.5">
