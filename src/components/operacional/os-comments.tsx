@@ -201,6 +201,19 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   const root = (
     <section className={full ? "fixed inset-0 z-[400] flex flex-col overflow-hidden bg-white" : "flex min-h-0 flex-col overflow-hidden rounded-xl border border-ds-border-subtle bg-white"} aria-label="Comentários">
       <h4 className="flex items-center gap-2 border-b border-ds-border-subtle px-4 py-3 text-sm font-bold text-ds-primary-deep"><Icon name="forum" className="text-[18px]" />Comentários<span className="rounded-full bg-ds-bg px-2 py-0.5 text-xs font-semibold text-ds-text-muted">{events.length}</span><button type="button" onClick={() => setFull((v) => !v)} className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-ds-border bg-white px-2.5 text-xs font-semibold text-ds-primary-deep hover:border-ds-primary" aria-label={full ? "Sair da tela cheia" : "Maximizar comentários"} title={full ? "Sair da tela cheia" : "Maximizar"}><Icon name={full ? "fullscreen_exit" : "fullscreen"} className="text-[18px]" /><span className="hidden sm:inline">{full ? "Sair da tela cheia" : "Maximizar"}</span></button></h4>
+      {os.technicalSheet && (
+        <article className="max-h-[34%] shrink-0 overflow-y-auto border-b border-[#EAB308]/60 bg-[#FEF08A] p-3 sm:px-4" style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.35), transparent 40%)" }}>
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#854D0E]"><Icon name="push_pin" className="text-[16px]" />Ficha técnica{isAdmin && sheetDraft === null && <span className="ml-auto flex gap-1 normal-case tracking-normal"><button type="button" onClick={() => setSheetDraft(os.technicalSheet ?? "")} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-[#854D0E] hover:bg-[#854D0E]/10"><Icon name="edit" className="text-[15px]" />Editar</button><button type="button" disabled={sheetBusy} onClick={() => { if (window.confirm("Excluir a ficha técnica desta OS?")) void saveSheet(null); }} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-[#B42318] hover:bg-[#B42318]/10"><Icon name="delete" className="text-[15px]" />Excluir</button></span>}</p>
+          {sheetDraft !== null ? (
+            <div>
+              <textarea autoFocus value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} rows={6} maxLength={4000} aria-label="Ficha técnica" className="w-full resize-y rounded-md border border-[#EAB308] bg-white/80 px-2.5 py-2 text-sm text-[#713F12] outline-none focus:ring-2 focus:ring-[#EAB308]/50" />
+              <div className="mt-2 flex gap-2"><button type="button" disabled={sheetBusy} onClick={() => void saveSheet(sheetDraft)} className="inline-flex h-8 items-center rounded-md bg-[#854D0E] px-3 text-xs font-bold text-white disabled:opacity-60">{sheetBusy ? "Salvando..." : "Salvar"}</button><button type="button" onClick={() => setSheetDraft(null)} className="inline-flex h-8 items-center rounded-md border border-[#854D0E]/40 px-3 text-xs font-bold text-[#854D0E]">Cancelar</button></div>
+            </div>
+          ) : <>
+          <p className={`whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#713F12] sm:text-[15px] ${sheetOpen ? "" : "line-clamp-4"}`}>{os.technicalSheet}</p>
+          {os.technicalSheet.length > 220 && <button type="button" onClick={() => setSheetOpen((v) => !v)} aria-expanded={sheetOpen} className="mt-1 text-xs font-bold text-[#854D0E] underline-offset-2 hover:underline">{sheetOpen ? "Mostrar menos" : "Ver ficha completa"}</button>}</>}
+        </article>
+      )}
 
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className={`${full ? "min-h-0 flex-1" : tall ? "h-[min(62vh,44rem)] min-h-[18rem]" : "h-[min(26rem,52vh)] min-h-[14rem] lg:h-[min(32rem,58vh)]"} space-y-4 overflow-y-auto overscroll-contain bg-ds-bg/40 p-3 sm:p-4`}>
         {events.map((e, i) => {
@@ -215,19 +228,6 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
         {!os.technicalSheet && events.length === 0 && <div className="flex h-full flex-col items-center justify-center gap-2 text-ds-text-secondary"><Icon name="chat_bubble" className="!text-[44px] text-ds-border" /><p className="text-sm">Nenhum comentário ainda. Seja o primeiro!</p></div>}
       </div>
 
-      {os.technicalSheet && (
-        <article className="max-h-[38%] shrink-0 overflow-y-auto border-t border-[#EAB308]/60 bg-[#FEF08A] p-3 sm:px-4" style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.35), transparent 40%)" }}>
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#854D0E]"><Icon name="push_pin" className="text-[16px]" />Ficha técnica{isAdmin && sheetDraft === null && <span className="ml-auto flex gap-1 normal-case tracking-normal"><button type="button" onClick={() => setSheetDraft(os.technicalSheet ?? "")} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-[#854D0E] hover:bg-[#854D0E]/10"><Icon name="edit" className="text-[15px]" />Editar</button><button type="button" disabled={sheetBusy} onClick={() => { if (window.confirm("Excluir a ficha técnica desta OS?")) void saveSheet(null); }} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-[#B42318] hover:bg-[#B42318]/10"><Icon name="delete" className="text-[15px]" />Excluir</button></span>}</p>
-          {sheetDraft !== null ? (
-            <div>
-              <textarea autoFocus value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} rows={6} maxLength={4000} aria-label="Ficha técnica" className="w-full resize-y rounded-md border border-[#EAB308] bg-white/80 px-2.5 py-2 text-sm text-[#713F12] outline-none focus:ring-2 focus:ring-[#EAB308]/50" />
-              <div className="mt-2 flex gap-2"><button type="button" disabled={sheetBusy} onClick={() => void saveSheet(sheetDraft)} className="inline-flex h-8 items-center rounded-md bg-[#854D0E] px-3 text-xs font-bold text-white disabled:opacity-60">{sheetBusy ? "Salvando..." : "Salvar"}</button><button type="button" onClick={() => setSheetDraft(null)} className="inline-flex h-8 items-center rounded-md border border-[#854D0E]/40 px-3 text-xs font-bold text-[#854D0E]">Cancelar</button></div>
-            </div>
-          ) : <>
-          <p className={`whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#713F12] sm:text-[15px] ${sheetOpen ? "" : "line-clamp-4"}`}>{os.technicalSheet}</p>
-          {os.technicalSheet.length > 220 && <button type="button" onClick={() => setSheetOpen((v) => !v)} aria-expanded={sheetOpen} className="mt-1 text-xs font-bold text-[#854D0E] underline-offset-2 hover:underline">{sheetOpen ? "Mostrar menos" : "Ver ficha completa"}</button>}</>}
-        </article>
-      )}
 
       <div className={`border-t border-ds-border-subtle p-3 ${drag ? "bg-ds-primary/5" : ""}`} onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); void addFiles(e.dataTransfer.files); }}>
         {videos.length > 0 && (
