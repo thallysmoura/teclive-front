@@ -175,10 +175,10 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
               </div>
             </div>
 
-            <nav aria-label="Seções da OS" className="mt-3 flex shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-ds-border-subtle px-2 text-sm sm:px-5">
+            <nav aria-label="Seções da OS" className="mt-3 flex shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-ds-border-subtle px-2 text-sm sm:px-3 sm:text-xs xl:px-5 xl:text-sm">
               {TABS.map((t) => {
                 const count = t === "Comentários" ? comments.length : t === "Serviços" ? os.services.length : t === "Produtos" ? os.products.length : t === "Atendimentos" ? os.calls.length : t === "Anexos" ? os.attachments.length : null;
-                return <button key={t} type="button" onClick={() => setTab(t)} aria-current={tab === t} className={`whitespace-nowrap border-b-2 px-3 py-2.5 font-medium ${tab === t ? "border-ds-primary-deep text-ds-primary-deep" : "border-transparent text-ds-text-muted hover:text-ds-primary"}`}>{t}{count ? (t === "Comentários" ? <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ds-primary px-1.5 text-[11px] font-bold text-white">{count}</span> : <span className="ml-1 text-xs text-ds-text-secondary">({count})</span>) : null}</button>;
+                return <button key={t} type="button" onClick={() => setTab(t)} aria-current={tab === t} className={`whitespace-nowrap border-b-2 px-3 py-2.5 font-medium sm:flex-1 sm:px-1.5 sm:text-center xl:px-3 ${tab === t ? "border-ds-primary-deep text-ds-primary-deep" : "border-transparent text-ds-text-muted hover:text-ds-primary"}`}>{t}{count ? (t === "Comentários" ? <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ds-primary px-1.5 text-[11px] font-bold text-white">{count}</span> : <span className="ml-1 text-xs text-ds-text-secondary">({count})</span>) : null}</button>;
               })}
             </nav>
             {error && <p role="alert" className="mx-4 mt-3 sm:mx-6 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
