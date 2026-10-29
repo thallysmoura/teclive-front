@@ -1,5 +1,6 @@
 "use client";
 
+import { lockScroll } from "@/lib/scroll-lock";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -29,10 +30,9 @@ export function AiReportModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     area.current?.focus();
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !loading) onClose(); };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+    return () => { window.removeEventListener("keydown", onKey); unlock(); };
   }, [onClose, loading]);
 
   async function submit() {

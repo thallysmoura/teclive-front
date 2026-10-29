@@ -1,5 +1,6 @@
 "use client";
 
+import { lockScroll } from "@/lib/scroll-lock";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/icon";
@@ -111,8 +112,8 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
   useEffect(() => {
     if (!full) return;
     const k = (e: KeyboardEvent) => { if (e.key === "Escape" && !draft) setFull(false); };
-    window.addEventListener("keydown", k); const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", k); document.body.style.overflow = prev; };
+    window.addEventListener("keydown", k); const unlock = lockScroll();
+    return () => { window.removeEventListener("keydown", k); unlock(); };
   }, [full, draft]);
   const [color, setColor] = useState(COLORS[0]);
   const [live, setLive] = useState<number[][] | null>(null);

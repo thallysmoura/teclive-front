@@ -1,5 +1,6 @@
 "use client";
 
+import { lockScroll } from "@/lib/scroll-lock";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/icon";
@@ -47,10 +48,9 @@ export function ImageLightbox({ items, index, onIndex, onClose }: { items: Light
       if (many && e.key === "ArrowRight") go(1);
       if (many && e.key === "ArrowLeft") go(-1);
     };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     window.addEventListener("keydown", onKey, true);
-    return () => { window.removeEventListener("keydown", onKey, true); document.body.style.overflow = prev; };
+    return () => { window.removeEventListener("keydown", onKey, true); unlock(); };
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (typeof document === "undefined" || !item) return null;

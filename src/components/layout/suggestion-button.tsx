@@ -1,5 +1,6 @@
 "use client";
 
+import { lockScroll } from "@/lib/scroll-lock";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
@@ -156,10 +157,9 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
   useEffect(() => { if (canvasRef.current) paint(canvasRef.current, base, marks); }, [base, marks]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !sending) onClose(); };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+    return () => { window.removeEventListener("keydown", onKey); unlock(); };
   }, [onClose, sending]);
 
   const point = (e: React.PointerEvent): [number, number] => {

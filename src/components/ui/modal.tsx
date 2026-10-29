@@ -1,5 +1,6 @@
 "use client";
 
+import { lockScroll } from "@/lib/scroll-lock";
 import { ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
@@ -25,11 +26,10 @@ export function Modal({
   useEffect(() => {
     if (!open) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlock();
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, [open]);
