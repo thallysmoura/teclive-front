@@ -47,9 +47,32 @@ function Summary({ id }: { id: string }) {
 
   return (
     <div className="mx-auto max-w-[1000px]">
+      <style>{`
+        @page { size: A4; margin: 14mm 12mm; }
+        @media print {
+          html, body { background: #fff !important; }
+          body * { visibility: hidden !important; }
+          #fatura-print, #fatura-print * { visibility: visible !important; }
+          div.flex.min-h-screen > *:not(main) { display: none !important; }
+          main { padding: 0 !important; margin: 0 !important; }
+          html, body { height: auto !important; overflow: visible !important; }
+          #fatura-print { position: static !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; font-size: 11.5px; color: #111; }
+          #fatura-print section { break-inside: avoid; }
+          #fatura-print table { font-size: 11px; }
+          #fatura-print .sm\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+          #fatura-print .sm\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+          #fatura-print .sm\\:col-span-3 { grid-column: span 3 / span 3 !important; }
+          #fatura-print .sm\\:col-span-4 { grid-column: span 4 / span 4 !important; }
+        }
+      `}</style>
       <div className="print:hidden"><Breadcrumb items={[{ label: "Início", href: "/home" }, { label: "Central de Faturamento", href: "/faturamento/central" }, { label: "Resumo do Faturamento" }]} /></div>
-      <div className={`${card} p-6 md:p-8`}>
-        <header className="flex flex-wrap items-center gap-3 border-b border-dashed border-ds-border pb-4">
+      <div id="fatura-print" className={`${card} p-6 md:p-8`}>
+        <div className="mb-4 hidden items-center justify-between border-b-2 border-[#00406A] pb-3 print:flex">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/teclive-logo.png" alt="Teclive" className="h-12 w-auto" />
+          <div className="text-right text-[11px] leading-tight text-[#334155]"><p className="text-sm font-extrabold text-[#00406A]">Teclive Serviços em Tecnologia</p><p>Fatura nº {pad(inv.number)} · emitida em {dateBr(inv.registeredAt)}</p><p>Competência {inv.competence}</p></div>
+        </div>
+        <header className="flex flex-wrap items-center gap-3 border-b border-dashed border-ds-border pb-4 print:border-solid print:border-[#CBD5E1]">
           <h1 className="text-2xl font-extrabold text-ds-primary-deep">Fatura de {inv.kind === "P" ? "Produtos" : "Serviços"}</h1>
           <span className="rounded-md bg-ds-bg px-2 py-0.5 text-sm font-bold text-ds-text-muted">{pad(inv.number)}</span>
           <span className={`rounded-full px-3 py-0.5 text-xs font-bold ${canceled ? "bg-[#FDE6E4] text-[#B42318]" : "bg-[#DDF6EA] text-[#0B7A4B]"}`}>{canceled ? "Cancelada" : "Faturada"}</span>

@@ -20,7 +20,7 @@ export type NfseRow = { rps: number; invoiceNumber: number; invoiceId: string | 
 export type NfeRow = { number: number; personName: string; status: "A" | "C" | "D"; issuedAt: string; kindLabel: string; invoiceNumber: number | null; invoiceId: string | null; exitDate: string | null; accessKey: string; total: number | null };
 export type Lot = { lote: string; count: number; total: number; issuedAt: string; cancelled: number };
 export type ContractRow = { id: string; number: string; personId: string | null; personName: string; billingDay: number; total: number; group: string | null; billedInvoice: number | null };
-export type OsRow = { key: string; orderId?: string; invoiceId?: string; invoiceNumber?: number; number: number; personName: string; address: string; kind: "S" | "P"; value: number };
+export type OsRow = { motivo?: number; key: string; orderId?: string; invoiceId?: string; invoiceNumber?: number; number: number; personName: string; address: string; kind: "S" | "P"; value: number };
 export type Purchase = { id: string; number: string; supplierName: string; entryDate: string; issueDate: string; operation: string; total: number; status: "Salva" | "Lançada" | "Cancelada" };
 export type ReturnNote = { id: string; number: number | null; date: string; personName: string; kindLabel: string; originNf: string; status: string };
 
@@ -48,7 +48,7 @@ export const billing = {
   searchContracts: (p: Record<string, string | number | undefined>) => call<ContractRow[]>(`/billing/contracts/search?${qs(p)}`),
   invoiceContracts: (month: string, contractIds: string[]) => call<{ created: number[] }>("/billing/contracts/invoice", post({ month, contractIds })),
   orders: (p: Record<string, string | number | undefined>) => call<OsRow[]>(`/billing/os?${qs(p)}`),
-  invoiceOrder: (orderId: string, kind: "S" | "P") => call<{ id: string; number: number }>("/billing/os/invoice", post({ orderId, kind })),
+  invoiceOrder: (orderId: string, kind: "S" | "P", motivo = 0) => call<{ id: string; number: number }>("/billing/os/invoice", post({ orderId, kind, motivo })),
   purchases: (p: Record<string, string | undefined>) => call<Purchase[]>(`/billing/purchases?${qs(p)}`),
   savePurchase: (id: string | null, b: unknown) => call<Purchase>(id ? `/billing/purchases/${id}` : "/billing/purchases", id ? put(b) : post(b)),
   returns: (p: Record<string, string | undefined>) => call<ReturnNote[]>(`/billing/returns?${qs(p)}`),

@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { money } from "@/lib/cadastros";
 import { formatQuoteNumber } from "@/lib/comercial";
+import { billing } from "@/lib/faturamento";
 import { OPERACIONAL_KEYS, fmtDate, formatOsNumber, openFromQuote, osClient, type BoardColumn } from "@/lib/operacional";
 
 function Board() {
@@ -19,6 +20,12 @@ function Board() {
 
   const load = useCallback(() => osClient.board().then(setColumns).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível carregar.")), []);
   useEffect(() => { void load(); }, [load]);
+
+  async function bill(orderId: string, kind: "S" | "P", motivo: number, cardId: string) {
+    if (!orderId || !window.confirm(`Faturar ${kind === "P" ? "produtos" : "serviços"} desta OS?`)) return;
+    setBusy(cardId); setError("");
+    try { await billing.invoiceOrder(orderId, kind, motivo); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível faturar."); } finally { setBusy(null); }
+  }
 
   async function openOs(quoteId: string) {
     setBusy(quoteId); setError("");
@@ -54,7 +61,15 @@ function Board() {
                     {cards.map((card) => (
                       <article key={card.id} className="rounded-lg border border-ds-border-subtle bg-white p-3 text-sm shadow-sm">
                         <div className="flex items-start justify-between gap-2"><h3 className="font-semibold text-ds-primary-deep">{card.personName}</h3><span className="shrink-0 rounded bg-ds-bg px-1.5 py-0.5 text-[11px] font-bold text-ds-primary-deep">{c.kind === "quote" ? formatQuoteNumber(card.number) : formatOsNumber(card.number)}</span></div>
-                        {c.kind === "quote" ? (
+                        {c.kind === "bill" ? (
+                          <>
+                            <p className="mt-1 text-xs text-ds-text-secondary">Abertura: {fmtDate(card.openedAt)}</p>
+                            <p className="text-xs"><span className="rounded-full border border-ds-primary-deep px-1.5 text-[10px] text-ds-primary-deep">{card.typeLabel}</span></p>
+                            <p className="mt-1 text-xs text-ds-text-secondary">Fechamento: {fmtDate(card.closedAt)}</p>
+                            <p className="mt-1 text-right text-xs font-bold text-ds-primary-deep">{money(card.total ?? 0)}</p>
+                            <button type="button" disabled={busy === card.id} onClick={() => void bill(card.orderId ?? "", card.kind ?? "S", card.motivo ?? 0, card.id)} className="mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-[#F7941D] text-xs font-semibold text-[#F7941D] hover:bg-[#F7941D] hover:text-white disabled:opacity-50"><Icon name="receipt_long" className="text-[16px]" />{busy === card.id ? "Faturando..." : card.kind === "P" ? "Faturar Produtos" : "Faturar Serviços"}</button>
+                          </>
+                        ) : c.kind === "quote" ? (
                           <>
                             <p className="mt-1 text-xs text-ds-text-muted">{card.title}</p>
                             <p className="mt-1 flex items-center justify-between text-xs text-ds-text-secondary"><span>Ganho: {fmtDate(card.wonAt)}</span><strong className="text-ds-primary-deep">{money(card.total ?? 0)}</strong></p>

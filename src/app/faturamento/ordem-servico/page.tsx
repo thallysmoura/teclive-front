@@ -26,7 +26,7 @@ function Orders() {
   async function bill(r: OsRow) {
     if (!r.orderId || !confirm(`Faturar ${r.kind === "P" ? "produtos" : "serviços"} da OS ${pad(r.number)} (${money(r.value)})?`)) return;
     setBusy(r.key); setError(""); setMsg("");
-    try { const inv = await billing.invoiceOrder(r.orderId, r.kind); setMsg(`Fatura ${pad(inv.number)} gerada.`); await load(); }
+    try { const inv = await billing.invoiceOrder(r.orderId, r.kind, r.motivo ?? 0); setMsg(`Fatura ${pad(inv.number)} gerada.`); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível faturar."); } finally { setBusy(""); }
   }
   const tag = (k: "S" | "P") => <span className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-bold text-white ${k === "P" ? "bg-[#005CD2]" : "bg-[#12A262]"}`}>Fatura de {k === "P" ? "Produtos" : "Serviços"}</span>;

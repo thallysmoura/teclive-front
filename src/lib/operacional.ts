@@ -82,7 +82,7 @@ export type OsListParams = { q?: string; from?: string; until?: string; status?:
 export type OsFilters = { defects: string[]; causes: string[]; solutions: string[]; technicians: string[]; sellers: string[]; statuses: { value: string; label: string }[]; types: { value: string; label: string }[] };
 export type OsInput = { personId?: string; type?: number; defectName?: string; scheduleStart?: string; scheduleEnd?: string; technicians?: string[]; technicalSheet?: string; address?: Partial<OsAddress> };
 export type OsStats = { total: number; byStatus: Record<string, number>; value: number };
-export type BoardColumn = { key: string; title: string; kind: "quote" | "os"; cards: { id: string; number: number; personName: string; title?: string; wonAt?: string; openedAt?: string; scheduleEnd?: string | null; typeLabel?: string; total?: number; status?: number }[] };
+export type BoardColumn = { key: string; title: string; kind: "quote" | "os" | "bill"; cards: { orderId?: string; closedAt?: string | null; kind?: "S" | "P"; motivo?: number; id: string; number: number; personName: string; title?: string; wonAt?: string; openedAt?: string; scheduleEnd?: string | null; typeLabel?: string; total?: number; status?: number }[] };
 export type OperationsData = { stats: { open: number; late: number; withoutTech: number; withoutSchedule: number }; points: (OsRow & { lat: number | null; lng: number | null })[] };
 export type OsOptions = { causes: string[]; defects: { description: string; serviceMinutes: number; closingMinutes: number }[]; solutions: string[]; technicians: string[]; sellers: string[] };
 
