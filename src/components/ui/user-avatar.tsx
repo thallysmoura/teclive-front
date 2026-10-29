@@ -22,6 +22,7 @@ export function UserAvatar({
   size = 36,
   tone = "default",
   spinner = false,
+  accent,
 }: {
   name: string;
   avatarUrl?: string | null;
@@ -31,6 +32,8 @@ export function UserAvatar({
   tone?: "default" | "light";
   /** Mostra um indicador de carregamento enquanto a foto baixa. */
   spinner?: boolean;
+  /** Cor de fundo das iniciais (quando não há foto), para diferenciar pessoas. */
+  accent?: string;
 }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
@@ -51,7 +54,7 @@ export function UserAvatar({
       ) : (
         <div
           className={`flex h-full w-full items-center justify-center rounded-full text-xs font-bold ${tone === "light" ? "bg-white text-ds-primary-deep" : "bg-ds-primary text-white"}`}
-          style={{ fontSize: size * 0.36 }}
+          style={{ fontSize: size * 0.36, ...(accent && tone !== "light" ? { background: accent } : {}) }}
         >
           {getInitials(name)}
         </div>

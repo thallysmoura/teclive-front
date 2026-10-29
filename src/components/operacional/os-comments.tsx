@@ -31,7 +31,12 @@ async function shrink(file: File): Promise<{ fileName: string; mimeType: string;
 
 type Pending = { key: string; name: string; preview: string; fileBase64: string; mimeType: string };
 
-function Bubble({ os, e, mine, onEdit, onDelete, onOpen }: { os: OsDetail; e: OsComment; mine: boolean; onEdit: (text: string) => Promise<void>; onDelete: () => Promise<void>; onOpen: (index: number) => void }) {
+/** Cor estável por pessoa (mesma cor do nome, do avatar e da borda do balão). */
+const PALETTE = ["#0B6BCB", "#7A3EE0", "#0F8A5F", "#C2410C", "#B4236B", "#0E7490", "#A16207", "#4D7C0F", "#B91C1C", "#3F51B5"];
+export const personColor = (name: string) => { let h = 0; for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; };
+
+function Bubble({ os, e, mine, own, onEdit, onDelete, onOpen }: { os: OsDetail; e: OsComment; mine: boolean; own: boolean; onEdit: (text: string) => Promise<void>; onDelete: () => Promise<void>; onOpen: (index: number) => void }) {
+  const color = personColor(e.usuario);
   const [menu, setMenu] = useState(false);
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(e.conteudo ?? "");
@@ -53,11 +58,11 @@ function Bubble({ os, e, mine, onEdit, onDelete, onOpen }: { os: OsDetail; e: Os
   }
 
   return (
-    <article className="flex gap-3">
-      <UserAvatar name={e.usuario} avatarUrl={e.avatarUrl} size={36} />
-      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-ds-border-subtle bg-white px-4 py-3 shadow-sm">
+    <article className="flex gap-2 sm:gap-3">
+      <div className="hidden shrink-0 sm:block"><UserAvatar name={e.usuario} avatarUrl={e.avatarUrl} size={38} accent={color} /></div><div className="shrink-0 sm:hidden"><UserAvatar name={e.usuario} avatarUrl={e.avatarUrl} size={30} accent={color} /></div>
+      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-ds-border-subtle border-l-4 px-3 py-2.5 shadow-sm sm:px-4 sm:py-3" style={{ borderLeftColor: color, background: `color-mix(in srgb, ${color} ${own ? 9 : 4}%, white)` }}>
         <header className="flex items-start gap-2">
-          <div className="min-w-0 flex-1"><strong className="block truncate text-sm font-bold text-ds-primary-deep">{e.usuario}</strong><time dateTime={e.dataRegistro} className="text-xs text-ds-text-secondary">{fmtDateTime(e.dataRegistro)}{e.editadoEm && <span title={`Editado em ${fmtDateTime(e.editadoEm)}`}> · editado</span>}</time></div>
+          <div className="min-w-0 flex-1"><strong className="flex items-center gap-1.5 truncate text-sm font-extrabold" style={{ color }}><span className="truncate">{e.usuario}</span>{own && <span className="shrink-0 rounded-full px-1.5 py-px text-[10px] font-bold text-white" style={{ background: color }}>você</span>}</strong><time dateTime={e.dataRegistro} className="text-xs text-ds-text-secondary">{fmtDateTime(e.dataRegistro)}{e.editadoEm && <span title={`Editado em ${fmtDateTime(e.editadoEm)}`}> · editado</span>}</time></div>
           {canChange && !editing && (
             <div ref={box} className="relative">
               <button type="button" onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu} aria-label="Opções do comentário" className="flex h-8 w-8 items-center justify-center rounded-lg text-ds-text-secondary hover:bg-ds-bg hover:text-ds-primary"><Icon name="more_horiz" className="text-[20px]" /></button>
@@ -76,7 +81,7 @@ function Bubble({ os, e, mine, onEdit, onDelete, onOpen }: { os: OsDetail; e: Os
             <textarea value={text} autoFocus rows={3} maxLength={4000} onChange={(ev) => setText(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Escape") { ev.stopPropagation(); setEditing(false); } if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) void save(); }} aria-label="Editar comentário" className="w-full resize-y rounded-[10px] border border-ds-border bg-white px-3 py-2 text-[15px] leading-relaxed outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" />
             <div className="mt-2 flex items-center gap-2"><button type="button" disabled={busy} onClick={() => void save()} className="h-9 rounded-lg bg-ds-primary px-4 text-sm font-bold text-white hover:bg-ds-primary-hover disabled:opacity-50">{busy ? "Salvando..." : "Salvar"}</button><button type="button" onClick={() => { setEditing(false); setError(""); }} className="h-9 rounded-lg border border-ds-border px-4 text-sm font-semibold text-ds-text-muted hover:border-ds-primary">Cancelar</button><span className="ml-auto text-[11px] text-ds-text-secondary">Ctrl+Enter salva · Esc cancela</span></div>
           </div>
-        ) : e.conteudo && <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ds-text">{e.conteudo}</p>}
+        ) : e.conteudo && <p className="mt-1.5 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-ds-text sm:mt-2 sm:text-[15px]">{e.conteudo}</p>}
         {error && <p role="alert" className="mt-2 text-xs text-ds-danger-text">{error}</p>}
 
         {e.anexos && e.anexos.length > 0 && (
@@ -102,6 +107,7 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   const [text, setText] = useState("");
   const [pending, setPending] = useState<Pending[]>([]);
   const [busy, setBusy] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [error, setError] = useState("");
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
   const [drag, setDrag] = useState(false);
@@ -160,15 +166,16 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
 
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className={`${tall ? "h-[min(62vh,44rem)] min-h-[18rem]" : "h-[min(26rem,52vh)] min-h-[14rem] lg:h-[min(32rem,58vh)]"} space-y-4 overflow-y-auto overscroll-contain bg-ds-bg/40 p-3 sm:p-4`}>
         {os.technicalSheet && (
-          <article className="rounded-xl border border-ds-border-subtle bg-white p-4">
-            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ds-primary-deep"><Icon name="description" className="text-[16px]" />Ficha técnica</p>
-            <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ds-text-muted">{os.technicalSheet}</p>
+          <article className="sticky top-0 z-10 -mx-1 -mt-1 rotate-[-0.4deg] rounded-md border border-[#EAB308]/60 bg-[#FEF08A] p-3 shadow-[0_6px_14px_-6px_rgba(133,77,14,0.45)] sm:p-4" style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.35), transparent 40%)" }}>
+            <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#854D0E]"><Icon name="push_pin" className="text-[16px]" />Ficha técnica</p>
+            <p className={`whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#713F12] sm:text-[15px] ${sheetOpen ? "" : "line-clamp-4"}`}>{os.technicalSheet}</p>
+            {os.technicalSheet.length > 220 && <button type="button" onClick={() => setSheetOpen((v) => !v)} aria-expanded={sheetOpen} className="mt-1 text-xs font-bold text-[#854D0E] underline-offset-2 hover:underline">{sheetOpen ? "Mostrar menos" : "Ver ficha completa"}</button>}
           </article>
         )}
         {events.map((e, i) => {
           const thread: LightboxItem[] = (e.anexos ?? []).map((a) => ({ name: a.fileName, osId: os.id, fileId: a.id, src: a.url }));
           return (
-            <Bubble key={e.id ?? i} os={os} e={e} mine={!!me && (me.role === "ADMIN" || e.usuarioId === me.id)}
+            <Bubble key={e.id ?? i} os={os} e={e} mine={!!me && (me.role === "ADMIN" || e.usuarioId === me.id)} own={!!me && e.usuarioId === me.id}
               onEdit={async (t) => { editing.current = true; try { apply(await osClient.editComment(os.id, e.id!, t)); } finally { editing.current = false; } }}
               onDelete={async () => apply(await osClient.deleteComment(os.id, e.id!))}
               onOpen={(index) => setLightbox({ items: thread, index })} />
