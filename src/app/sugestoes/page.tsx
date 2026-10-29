@@ -5,7 +5,7 @@ import { Breadcrumb, PageShell } from "@/components/layout/page-shell";
 import { Icon } from "@/components/ui/icon";
 import { SuggestionThumb } from "@/components/ui/suggestion-thumb";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { listAllSuggestions, setSuggestionStatus, STATUS_INFO, type AdminSuggestion, type SuggestionStatus } from "@/lib/suggestions";
+import { editSuggestion, listAllSuggestions, setSuggestionStatus, STATUS_INFO, type AdminSuggestion, type SuggestionStatus } from "@/lib/suggestions";
 
 const ORDER: SuggestionStatus[] = ["NOVA", "EM_ANALISE", "PLANEJADA", "CONCLUIDA", "DESCARTADA"];
 const fmt = (iso: string) => `${new Date(iso).toLocaleDateString("pt-BR")} às ${new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
@@ -16,6 +16,17 @@ function Suggestions() {
   const [filter, setFilter] = useState<SuggestionStatus | "TODAS">("NOVA");
   const [zoom, setZoom] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; text: string; notes: string } | null>(null);
+
+  async function saveEdit() {
+    if (!editing) return;
+    const notes = editing.notes.trim();
+    const description = `${editing.text.trim()}${notes ? `\n\nObservações nos pontos da imagem:\n${notes}` : ""}`;
+    setSaving(editing.id); setError("");
+    try { await editSuggestion(editing.id, description); setItems((all) => all?.map((x) => (x.id === editing.id ? { ...x, description } : x)) ?? all); setEditing(null); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar."); }
+    finally { setSaving(null); }
+  }
 
   useEffect(() => { listAllSuggestions().then(setItems).catch((e) => { setError(e instanceof Error ? e.message : "Não foi possível carregar."); setItems([]); }); }, []);
 
@@ -68,8 +79,24 @@ function Suggestions() {
                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_INFO[s.status].cls}`}>{STATUS_INFO[s.status].label}</span>
                   </div>
                   <p className="mt-1.5 text-xs text-ds-text-secondary"><Icon name="web" className="mr-1 align-middle text-[14px]" />{s.screenTitle} <span className="opacity-70">({s.screenPath})</span></p>
-                  <p className="mt-2 whitespace-pre-wrap break-words text-sm text-ds-text">{text}</p>
-                  {notes && <ul className="mt-2 space-y-0.5 rounded-lg bg-ds-bg px-3 py-2 text-xs text-ds-text-muted">{notes.split("\n").map((n) => <li key={n}>{n}</li>)}</ul>}
+                  {editing?.id === s.id ? (
+                    <div className="mt-2 space-y-2">
+                      <textarea autoFocus value={editing.text} onChange={(e) => setEditing({ ...editing, text: e.target.value })} rows={5} maxLength={3500} aria-label="Descrição da melhoria" className="w-full resize-y rounded-[10px] border border-ds-border px-3 py-2 text-sm outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" />
+                      <label className="block text-xs font-bold text-ds-text-secondary">Observações nos pontos (uma por linha)
+                        <textarea value={editing.notes} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} rows={3} maxLength={1500} className="mt-1 w-full resize-y rounded-[10px] border border-ds-border px-3 py-2 text-xs font-normal outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" />
+                      </label>
+                      <div className="flex gap-2">
+                        <button type="button" disabled={saving === s.id || editing.text.trim().length < 10} onClick={() => void saveEdit()} className="inline-flex h-9 items-center rounded-lg bg-[#F7941D] px-4 text-sm font-bold text-white hover:bg-[#E5850F] disabled:opacity-60">{saving === s.id ? "Salvando..." : "Salvar"}</button>
+                        <button type="button" onClick={() => setEditing(null)} className="inline-flex h-9 items-center rounded-lg border border-ds-border px-4 text-sm font-semibold text-ds-primary-deep">Cancelar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="mt-2 whitespace-pre-wrap break-words text-sm text-ds-text">{text}</p>
+                      {notes && <ul className="mt-2 space-y-0.5 rounded-lg bg-ds-bg px-3 py-2 text-xs text-ds-text-muted">{notes.split("\n").map((n) => <li key={n}>{n}</li>)}</ul>}
+                      <button type="button" onClick={() => setEditing({ id: s.id, text: text ?? "", notes: notes ?? "" })} className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-ds-primary hover:underline"><Icon name="edit" className="text-[15px]" />Editar</button>
+                    </>
+                  )}
                   <label className="mt-3 flex items-center gap-2 text-xs font-bold text-ds-text-secondary">Situação
                     <select value={s.status} disabled={saving === s.id} onChange={(e) => void change(s, e.target.value as SuggestionStatus)} className="h-9 rounded-lg border border-ds-border bg-white px-2.5 text-sm font-medium text-ds-text outline-none focus:border-ds-primary disabled:opacity-60">
                       {ORDER.map((st) => <option key={st} value={st}>{STATUS_INFO[st].label}</option>)}

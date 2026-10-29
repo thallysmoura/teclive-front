@@ -38,6 +38,11 @@ export async function listAllSuggestions(): Promise<AdminSuggestion[]> {
   return res.json();
 }
 
+export async function editSuggestion(id: string, description: string) {
+  const res = await authFetch(`/suggestions/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description }) });
+  if (!res.ok) return fail(res, "Não foi possível salvar a edição.");
+}
+
 export async function setSuggestionStatus(id: string, status: SuggestionStatus) {
   const res = await authFetch(`/suggestions/${id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
   if (!res.ok) return fail(res, "Não foi possível alterar a situação.");
