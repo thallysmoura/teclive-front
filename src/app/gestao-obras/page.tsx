@@ -155,6 +155,8 @@ function Dashboard() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: string; desc: boolean }>({ key: "risk", desc: true });
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [quick, setQuick] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const set = (patch: Partial<Filters>) => { setF((c) => ({ ...c, ...patch })); setPage(1); };
   const toggle = (patch: Partial<Filters>) => { const key = Object.keys(patch)[0] as keyof Filters; set(f[key] === patch[key] ? { [key]: "" } : patch); };
@@ -260,11 +262,15 @@ function Dashboard() {
   const risk = (w: WorkRow) => (ACTIVE.includes(w.status) ? w.lateDays * 2 + (6 - Object.values(w.checklist).filter(Boolean).length) * 5 + w.pendencies * 3 : -1);
   const progress = (w: WorkRow) => pct(Object.values(w.checklist).filter(Boolean).length, 6);
   const table = useMemo(() => {
-    const list = rows.filter((w) => (f.group || f.status ? true : f.onlyActive ? ACTIVE.includes(w.status) : true));
+    const term = search.trim().toLowerCase();
+    const done = (w: WorkRow) => Object.values(w.checklist).every(Boolean);
+    const list = rows.filter((w) => (f.group || f.status ? true : f.onlyActive ? ACTIVE.includes(w.status) : true))
+      .filter((w) => !term || [formatOsNumber(w.number), String(w.number), w.personName, w.personNickname ?? "", w.defect ?? "", addressLine(w.address), w.technicians.join(" "), w.sellers.join(" ")].join(" ").toLowerCase().includes(term))
+      .filter((w) => !quick || (quick === "incompleto" ? ACTIVE.includes(w.status) && !done(w) : quick === "completo" ? done(w) : GROUPS[quick]?.test(w)));
     const get: Record<string, (w: WorkRow) => number | string> = { risk, number: (w) => w.number, client: (w) => w.personName.toLowerCase(), schedule: (w) => (w.scheduleEnd ? +new Date(w.scheduleEnd) : 0), value: (w) => w.total, progress, materials: (w) => (w.qty ? w.delivered / w.qty : 1) };
     const g = get[sort.key] ?? get.risk;
     return [...list].sort((a, b) => { const x = g(a), y = g(b); return (x < y ? -1 : x > y ? 1 : 0) * (sort.desc ? -1 : 1); });
-  }, [rows, f.group, f.status, f.onlyActive, sort]);
+  }, [rows, f.group, f.status, f.onlyActive, sort, search, quick]);
   const PAGE = 12;
   const pages = Math.max(1, Math.ceil(table.length / PAGE));
   const visible = table.slice((page - 1) * PAGE, page * PAGE);
@@ -370,6 +376,15 @@ function Dashboard() {
           <div id="checklist-obras" className="scroll-mt-4" />
           <Card title="Checklist de obras" subtitle={`${table.length} ${table.length === 1 ? "obra" : "obras"} no filtro · clique na linha para abrir a obra`}
             action={!f.group && !f.status ? <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-ds-text-muted"><input type="checkbox" checked={f.onlyActive} onChange={(e) => set({ onlyActive: e.target.checked })} />Somente ativas</label> : undefined}>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[220px] flex-1"><Icon name="search" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-ds-text-secondary" /><input type="search" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Pesquisar por obra, cliente, endereço, técnico ou motivo..." aria-label="Pesquisar obras" className="h-10 w-full rounded-[10px] border border-ds-border bg-white pl-10 pr-3 text-sm outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" /></div>
+              <label className="flex items-center gap-2 text-xs font-semibold text-ds-text-muted"><Icon name="filter_alt" className="text-[18px]" />
+                <select value={quick} onChange={(e) => { setQuick(e.target.value); setPage(1); }} aria-label="Filtrar checklist" className="h-10 rounded-[10px] border border-ds-border bg-white px-3 text-sm font-medium text-ds-text outline-none focus:border-ds-primary">
+                  <option value="">Todas as obras</option><option value="atraso">Em atraso</option><option value="semTecnico">Sem técnico</option><option value="semAgenda">Sem agendamento</option><option value="materiais">Materiais pendentes</option><option value="semFotos">Sem fotos</option><option value="incompleto">Checklist incompleto</option><option value="completo">Checklist completo</option>
+                </select>
+              </label>
+              {(search || quick) && <button type="button" onClick={() => { setSearch(""); setQuick(""); setPage(1); }} className="h-10 rounded-[10px] border border-ds-border px-3 text-sm font-semibold text-ds-primary-deep hover:border-ds-primary">Limpar</button>}
+            </div>
             <div className="-mx-1 overflow-x-auto">
               <table className="w-full min-w-[980px] text-sm">
                 <thead className="border-b border-ds-border-subtle text-left text-[11px] uppercase tracking-wide text-ds-text-secondary"><tr>{th("number", "Obra", "py-2 pr-3")}{th("schedule", "Prazo", "py-2 pr-3")}<th className="py-2 pr-3">Situação</th>{th("materials", "Materiais", "py-2 pr-3")}<th className="py-2 pr-3">Checklist</th>{th("progress", "Progresso", "py-2 pr-3")}{th("risk", "Risco", "py-2 pr-3")}{th("value", "Valor", "py-2 text-right")}</tr></thead>
