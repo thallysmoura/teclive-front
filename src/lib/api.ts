@@ -35,6 +35,8 @@ export type ManagedUser = {
   lastDevice: Device;
   presence: Presence;
   createdAt: string;
+  appAccess: boolean;
+  lastLocation: { city: string | null; region: string | null; latitude: number | null; longitude: number | null; at: string } | null;
 };
 
 export type Permission = { key: string; label: string };
@@ -196,6 +198,12 @@ export async function updateUserPermissions(id: string, permissions: string[]) {
   });
   if (!res.ok) throw new ApiError("Não foi possível atualizar as permissões.");
   return res.json() as Promise<ManagedUser>;
+}
+
+export async function setUserAppAccess(id: string, enabled: boolean) {
+  const res = await authFetch(`/users/${id}/app-access`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled }) });
+  if (!res.ok) throw new ApiError("Não foi possível alterar o acesso ao aplicativo.");
+  return res.json();
 }
 
 export async function updateUserRole(id: string, role: Role) {

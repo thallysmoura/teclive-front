@@ -11,6 +11,7 @@ import {
   logout,
   updateUserPermissions,
   updateUserRole,
+  setUserAppAccess,
   resetUserPassword,
   updateUserProfile,
   type ManagedUser,
@@ -180,6 +181,20 @@ export default function AccessControlPage() {
     }
   }
 
+  async function toggleApp(target: ManagedUser) {
+    if (savingId !== null) return;
+    setSaveError(null);
+    setSavingId(target.id);
+    try {
+      await setUserAppAccess(target.id, !target.appAccess);
+      await refreshUsers();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Não foi possível alterar o acesso ao aplicativo.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function toggleAdmin(target: ManagedUser) {
     if (savingId !== null) return;
     setSaveError(null);
@@ -312,6 +327,8 @@ export default function AccessControlPage() {
                   <th className="px-4 py-3"><SortButton label="Usuário" active={userSort?.key === "name"} desc={!!userSort?.desc} onClick={() => toggleUserSort("name")} /></th>
                   <th className="px-4 py-3"><SortButton label="Data de criação" active={userSort?.key === "createdAt"} desc={!!userSort?.desc} onClick={() => toggleUserSort("createdAt")} /></th>
                   <th className="px-4 py-3"><SortButton label="Último acesso" active={userSort?.key === "lastLoginAt"} desc={!!userSort?.desc} onClick={() => toggleUserSort("lastLoginAt")} /></th>
+                  <th className="px-4 py-3">Aplicativo</th>
+                  <th className="px-4 py-3">Localização</th>
                   <th className="px-4 py-3"><SortButton label="Permissões" active={userSort?.key === "permissions"} desc={!!userSort?.desc} onClick={() => toggleUserSort("permissions")} /></th>
                   <th className="px-4 py-3">Ações</th>
                 </tr>
@@ -334,6 +351,19 @@ export default function AccessControlPage() {
                     </td>
                     <DateCell value={u.createdAt} fallback="Não informado" label="Data de criação" />
                     <DateCell value={u.lastLoginAt} fallback="Ainda não acessou" label="Último acesso" />
+                    <td data-label="Aplicativo">
+                      <button type="button" role="switch" aria-checked={u.appAccess} aria-label={`Acesso ao aplicativo de ${u.name}`} onClick={() => { void toggleApp(u); }} className={`inline-flex items-center gap-2 rounded-full px-1 py-1 pr-3 text-xs font-bold ${u.appAccess ? "bg-[#DDF6EA] text-[#0B7A4B]" : "bg-[#ECEFF3] text-[#5B6775]"}`}>
+                        <span className={`relative h-5 w-9 rounded-full transition-colors ${u.appAccess ? "bg-[#12A262]" : "bg-[#A9B6C2]"}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${u.appAccess ? "left-[18px]" : "left-0.5"}`} /></span>{u.appAccess ? "Tem acesso" : "Sem acesso"}
+                      </button>
+                    </td>
+                    <td data-label="Localização" className="text-xs text-ds-text-muted">
+                      {u.lastLocation ? (
+                        <a href={u.lastLocation.latitude !== null ? `https://www.google.com/maps?q=${u.lastLocation.latitude},${u.lastLocation.longitude}` : undefined} target="_blank" rel="noopener noreferrer" className="inline-flex items-start gap-1 hover:text-ds-primary" title="Abrir no mapa">
+                          <span className="material-symbols-outlined text-[16px] text-[#12A262]">location_on</span>
+                          <span><b className="block text-ds-text">{[u.lastLocation.city, u.lastLocation.region].filter(Boolean).join(" - ") || "Localização compartilhada"}</b>{new Date(u.lastLocation.at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
+                        </a>
+                      ) : "Não compartilhada"}
+                    </td>
                     <td data-label="Permissões">
                       <PermissionsDropdown
                         catalog={catalog}

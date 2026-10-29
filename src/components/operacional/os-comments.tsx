@@ -5,6 +5,7 @@ import { AuthImage, ImageLightbox, type LightboxItem } from "@/components/operac
 import { Icon } from "@/components/ui/icon";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cachedMe } from "@/lib/session-cache";
+import { authFetch } from "@/lib/api";
 import { fmtDateTime, osClient, type OsComment, type OsDetail } from "@/lib/operacional";
 
 const MAX_IMAGES = 6;
@@ -29,6 +30,8 @@ async function shrink(file: File): Promise<{ fileName: string; mimeType: string;
   }
 }
 
+const MAX_VIDEOS = 2, MAX_VIDEO_MB = 40;
+type PendingVideo = { key: string; name: string; file: File; preview: string };
 type Pending = { key: string; name: string; preview: string; fileBase64: string; mimeType: string };
 
 /** Cor estável por pessoa (mesma cor do nome, do avatar e da borda do balão). */
@@ -87,10 +90,10 @@ function Bubble({ os, e, mine, own, onEdit, onDelete, onOpen }: { os: OsDetail; 
         {e.anexos && e.anexos.length > 0 && (
           <ul className={`mt-3 grid gap-2 ${e.anexos.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3"}`}>
             {e.anexos.map((a, idx) => (
-              <li key={a.id} className={`overflow-hidden rounded-xl border border-ds-border-subtle bg-ds-bg ${e.anexos!.length === 1 ? "max-w-md" : "aspect-square"}`}>
-                <button type="button" onClick={() => onOpen(idx)} aria-label={`Ampliar ${a.fileName}`} className="relative block h-full w-full cursor-zoom-in">
+              <li key={a.id} className={`overflow-hidden rounded-xl border border-ds-border-subtle bg-ds-bg ${e.anexos!.length === 1 || a.mimeType?.startsWith("video/") ? "max-w-md" : "aspect-square"} ${a.mimeType?.startsWith("video/") ? "col-span-full" : ""}`}>
+                {a.mimeType?.startsWith("video/") ? <video src={a.url} controls playsInline preload="metadata" className="max-h-80 w-full bg-black" /> : <button type="button" onClick={() => onOpen(idx)} aria-label={`Ampliar ${a.fileName}`} className="relative block h-full w-full cursor-zoom-in">
                   <AuthImage osId={os.id} fileId={a.id} url={a.url} alt={a.fileName} className={`w-full ${e.anexos!.length === 1 ? "max-h-80 object-contain" : "h-full object-cover"}`} />
-                </button>
+                </button>}
               </li>
             ))}
           </ul>
@@ -106,6 +109,7 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   const [events, setEvents] = useState<OsComment[]>(visible(os.events));
   const [text, setText] = useState("");
   const [pending, setPending] = useState<Pending[]>([]);
+  const [videos, setVideos] = useState<PendingVideo[]>([]);
   const [busy, setBusy] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [error, setError] = useState("");
@@ -133,9 +137,17 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   useEffect(() => () => pending.forEach((p) => URL.revokeObjectURL(p.preview)), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function addFiles(list: FileList | File[]) {
-    const images = [...list].filter((f) => f.type.startsWith("image/"));
-    if (!images.length) return setError("Escolha arquivos de imagem.");
+    const all = [...list];
+    const vids = all.filter((f) => f.type.startsWith("video/"));
+    const images = all.filter((f) => f.type.startsWith("image/"));
+    if (!images.length && !vids.length) return setError("Escolha imagens ou vídeos.");
     setError("");
+    if (vids.length) {
+      const ok = vids.filter((v) => v.size <= MAX_VIDEO_MB * 1024 * 1024).slice(0, Math.max(0, MAX_VIDEOS - videos.length));
+      if (ok.length < vids.length) setError(`Vídeos: até ${MAX_VIDEOS} por comentário e ${MAX_VIDEO_MB} MB cada (MP4, WEBM ou MOV).`);
+      setVideos((v) => [...v, ...ok.map((file) => ({ key: crypto.randomUUID(), name: file.name, file, preview: URL.createObjectURL(file) }))]);
+      if (!images.length) return;
+    }
     const room = MAX_IMAGES - pending.length;
     if (images.length > room) setError(`No máximo ${MAX_IMAGES} imagens por comentário.`);
     try {
@@ -145,14 +157,21 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   }
 
   async function send() {
-    if (busy || (!text.trim() && !pending.length)) return;
+    if (busy || (!text.trim() && !pending.length && !videos.length)) return;
     setBusy(true); setError("");
     try {
       const ids = [];
       for (const p of pending) ids.push((await osClient.uploadImage(os.id, { fileName: p.name, mimeType: p.mimeType, fileBase64: p.fileBase64 })).id);
+      for (const v of videos) {
+        const res = await authFetch(`/service-orders/${os.id}/videos`, { method: "POST", headers: { "Content-Type": v.file.type || "video/mp4", "X-File-Name": encodeURIComponent(v.name) }, body: v.file });
+        const body = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível enviar o vídeo.");
+        ids.push(body.id);
+      }
       const updated = await osClient.comment(os.id, { text, fileIds: ids });
       pending.forEach((p) => URL.revokeObjectURL(p.preview));
-      setText(""); setPending([]); stick.current = true;
+      videos.forEach((v) => URL.revokeObjectURL(v.preview));
+      setText(""); setPending([]); setVideos([]); stick.current = true;
       if (area.current) area.current.style.height = "auto";
       setEvents(visible(updated.events)); onUpdated(updated);
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar."); } finally { setBusy(false); area.current?.focus(); }
@@ -185,6 +204,17 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
       </div>
 
       <div className={`border-t border-ds-border-subtle p-3 ${drag ? "bg-ds-primary/5" : ""}`} onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); void addFiles(e.dataTransfer.files); }}>
+        {videos.length > 0 && (
+          <ul className="mb-3 flex flex-wrap gap-2" aria-label="Vídeos a enviar">
+            {videos.map((v) => (
+              <li key={v.key} className="relative h-24 w-40 overflow-hidden rounded-lg border border-ds-border-subtle bg-black">
+                <video src={v.preview} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                <span className="absolute bottom-1 left-1 right-8 truncate rounded bg-black/60 px-1.5 text-[10px] text-white">{v.name}</span>
+                <button type="button" onClick={() => { URL.revokeObjectURL(v.preview); setVideos((l) => l.filter((x) => x.key !== v.key)); }} aria-label={`Remover ${v.name}`} className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-white hover:bg-black"><Icon name="close" className="text-[16px]" /></button>
+              </li>
+            ))}
+          </ul>
+        )}
         {pending.length > 0 && (
           <ul className="mb-3 flex flex-wrap gap-2" aria-label="Imagens a enviar">
             {pending.map((p, i) => (
@@ -198,13 +228,13 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
         )}
         {error && <p role="alert" className="mb-2 text-xs text-ds-danger-text">{error}</p>}
         <div className="flex items-end gap-2">
-          <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => { if (e.target.files) void addFiles(e.target.files); e.target.value = ""; }} />
-          <button type="button" onClick={() => input.current?.click()} disabled={pending.length >= MAX_IMAGES} aria-label="Anexar imagem" title="Anexar imagem" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] border border-ds-border text-ds-text-muted hover:border-ds-primary hover:text-ds-primary disabled:opacity-40"><Icon name="image" className="text-[22px]" /></button>
+          <input ref={input} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple hidden onChange={(e) => { if (e.target.files) void addFiles(e.target.files); e.target.value = ""; }} />
+          <button type="button" onClick={() => input.current?.click()} disabled={pending.length >= MAX_IMAGES && videos.length >= MAX_VIDEOS} aria-label="Anexar imagem ou vídeo" title="Anexar imagem ou vídeo" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] border border-ds-border text-ds-text-muted hover:border-ds-primary hover:text-ds-primary disabled:opacity-40"><Icon name="image" className="text-[22px]" /></button>
           <textarea ref={area} value={text} rows={1} maxLength={4000} onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`; }}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-            onPaste={(e) => { const files = [...e.clipboardData.files]; if (files.some((f) => f.type.startsWith("image/"))) { e.preventDefault(); void addFiles(files); } }}
+            onPaste={(e) => { const files = [...e.clipboardData.files]; if (files.some((f) => f.type.startsWith("image/") || f.type.startsWith("video/"))) { e.preventDefault(); void addFiles(files); } }}
             placeholder="Escreva um comentário..." aria-label="Novo comentário" className="max-h-36 min-h-11 flex-1 resize-none rounded-[10px] border border-ds-border bg-white px-3.5 py-2.5 text-[15px] leading-normal outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" />
-          <button type="button" onClick={() => void send()} disabled={busy || (!text.trim() && !pending.length)} aria-label="Enviar comentário" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-ds-primary text-white shadow-[0_2px_8px_-2px_rgba(0,141,255,0.5)] hover:bg-ds-primary-hover disabled:cursor-not-allowed disabled:bg-ds-border-subtle disabled:text-[#a9b6c2] disabled:shadow-none"><Icon name={busy ? "hourglass_top" : "send"} className="text-[20px]" /></button>
+          <button type="button" onClick={() => void send()} disabled={busy || (!text.trim() && !pending.length && !videos.length)} aria-label="Enviar comentário" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-ds-primary text-white shadow-[0_2px_8px_-2px_rgba(0,141,255,0.5)] hover:bg-ds-primary-hover disabled:cursor-not-allowed disabled:bg-ds-border-subtle disabled:text-[#a9b6c2] disabled:shadow-none"><Icon name={busy ? "hourglass_top" : "send"} className="text-[20px]" /></button>
         </div>
         <p className="mt-1.5 hidden text-[11px] text-ds-text-secondary sm:block">Enter envia · Shift+Enter nova linha · arraste ou cole imagens (até {MAX_IMAGES})</p>
       </div>
