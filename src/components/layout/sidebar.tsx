@@ -25,6 +25,7 @@ const DEFAULT_ITEMS: NavigationItem[] = [
 ];
 
 const MENU_ICONS: Record<string, string> = {
+  "Aplicativo": "qr_code_2",
   "Visão Geral Diretoria": "home", "Relatórios": "print", "Painel de Acompanhamento": "tv", "Mural de Notícias": "campaign", Faturamento: "receipt_long", Financeiro: "payments", Contrato: "contract", Contratos: "description", "Visão Geral": "home", Indicadores: "area_chart", Administrativo: "apartment", Comercial: "work", Operacional: "build", "Gestão de Obras": "engineering", Estoque: "inventory_2", "Governança": "shield_person",
 };
 
@@ -305,7 +306,7 @@ export function Sidebar({
               <div key={item.key} className="shrink-0">
               <div
                 className={`flex shrink-0 items-center rounded-lg text-sm font-medium transition-colors ${
-                  active ? "bg-black/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
+                  item.href === "/aplicativo" ? (active ? "bg-[#F7941D] text-white shadow-md ring-2 ring-white/40" : "bg-[#F7941D]/90 font-bold text-white shadow-md hover:bg-[#F7941D]") : active ? "bg-black/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 {children.length > 0 && item.key !== "inicio" ? <button type="button" onClick={() => toggleGroup(item.key, expanded)} aria-expanded={expanded} aria-controls={`children-${item.key}`} className="min-w-0 flex-1 break-words rounded-lg px-3 py-2 text-left"><span className="flex items-center gap-3"><MenuIcon label={item.label} />{item.label}</span></button> : item.href ? <Link href={item.href} aria-current={active ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(item.href!); }} className={`min-w-0 flex-1 break-words rounded-lg px-3 py-2 `}><span className="flex items-center gap-3"><MenuIcon label={item.label} />{item.label}</span></Link> : <span className="min-w-0 flex-1 break-words px-3 py-2">{item.label}</span>}
