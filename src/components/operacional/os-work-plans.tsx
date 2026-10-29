@@ -199,8 +199,8 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível desfazer."); }
   }
 
-  return (
-    <div className="mx-auto max-w-6xl">
+  const root = (
+    <div className={full ? "fixed inset-0 z-[400] overflow-y-auto bg-[#F4F7FA] p-4 sm:p-6" : "mx-auto max-w-6xl"}>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <h4 className="flex items-center gap-2 text-lg font-bold text-ds-primary-deep"><Icon name="engineering" className="text-[22px]" />Gestão de Obras</h4>
         <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => void upload(e.target.files?.[0])} />
@@ -215,20 +215,20 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
           <p className="text-sm text-ds-text-secondary">Anexe a imagem da planta da obra para marcar pontos e descrever o que precisa ser feito em cada um.</p>
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div className={`grid gap-4 ${full ? "lg:grid-cols-[1fr_380px]" : "lg:grid-cols-[1fr_320px]"}`}>
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => setTool("pin")} aria-pressed={tool === "pin"} className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold ${tool === "pin" ? "bg-ds-primary text-white" : "border border-ds-border bg-white text-ds-primary-deep"}`}><Icon name="location_on" className="text-[18px]" />Marcar</button>
               <button type="button" onClick={() => { setTool("draw"); setDraft(null); }} aria-pressed={tool === "draw"} className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold ${tool === "draw" ? "bg-ds-primary text-white" : "border border-ds-border bg-white text-ds-primary-deep"}`}><Icon name="draw" className="text-[18px]" />Desenhar</button>
               {tool === "draw" && COLORS.map((c) => <button key={c} type="button" onClick={() => setColor(c)} aria-label={`Cor ${c}`} style={{ background: c }} className={`h-7 w-7 rounded-full border-2 shadow ${color === c ? "border-ds-primary-deep ring-2 ring-ds-primary/40" : "border-white"}`} />)}
               <button type="button" disabled={!plan.strokes.length} onClick={() => void undo()} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-ds-border bg-white px-3 text-sm font-semibold text-ds-primary-deep disabled:opacity-40"><Icon name="undo" className="text-[18px]" />Desfazer rabisco</button>
-              <button type="button" onClick={() => setFull(true)} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border border-ds-border bg-white px-3 text-sm font-semibold text-ds-primary-deep hover:border-ds-primary"><Icon name="fullscreen" className="text-[18px]" />Maximizar</button>
+              <button type="button" onClick={() => setFull((v) => !v)} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border border-ds-border bg-white px-3 text-sm font-semibold text-ds-primary-deep hover:border-ds-primary"><Icon name={full ? "fullscreen_exit" : "fullscreen"} className="text-[18px]" />{full ? "Sair da tela cheia" : "Maximizar"}</button>
             </div>
             <p className="mb-2 flex items-center gap-2 text-xs text-ds-text-secondary"><Icon name="touch_app" className="text-[16px]" />{tool === "pin" ? "Clique na planta para marcar e descrever." : "Arraste sobre a planta para desenhar."} <b className="text-ds-primary-deep">{plan.title}</b><button type="button" onClick={() => rename(plan)} aria-label="Dar nome à planta" title="Dar nome à planta" className="inline-flex text-ds-primary hover:text-ds-primary-deep"><Icon name="edit" className="text-[16px]" /></button> · enviada por {plan.userName} em {fmtDateTime(plan.createdAt)}</p>
             {(() => { const board = (
             <div className={`relative inline-block max-w-full cursor-crosshair select-none rounded-xl ${draft ? "overflow-visible" : "overflow-hidden"} ${tool === "draw" ? "touch-none" : ""}`} onClick={place} onPointerDown={down} onPointerMove={move} onPointerUp={() => void up()} onPointerCancel={() => void up()}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={plan.fileUrl} alt={plan.title} draggable={false} className={`block h-auto w-auto max-w-full rounded-xl ${full ? "max-h-[calc(100dvh-84px)]" : "max-h-[min(72vh,820px)]"}`} />
+              <img src={plan.fileUrl} alt={plan.title} draggable={false} className={`block h-auto w-auto max-w-full rounded-xl ${full ? "max-h-[calc(100dvh-250px)]" : "max-h-[min(72vh,820px)]"}`} />
               <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
                 {[...plan.strokes, ...(live ? [{ id: "live", color, points: live, userName: "" }] : [])].map((st) => <polyline key={st.id} points={st.points.map((q) => q.join(",")).join(" ")} fill="none" stroke={st.color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
               </svg>
@@ -265,16 +265,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
               )}
               {draft && (kind === "x" ? <span style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 animate-pulse"><ObjectionMark /></span> : <span style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%`, background: kindOf(kind).bg }} className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full border-2 border-white shadow-lg" />)}
             </div>
-            ); return full ? createPortal(
-              <div className="fixed inset-0 z-[400] flex flex-col bg-[#0b1620]/95">
-                <div className="flex items-center gap-2 px-3 py-2 text-white">
-                  <b className="min-w-0 flex-1 truncate text-sm">{plan.title}</b>
-                  <button type="button" onClick={() => setTool("pin")} aria-pressed={tool === "pin"} className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold ${tool === "pin" ? "bg-[#0095FF]" : "bg-white/15"}`}><Icon name="location_on" className="text-[18px]" />Marcar</button>
-                  <button type="button" onClick={() => setTool("draw")} aria-pressed={tool === "draw"} className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold ${tool === "draw" ? "bg-[#0095FF]" : "bg-white/15"}`}><Icon name="draw" className="text-[18px]" />Desenhar</button>
-                  <button type="button" onClick={() => setFull(false)} aria-label="Sair da tela cheia" className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white/15 px-3 text-sm font-bold hover:bg-white/25"><Icon name="fullscreen_exit" className="text-[18px]" />Fechar</button>
-                </div>
-                <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-3">{board}</div>
-              </div>, document.body) : <div className="flex justify-center rounded-xl border border-ds-border bg-ds-bg p-1.5">{board}</div>; })()}
+            ); return <div className="flex justify-center rounded-xl border border-ds-border bg-ds-bg p-1.5">{board}</div>; })()}
             <PlanChecklists osId={osId} plan={plan} onChange={() => void load()} />
           </div>
 
@@ -316,4 +307,5 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
       )}
     </div>
   );
+  return full && typeof document !== "undefined" ? createPortal(root, document.body) : root;
 }
