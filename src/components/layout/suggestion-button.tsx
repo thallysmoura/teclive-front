@@ -125,7 +125,7 @@ export function SuggestionButton({ user }: { user: Me }) {
         <UserAvatar name={user.name} avatarUrl={user.avatarUrl} size={26} />{busy ? "Capturando..." : "Sugerir melhoria"}
       </button></div>, document.body)}
       {busy && typeof document !== "undefined" && createPortal(
-        <div data-no-capture role="alert" aria-live="assertive" className="fixed inset-0 z-[66] flex items-center justify-center bg-[#10202e]/40 backdrop-blur-[2px]">
+        <div data-no-capture role="alert" aria-live="assertive" className="fixed inset-0 z-[310] flex items-center justify-center bg-[#10202e]/40 backdrop-blur-[2px]">
           <div className="flex items-center gap-3.5 rounded-2xl bg-white px-6 py-4 shadow-2xl">
             <span className="h-7 w-7 animate-spin rounded-full border-[3px] border-[#F7941D]/25 border-t-[#F7941D]" />
             <span><span className="block text-base font-extrabold text-ds-primary-deep">Aguarde...</span><span className="block text-xs text-ds-text-secondary">Capturando a tela</span></span>
@@ -224,7 +224,7 @@ function SuggestionDialog({ base, title, path, viewport, onClose }: Shot & { onC
   const pinCount = marks.filter((m) => m.kind === "pin").length;
 
   return createPortal(
-    <div className="fixed inset-0 z-[65] flex items-stretch justify-center bg-[#10202e]/60 sm:items-center sm:p-4" data-no-capture>
+    <div className="fixed inset-0 z-[300] flex items-stretch justify-center bg-[#10202e]/60 sm:items-center sm:p-4" data-no-capture>
       <div className="absolute inset-0" onClick={() => !sending && onClose()} />
       <div role="dialog" aria-modal="true" aria-label="Sugerir melhoria" className="relative flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[94vh] sm:rounded-3xl">
         <header className="flex items-center gap-3 border-b border-ds-border-subtle px-4 py-3 sm:px-5">
@@ -318,7 +318,7 @@ function MyList({ sent, onNew }: { sent: boolean; onNew: () => void }) {
         </ul>
       )}
       {zoom && (
-        <div role="dialog" aria-label="Imagem ampliada" onClick={() => setZoom(null)} className="fixed inset-0 z-[70] flex cursor-zoom-out items-center justify-center bg-black/80 p-6">
+        <div role="dialog" aria-label="Imagem ampliada" onClick={() => setZoom(null)} className="fixed inset-0 z-[320] flex cursor-zoom-out items-center justify-center bg-black/80 p-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={zoom} alt="" className="max-h-[90vh] max-w-[92vw] rounded-2xl object-contain shadow-2xl" />
         </div>
