@@ -32,11 +32,11 @@ const MENU_ICONS: Record<string, string> = {
 /** Ícone sólido do item principal do menu (mesmo estilo do eugestor). */
 function MenuIcon({ label }: { label: string }) {
   if (label === "Aplicativo") return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 shrink-0" fill="none">
-      <rect x="6" y="2" width="12" height="20" rx="3" fill="#fff" />
-      <rect x="8" y="5" width="8" height="12" rx="1" fill="#F7941D" />
-      <path d="M9 6h2.5v2.5H9zM12.5 6H15v2.5h-2.5zM9 9.5h2.5V12H9zM13 10h2v2h-2zM12 13h3v2.5h-3zM9 13.5h2v2H9z" fill="#fff" />
-      <circle cx="12" cy="19.5" r="1" fill="#F7941D" />
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[22px] w-6 shrink-0 text-white/85" fill="none">
+      <rect x="6" y="2" width="12" height="20" rx="3" fill="currentColor" />
+      <rect x="8" y="5" width="8" height="12" rx="1" fill="#0B5A8F" />
+      <path d="M9 6h2.5v2.5H9zM12.5 6H15v2.5h-2.5zM9 9.5h2.5V12H9zM13 10h2v2h-2zM12 13h3v2.5h-3zM9 13.5h2v2H9z" fill="currentColor" />
+      <circle cx="12" cy="19.5" r="1" fill="#0B5A8F" />
     </svg>
   );
   const name = MENU_ICONS[label];
@@ -314,7 +314,7 @@ export function Sidebar({
               <div key={item.key} className="shrink-0">
               <div
                 className={`flex shrink-0 items-center rounded-lg text-sm font-medium transition-colors ${
-                  item.href === "/aplicativo" ? (active ? "bg-[#F7941D] text-white shadow-md ring-2 ring-white/40" : "bg-[#F7941D]/90 font-bold text-white shadow-md hover:bg-[#F7941D]") : active ? "bg-black/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
+                  active ? "bg-black/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 {children.length > 0 && item.key !== "inicio" ? <button type="button" onClick={() => toggleGroup(item.key, expanded)} aria-expanded={expanded} aria-controls={`children-${item.key}`} className="min-w-0 flex-1 break-words rounded-lg px-3 py-2 text-left"><span className="flex items-center gap-3"><MenuIcon label={item.label} />{item.label}</span></button> : item.href ? <Link href={item.href} aria-current={active ? "page" : undefined} onNavigate={(event) => { event.preventDefault(); setOpen(false); navigate(item.href!); }} className={`min-w-0 flex-1 break-words rounded-lg px-3 py-2 `}><span className="flex items-center gap-3"><MenuIcon label={item.label} />{item.label}</span></Link> : <span className="min-w-0 flex-1 break-words px-3 py-2">{item.label}</span>}
