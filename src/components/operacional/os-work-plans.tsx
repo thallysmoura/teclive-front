@@ -8,7 +8,10 @@ import { fmtDateTime } from "@/lib/operacional";
 type Kind = "point" | "ok" | "x";
 type Point = { id: string; number: number; x: number; y: number; kind: Kind; description: string; done: boolean; userName: string; createdAt: string };
 type Stroke = { id: string; color: string; points: number[][]; userName: string };
-type Plan = { id: string; title: string; fileUrl: string; userName: string; createdAt: string; points: Point[]; strokes: Stroke[] };
+type CheckItem = { id: string; text: string; done: boolean; doneBy: string | null };
+type Checklist = { id: string; title: string; userName: string; items: CheckItem[] };
+type Plan = { id: string; title: string; fileUrl: string; userName: string; createdAt: string; points: Point[]; strokes: Stroke[]; checklists: Checklist[] };
+const NAME_HINTS = "Sugestões: Infraestrutura, Instalação, Elétrica, Rede, CFTV";
 const KINDS: { key: Kind; label: string; icon: string; bg: string }[] = [
   { key: "point", label: "Ponto", icon: "location_on", bg: "#F7941D" },
   { key: "ok", label: "OK", icon: "check", bg: "#12A262" },
@@ -48,6 +51,48 @@ async function shrink(file: File): Promise<string> {
   throw new ApiError("A imagem é muito grande mesmo reduzida. Envie uma menor.");
 }
 
+function PlanChecklists({ osId, plan, onChange }: { osId: string; plan: Plan; onChange: () => void }) {
+  const [error, setError] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const base = `/service-orders/${osId}/plans/${plan.id}/checklists`;
+  const run = async (fn: () => Promise<unknown>) => { setError(""); try { await fn(); onChange(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível concluir."); } };
+  const create = () => { const title = window.prompt("Nome do checklist (ex.: Infraestrutura, Instalação):"); if (title?.trim()) void run(() => call(base, { method: "POST", body: JSON.stringify({ title }) })); };
+  return (
+    <section className="mt-4 rounded-xl border border-ds-border-subtle bg-white">
+      <header className="flex flex-wrap items-center gap-2 border-b border-ds-border-subtle px-4 py-3"><Icon name="checklist" className="text-[22px] text-[#F7941D]" /><h5 className="text-sm font-bold text-ds-primary-deep">Checklists da planta ({plan.checklists.length})</h5><button type="button" onClick={create} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-[#F7941D] px-3 text-sm font-bold text-white hover:bg-[#E5850F]"><Icon name="add" className="text-[18px]" />Novo checklist</button></header>
+      {error && <p role="alert" className="mx-4 mt-3 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
+      {plan.checklists.length === 0 ? <p className="px-4 py-6 text-center text-sm text-ds-text-secondary">Nenhum checklist nesta planta. Crie um para acompanhar o que falta fazer.</p> : (
+        <div className="grid gap-3 p-3 md:grid-cols-2">
+          {plan.checklists.map((c) => {
+            const done = c.items.filter((i) => i.done).length, pct = c.items.length ? Math.round((done / c.items.length) * 100) : 0;
+            return (
+              <article key={c.id} className="rounded-xl border border-ds-border-subtle p-3">
+                <div className="flex items-center gap-2"><h6 className="min-w-0 flex-1 truncate font-bold text-ds-primary-deep">{c.title}</h6><span className="text-xs font-bold text-ds-text-secondary">{done}/{c.items.length}</span>
+                  <button type="button" onClick={() => { const t = window.prompt("Novo nome do checklist:", c.title); if (t?.trim() && t.trim() !== c.title) void run(() => call(`${base}/${c.id}`, { method: "PUT", body: JSON.stringify({ title: t }) })); }} aria-label={`Renomear ${c.title}`} title="Renomear" className="text-ds-primary"><Icon name="edit" className="text-[18px]" /></button>
+                  <button type="button" onClick={() => { if (window.confirm(`Excluir o checklist "${c.title}"?`)) void run(() => call(`${base}/${c.id}`, { method: "DELETE" })); }} aria-label={`Excluir ${c.title}`} title="Excluir" className="text-ds-danger-text"><Icon name="delete" className="text-[18px]" /></button></div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ds-bg"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct === 100 ? "#12A262" : "#F7941D" }} /></div>
+                <ul className="mt-2 space-y-1">
+                  {c.items.map((i) => (
+                    <li key={i.id} className="group flex items-start gap-2 text-sm">
+                      <input type="checkbox" checked={i.done} onChange={(e) => void run(() => call(`${base}/${c.id}/items/${i.id}`, { method: "PUT", body: JSON.stringify({ done: e.target.checked }) }))} aria-label={i.text} className="mt-1 h-4 w-4 accent-[#12A262]" />
+                      <span className={`min-w-0 flex-1 break-words ${i.done ? "text-ds-text-secondary line-through" : "text-ds-text"}`}>{i.text}{i.done && i.doneBy && <span className="ml-1 text-[10px] text-ds-text-secondary no-underline">· {i.doneBy}</span>}</span>
+                      <button type="button" onClick={() => void run(() => call(`${base}/${c.id}/items/${i.id}`, { method: "DELETE" }))} aria-label="Remover item" className="text-ds-text-secondary opacity-0 hover:text-ds-danger-text group-hover:opacity-100 focus:opacity-100"><Icon name="close" className="text-[16px]" /></button>
+                    </li>
+                  ))}
+                </ul>
+                <form className="mt-2 flex gap-1.5" onSubmit={(e) => { e.preventDefault(); const t = (drafts[c.id] ?? "").trim(); if (!t) return; setDrafts((d) => ({ ...d, [c.id]: "" })); void run(() => call(`${base}/${c.id}/items`, { method: "POST", body: JSON.stringify({ text: t }) })); }}>
+                  <input value={drafts[c.id] ?? ""} onChange={(e) => setDrafts((d) => ({ ...d, [c.id]: e.target.value }))} placeholder="Novo item..." maxLength={300} className="h-9 min-w-0 flex-1 rounded-lg border border-ds-border px-2.5 text-sm outline-none focus:border-ds-primary" />
+                  <button type="submit" className="h-9 rounded-lg border border-ds-border px-3 text-sm font-bold text-ds-primary hover:border-ds-primary">Adicionar</button>
+                </form>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: boolean }) {
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [sel, setSel] = useState<string | null>(null);
@@ -67,6 +112,10 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
   useEffect(() => { void load(); }, [load]);
 
   const plan = plans?.find((p) => p.id === sel) ?? null;
+  const rename = (p: Plan) => {
+    const t = window.prompt(`Nome da planta no histórico (ex.: Infraestrutura, Instalação).\n${NAME_HINTS}`, p.title);
+    if (t?.trim() && t.trim() !== p.title) void call(`/service-orders/${osId}/plans/${p.id}`, { method: "PUT", body: JSON.stringify({ title: t }) }).then(() => load()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível renomear."));
+  };
 
   async function upload(f: File | undefined) {
     if (!f) return;
@@ -163,7 +212,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
               {tool === "draw" && COLORS.map((c) => <button key={c} type="button" onClick={() => setColor(c)} aria-label={`Cor ${c}`} style={{ background: c }} className={`h-7 w-7 rounded-full border-2 shadow ${color === c ? "border-ds-primary-deep ring-2 ring-ds-primary/40" : "border-white"}`} />)}
               <button type="button" disabled={!plan.strokes.length} onClick={() => void undo()} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-ds-border bg-white px-3 text-sm font-semibold text-ds-primary-deep disabled:opacity-40"><Icon name="undo" className="text-[18px]" />Desfazer rabisco</button>
             </div>
-            <p className="mb-2 flex items-center gap-2 text-xs text-ds-text-secondary"><Icon name="touch_app" className="text-[16px]" />{tool === "pin" ? "Clique na planta para marcar e descrever." : "Arraste sobre a planta para desenhar."} <b className="text-ds-primary-deep">{plan.title}</b> · enviada por {plan.userName} em {fmtDateTime(plan.createdAt)}</p>
+            <p className="mb-2 flex items-center gap-2 text-xs text-ds-text-secondary"><Icon name="touch_app" className="text-[16px]" />{tool === "pin" ? "Clique na planta para marcar e descrever." : "Arraste sobre a planta para desenhar."} <b className="text-ds-primary-deep">{plan.title}</b><button type="button" onClick={() => rename(plan)} aria-label="Dar nome à planta" title="Dar nome à planta" className="inline-flex text-ds-primary hover:text-ds-primary-deep"><Icon name="edit" className="text-[16px]" /></button> · enviada por {plan.userName} em {fmtDateTime(plan.createdAt)}</p>
             <div className={`relative cursor-crosshair select-none overflow-hidden rounded-xl border border-ds-border bg-ds-bg ${tool === "draw" ? "touch-none" : ""}`} onClick={place} onPointerDown={down} onPointerMove={move} onPointerUp={() => void up()} onPointerCancel={() => void up()}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={plan.fileUrl} alt={plan.title} draggable={false} className="block h-auto w-full" />
@@ -193,6 +242,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
                 <p className="mt-2 text-xs text-ds-text-secondary">Os administradores serão avisados na hora.</p>
               </div>
             )}
+            <PlanChecklists osId={osId} plan={plan} onChange={() => void load()} />
           </div>
 
           <aside className="space-y-4">
@@ -223,7 +273,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
                   <li key={p.id}><button type="button" onClick={() => { setSel(p.id); setDraft(null); setActive(null); }} className={`flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-ds-bg ${p.id === sel ? "bg-ds-primary/5" : ""}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={p.fileUrl} alt="" className="h-12 w-16 shrink-0 rounded-md border border-ds-border object-cover" />
-                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-ds-primary-deep">{p.title}</span><span className="block text-[11px] text-ds-text-secondary">{fmtDateTime(p.createdAt)} · {p.userName}</span><span className="block text-[11px] text-ds-text-secondary">{p.points.length} {p.points.length === 1 ? "ponto" : "pontos"}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-ds-primary-deep">{p.title}</span><span className="block text-[11px] text-ds-text-secondary">{p.checklists.length} {p.checklists.length === 1 ? "checklist" : "checklists"}</span><span className="block text-[11px] text-ds-text-secondary">{fmtDateTime(p.createdAt)} · {p.userName}</span><span className="block text-[11px] text-ds-text-secondary">{p.points.length} {p.points.length === 1 ? "ponto" : "pontos"}</span></span>
                   </button></li>
                 ))}
               </ul>
