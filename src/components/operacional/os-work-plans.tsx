@@ -110,6 +110,33 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
   const [label, setLabel] = useState("");
   const [menu, setMenu] = useState(false);
   const [full, setFull] = useState(false);
+  const [moving, setMoving] = useState<{ id: string; x: number; y: number } | null>(null);
+  const justDragged = useRef(false);
+  /** Arrasta um ponto já marcado para a nova posição e grava ao soltar. */
+  function startDrag(e: React.PointerEvent<HTMLButtonElement>, p: Point) {
+    if (tool !== "pin" || e.button !== 0) return;
+    e.stopPropagation();
+    const board = e.currentTarget.closest("[data-board]") as HTMLElement | null;
+    if (!board || !plan) return;
+    const sx = e.clientX, sy = e.clientY; let moved = false; let last = { x: p.x, y: p.y };
+    const planId = plan.id;
+    const onMove = (ev: PointerEvent) => {
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 5) return;
+      moved = true; ev.preventDefault();
+      const r = board.getBoundingClientRect();
+      last = { x: Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height)) };
+      setMoving({ id: p.id, ...last }); setDraft(null);
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); window.removeEventListener("pointercancel", onUp);
+      if (!moved) return;
+      justDragged.current = true; setTimeout(() => { justDragged.current = false; }, 0);
+      setPlans((all) => all?.map((pl) => (pl.id === planId ? { ...pl, points: pl.points.map((q) => (q.id === p.id ? { ...q, ...last } : q)) } : pl)) ?? all);
+      setMoving(null);
+      void call(`/service-orders/${osId}/plans/${planId}/points/${p.id}`, { method: "PUT", body: JSON.stringify(last) }).catch((err) => { setError(err instanceof Error ? err.message : "Não foi possível mover o ponto."); void load(); });
+    };
+    window.addEventListener("pointermove", onMove, { passive: false }); window.addEventListener("pointerup", onUp); window.addEventListener("pointercancel", onUp);
+  }
   useEffect(() => {
     if (!full) return;
     const k = (e: KeyboardEvent) => { if (e.key === "Escape" && !draft) setFull(false); };
@@ -229,7 +256,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
             </div>
             <p className="mb-2 flex items-center gap-2 text-xs text-ds-text-secondary"><Icon name="touch_app" className="text-[16px]" />{tool === "pin" ? "Clique na planta para marcar e descrever." : "Arraste sobre a planta para desenhar."} <b className="text-ds-primary-deep">{plan.title}</b><button type="button" onClick={() => rename(plan)} aria-label="Dar nome à planta" title="Dar nome à planta" className="inline-flex text-ds-primary hover:text-ds-primary-deep"><Icon name="edit" className="text-[16px]" /></button> · enviada por {plan.userName} em {fmtDateTime(plan.createdAt)}</p>
             {(() => { const board = (
-            <div className={`relative inline-block max-w-full cursor-crosshair select-none rounded-xl ${draft ? "overflow-visible" : "overflow-hidden"} ${tool === "draw" ? "touch-none" : ""}`} onClick={place} onPointerDown={down} onPointerMove={move} onPointerUp={() => void up()} onPointerCancel={() => void up()}>
+            <div data-board className={`relative inline-block max-w-full cursor-crosshair select-none rounded-xl ${draft ? "overflow-visible" : "overflow-hidden"} ${tool === "draw" ? "touch-none" : ""}`} onClick={place} onPointerDown={down} onPointerMove={move} onPointerUp={() => void up()} onPointerCancel={() => void up()}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={plan.fileUrl} alt={plan.title} draggable={false} className={`block h-auto w-auto max-w-full rounded-xl ${full ? "max-h-[calc(100dvh-250px)]" : "max-h-[min(72vh,820px)]"}`} />
               <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
@@ -238,7 +265,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
               {plan.points.map((p) => {
                 const k = kindOf(p.kind), flip = p.x > 0.62, short = p.description.length > 48 ? `${p.description.slice(0, 46)}…` : p.description;
                 return (
-                  <button key={p.id} type="button" data-pin onClick={() => { setActive(p.id); setDraft(null); }} style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }} aria-label={`${k.label} ${p.number}`} className={`absolute -translate-x-1/2 -translate-y-1/2 ${active === p.id ? "z-20" : "z-10"}`}>
+                  <button key={p.id} type="button" data-pin onPointerDown={(e) => startDrag(e, p)} onClick={() => { if (justDragged.current) return; setActive(p.id); setDraft(null); }} style={{ left: `${(moving?.id === p.id ? moving.x : p.x) * 100}%`, top: `${(moving?.id === p.id ? moving.y : p.y) * 100}%`, touchAction: tool === "pin" ? "none" : undefined }} aria-label={`${k.label} ${p.number}`} className={`absolute -translate-x-1/2 -translate-y-1/2 ${tool === "pin" ? "cursor-grab active:cursor-grabbing" : ""} ${moving?.id === p.id ? "z-30" : active === p.id ? "z-20" : "z-10"}`}>
                     {p.kind === "x" && !p.done ? <span className="flex h-7 w-7 items-center justify-center"><ObjectionMark active={active === p.id} /></span> : <span style={{ background: p.done ? "#12A262" : k.bg }} className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-xs font-extrabold text-white shadow-lg ${active === p.id ? "scale-125 ring-4 ring-ds-primary/40" : ""}`}>{p.kind === "point" ? p.number : <Icon name={p.done ? "check" : k.icon} className="text-[16px]" />}</span>}
                     <span style={{ borderColor: k.bg }} className={`absolute top-1/2 -translate-y-1/2 rounded-md border bg-white/95 px-1.5 py-0.5 text-left text-[11px] font-semibold leading-tight text-ds-text shadow ${flip ? "right-full mr-2" : "left-full ml-2"} ${active === p.id ? "w-max max-w-[260px] whitespace-normal" : "max-w-[170px] truncate whitespace-nowrap"}`}>{p.label && <b className="mr-1">{p.label}:</b>}{active === p.id ? p.description : short}</span>
                   </button>
