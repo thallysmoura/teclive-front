@@ -31,6 +31,14 @@ const MENU_ICONS: Record<string, string> = {
 
 /** Ícone sólido do item principal do menu (mesmo estilo do eugestor). */
 function MenuIcon({ label }: { label: string }) {
+  if (label === "Aplicativo") return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 shrink-0" fill="none">
+      <rect x="6" y="2" width="12" height="20" rx="3" fill="#fff" />
+      <rect x="8" y="5" width="8" height="12" rx="1" fill="#F7941D" />
+      <path d="M9 6h2.5v2.5H9zM12.5 6H15v2.5h-2.5zM9 9.5h2.5V12H9zM13 10h2v2h-2zM12 13h3v2.5h-3zM9 13.5h2v2H9z" fill="#fff" />
+      <circle cx="12" cy="19.5" r="1" fill="#F7941D" />
+    </svg>
+  );
   const name = MENU_ICONS[label];
   if (!name) return <span className="w-6 shrink-0" aria-hidden="true" />;
   return <span aria-hidden="true" className="material-symbols-outlined w-6 shrink-0 text-center text-[22px] leading-none text-white/85" style={{ fontVariationSettings: '"FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24' }}>{name}</span>;
