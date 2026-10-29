@@ -10,16 +10,24 @@ export function AuthImage({ osId, fileId, alt, className, onClick, url }: { osId
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
-    let url: string | null = null; let live = true;
+    let blob: string | null = null; let live = true; let timer: ReturnType<typeof setTimeout> | undefined;
     setSrc(null); setFailed(false);
     if (url) { setSrc(url); return; } // foto nova: vem direto do Cloudflare R2
-    osClient.imageUrl(osId, fileId).then((u) => { url = u; if (live) setSrc(u); }).catch(() => live && setFailed(true));
-    return () => { live = false; if (url) URL.revokeObjectURL(url); };
+    // Várias imagens abrindo juntas podem esbarrar no limite de requisições: tenta de novo com espera crescente.
+    const load = (attempt: number) => {
+      osClient.imageUrl(osId, fileId).then((u) => { blob = u; if (live) setSrc(u); }).catch(() => {
+        if (!live) return;
+        if (attempt < 4) timer = setTimeout(() => load(attempt + 1), 600 * (attempt + 1) + Math.random() * 600);
+        else setFailed(true);
+      });
+    };
+    load(0);
+    return () => { live = false; clearTimeout(timer); if (blob) URL.revokeObjectURL(blob); };
   }, [osId, fileId, url]);
   if (failed) return <span className="flex h-full min-h-24 w-full items-center justify-center bg-ds-bg px-2 text-center text-xs text-ds-text-secondary">Imagem indisponível</span>;
   if (!src) return <span className="block h-full min-h-24 w-full animate-pulse bg-ds-bg" aria-label="Carregando imagem" />;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} onClick={onClick} className={className} />;
+  return <img src={src} alt={alt} onClick={onClick} onError={() => { if (url) setFailed(true); }} className={className} />;
 }
 
 export type LightboxItem = { name: string; src?: string; osId?: string; fileId?: string };
