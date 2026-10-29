@@ -112,6 +112,15 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   const [videos, setVideos] = useState<PendingVideo[]>([]);
   const [busy, setBusy] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetDraft, setSheetDraft] = useState<string | null>(null);
+  const [sheetBusy, setSheetBusy] = useState(false);
+  const isAdmin = me?.role === "ADMIN";
+  async function saveSheet(text: string | null) {
+    setSheetBusy(true);
+    try { apply(await osClient.setTechnicalSheet(os.id, text)); setSheetDraft(null); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível alterar a ficha técnica."); }
+    finally { setSheetBusy(false); }
+  }
   const [error, setError] = useState("");
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
   const [drag, setDrag] = useState(false);
@@ -186,9 +195,15 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className={`${tall ? "h-[min(62vh,44rem)] min-h-[18rem]" : "h-[min(26rem,52vh)] min-h-[14rem] lg:h-[min(32rem,58vh)]"} space-y-4 overflow-y-auto overscroll-contain bg-ds-bg/40 p-3 sm:p-4`}>
         {os.technicalSheet && (
           <article className="sticky top-0 z-10 -mx-1 -mt-1 rotate-[-0.4deg] rounded-md border border-[#EAB308]/60 bg-[#FEF08A] p-3 shadow-[0_6px_14px_-6px_rgba(133,77,14,0.45)] sm:p-4" style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.35), transparent 40%)" }}>
-            <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#854D0E]"><Icon name="push_pin" className="text-[16px]" />Ficha técnica</p>
+            <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#854D0E]"><Icon name="push_pin" className="text-[16px]" />Ficha técnica{isAdmin && sheetDraft === null && <span className="ml-auto flex gap-1 normal-case tracking-normal"><button type="button" onClick={() => setSheetDraft(os.technicalSheet ?? "")} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-[#854D0E] hover:bg-[#854D0E]/10"><Icon name="edit" className="text-[15px]" />Editar</button><button type="button" disabled={sheetBusy} onClick={() => { if (window.confirm("Excluir a ficha técnica desta OS?")) void saveSheet(null); }} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-[#B42318] hover:bg-[#B42318]/10"><Icon name="delete" className="text-[15px]" />Excluir</button></span>}</p>
+            {sheetDraft !== null ? (
+              <div>
+                <textarea autoFocus value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} rows={6} maxLength={4000} aria-label="Ficha técnica" className="w-full resize-y rounded-md border border-[#EAB308] bg-white/80 px-2.5 py-2 text-sm text-[#713F12] outline-none focus:ring-2 focus:ring-[#EAB308]/50" />
+                <div className="mt-2 flex gap-2"><button type="button" disabled={sheetBusy} onClick={() => void saveSheet(sheetDraft)} className="inline-flex h-8 items-center rounded-md bg-[#854D0E] px-3 text-xs font-bold text-white disabled:opacity-60">{sheetBusy ? "Salvando..." : "Salvar"}</button><button type="button" onClick={() => setSheetDraft(null)} className="inline-flex h-8 items-center rounded-md border border-[#854D0E]/40 px-3 text-xs font-bold text-[#854D0E]">Cancelar</button></div>
+              </div>
+            ) : <>
             <p className={`whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#713F12] sm:text-[15px] ${sheetOpen ? "" : "line-clamp-4"}`}>{os.technicalSheet}</p>
-            {os.technicalSheet.length > 220 && <button type="button" onClick={() => setSheetOpen((v) => !v)} aria-expanded={sheetOpen} className="mt-1 text-xs font-bold text-[#854D0E] underline-offset-2 hover:underline">{sheetOpen ? "Mostrar menos" : "Ver ficha completa"}</button>}
+            {os.technicalSheet.length > 220 && <button type="button" onClick={() => setSheetOpen((v) => !v)} aria-expanded={sheetOpen} className="mt-1 text-xs font-bold text-[#854D0E] underline-offset-2 hover:underline">{sheetOpen ? "Mostrar menos" : "Ver ficha completa"}</button>}</>}
           </article>
         )}
         {events.map((e, i) => {

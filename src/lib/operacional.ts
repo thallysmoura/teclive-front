@@ -101,6 +101,7 @@ export const osClient = {
   async schedule(from: string, until: string): Promise<OsRow[]> { return parse(await authFetch(`/service-orders/schedule?${qs({ from, until })}`, { cache: "no-store" }), "Não foi possível carregar a agenda."); },
   async operations(): Promise<OperationsData> { return parse(await authFetch("/service-orders/operations", { cache: "no-store" }), "Não foi possível carregar a central."); },
   async create(input: OsInput): Promise<OsDetail> { return parse(await authFetch("/service-orders", send("POST", input)), "Não foi possível abrir a OS."); },
+  async setTechnicalSheet(id: string, text: string | null): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/technical-sheet`, send("PUT", { text })), "Não foi possível alterar a ficha técnica."); },
   async update(id: string, input: OsInput): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}`, send("PUT", input)), "Não foi possível salvar a OS."); },
   async comment(id: string, input: { text: string; fileIds?: string[] }): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/comments`, send("POST", input)), "Não foi possível comentar."); },
   async editComment(id: string, eventId: string, text: string): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/comments/${eventId}`, send("PUT", { text })), "Não foi possível editar o comentário."); },
