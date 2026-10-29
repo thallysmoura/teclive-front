@@ -1,5 +1,6 @@
 "use client";
 
+import { cachedMe } from "@/lib/session-cache";
 import { askConfirm, askText } from "@/lib/dialog";
 import { lockScroll } from "@/lib/scroll-lock";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -110,6 +111,18 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
   const [label, setLabel] = useState("");
   const [menu, setMenu] = useState(false);
   const [full, setFull] = useState(false);
+  const isAdmin = cachedMe()?.role === "ADMIN";
+  const [editPt, setEditPt] = useState<{ id: string; kind: Kind; text: string } | null>(null);
+  async function saveEditPt() {
+    if (!editPt || !plan) return;
+    const planId = plan.id; setBusy(true); setError("");
+    try {
+      const upd = await call<Point>(`/service-orders/${osId}/plans/${planId}/points/${editPt.id}`, { method: "PUT", body: JSON.stringify({ kind: editPt.kind, description: editPt.text }) });
+      setPlans((all) => all?.map((pl) => (pl.id === planId ? { ...pl, points: pl.points.map((q) => (q.id === editPt.id ? { ...q, kind: upd.kind, label: upd.label, description: upd.description } : q)) } : pl)) ?? all);
+      setEditPt(null);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar o ponto."); }
+    finally { setBusy(false); }
+  }
   const [moving, setMoving] = useState<{ id: string; x: number; y: number } | null>(null);
   const justDragged = useRef(false);
   /** Arrasta um ponto já marcado para a nova posição e grava ao soltar. */
@@ -199,7 +212,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
     if (tool !== "pin" || (e.target as HTMLElement).closest("[data-pin]")) return;
     const [x, y] = pos(e, e.currentTarget);
     setDraft({ x, y });
-    setText(""); setActive(null);
+    setText(""); setActive(null); setEditPt(null);
   }
   function down(e: React.PointerEvent<HTMLDivElement>) {
     if (tool !== "draw") return;
@@ -265,7 +278,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
               {plan.points.map((p) => {
                 const k = kindOf(p.kind), flip = p.x > 0.62, short = p.description.length > 48 ? `${p.description.slice(0, 46)}…` : p.description;
                 return (
-                  <button key={p.id} type="button" data-pin onPointerDown={(e) => startDrag(e, p)} onClick={() => { if (justDragged.current) return; setActive(p.id); setDraft(null); }} style={{ left: `${(moving?.id === p.id ? moving.x : p.x) * 100}%`, top: `${(moving?.id === p.id ? moving.y : p.y) * 100}%`, touchAction: tool === "pin" ? "none" : undefined }} aria-label={`${k.label} ${p.number}`} className={`absolute -translate-x-1/2 -translate-y-1/2 ${tool === "pin" ? "cursor-grab active:cursor-grabbing" : ""} ${moving?.id === p.id ? "z-30" : active === p.id ? "z-20" : "z-10"}`}>
+                  <button key={p.id} type="button" data-pin onPointerDown={(e) => startDrag(e, p)} onClick={() => { if (justDragged.current) return; setActive(p.id); setDraft(null); setEditPt(isAdmin ? { id: p.id, kind: p.kind, text: p.description } : null); }} style={{ left: `${(moving?.id === p.id ? moving.x : p.x) * 100}%`, top: `${(moving?.id === p.id ? moving.y : p.y) * 100}%`, touchAction: tool === "pin" ? "none" : undefined }} aria-label={`${k.label} ${p.number}`} className={`absolute -translate-x-1/2 -translate-y-1/2 ${tool === "pin" ? "cursor-grab active:cursor-grabbing" : ""} ${moving?.id === p.id ? "z-30" : active === p.id ? "z-20" : "z-10"}`}>
                     {p.kind === "x" && !p.done ? <span className="flex h-7 w-7 items-center justify-center"><ObjectionMark active={active === p.id} /></span> : <span style={{ background: p.done ? "#12A262" : k.bg }} className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-xs font-extrabold text-white shadow-lg ${active === p.id ? "scale-125 ring-4 ring-ds-primary/40" : ""}`}>{p.kind === "point" ? p.number : <Icon name={p.done ? "check" : k.icon} className="text-[16px]" />}</span>}
                     <span style={{ borderColor: k.bg }} className={`absolute top-1/2 -translate-y-1/2 rounded-md border bg-white/95 px-1.5 py-0.5 text-left text-[11px] font-semibold leading-tight text-ds-text shadow ${flip ? "right-full mr-2" : "left-full ml-2"} ${active === p.id ? "w-max max-w-[260px] whitespace-normal" : "max-w-[170px] truncate whitespace-nowrap"}`}>{p.label && <b className="mr-1">{p.label}:</b>}{active === p.id ? p.description : short}</span>
                   </button>
@@ -293,6 +306,23 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
                   </div>
                 </div>
               )}
+              {editPt && (() => {
+                const pt = plan.points.find((q) => q.id === editPt.id);
+                if (!pt) return null;
+                return (
+                  <div data-pin onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} style={{ top: `${Math.min(Math.max(pt.y, 0.2), 0.8) * 100}%`, ...(pt.x > 0.5 ? { right: `${(1 - pt.x) * 100}%`, marginRight: 26 } : { left: `${pt.x * 100}%`, marginLeft: 26 }) }} className="absolute z-40 w-[min(260px,76%)] -translate-y-1/2 cursor-default rounded-xl border border-ds-primary/40 bg-white p-2.5 text-left shadow-xl">
+                    <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-ds-text-secondary">Editar marcação</p>
+                    <div className="flex gap-1.5" role="radiogroup" aria-label="Tipo da marcação">
+                      {KINDS.map((k) => <button key={k.key} type="button" role="radio" aria-checked={editPt.kind === k.key} onClick={() => setEditPt({ ...editPt, kind: k.key })} style={editPt.kind === k.key ? { background: k.bg, borderColor: k.bg } : undefined} className={`inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-lg border text-xs font-bold ${editPt.kind === k.key ? "text-white" : "border-ds-border bg-white text-ds-primary-deep"}`}>{k.key === "x" ? <ObjectionMark size={16} /> : <Icon name={k.icon} className="text-[16px]" />}{k.label}</button>)}
+                    </div>
+                    <textarea autoFocus value={editPt.text} onChange={(e) => setEditPt({ ...editPt, text: e.target.value })} rows={3} maxLength={1000} aria-label="Texto da marcação" className="mt-2 w-full resize-none rounded-lg border border-ds-border px-2.5 py-2 text-sm outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" />
+                    <div className="mt-2 flex gap-2">
+                      <button type="button" disabled={busy || !editPt.text.trim()} onClick={() => void saveEditPt()} className="inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-[#F7941D] px-3 text-sm font-bold text-white hover:bg-[#E5850F] disabled:opacity-60">{busy ? "Salvando..." : "Salvar"}</button>
+                      <button type="button" onClick={() => setEditPt(null)} className="inline-flex h-9 items-center rounded-lg border border-ds-border px-3 text-sm font-semibold text-ds-primary-deep">Fechar</button>
+                    </div>
+                  </div>
+                );
+              })()}
               {draft && (kind === "x" ? <span style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 animate-pulse"><ObjectionMark /></span> : <span style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%`, background: kindOf(kind).bg }} className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full border-2 border-white shadow-lg" />)}
             </div>
             ); return <div className="flex justify-center rounded-xl border border-ds-border bg-ds-bg p-1.5">{board}</div>; })()}
