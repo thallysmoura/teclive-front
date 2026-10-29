@@ -1,3 +1,4 @@
+import { DialogHost } from "@/lib/dialog";
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
@@ -45,7 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
         />
       </head>
-      <body className="min-h-full flex flex-col"><AppSplash /><NavigationTransition>{children}</NavigationTransition><PwaInstall /></body>
+      <body className="min-h-full flex flex-col"><AppSplash /><NavigationTransition>{children}</NavigationTransition><PwaInstall /><DialogHost /></body>
     </html>
   );
 }

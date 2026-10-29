@@ -1,5 +1,6 @@
 "use client";
 
+import { askConfirm, askText } from "@/lib/dialog";
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { ApiError, authFetch } from "@/lib/api";
@@ -25,9 +26,9 @@ export function OsAttachments({ osId, attachments, canManage, onZoom }: { osId: 
   useEffect(() => { void load(); }, [load]);
 
   const run = async (fn: () => Promise<unknown>) => { setError(""); try { await fn(); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível concluir."); } };
-  const newFolder = () => { const name = window.prompt("Nome da nova pasta:"); if (name?.trim()) void run(() => call(`/service-orders/${osId}/folders`, { method: "POST", body: JSON.stringify({ name }) })); };
-  const rename = (f: Folder) => { const name = window.prompt("Novo nome da pasta:", f.name); if (name?.trim() && name.trim() !== f.name) void run(() => call(`/service-orders/${osId}/folders/${f.id}`, { method: "PUT", body: JSON.stringify({ name }) })); };
-  const remove = (f: Folder) => { if (window.confirm(`Excluir a pasta "${f.name}"? Os anexos não são apagados: voltam para "Sem pasta".`)) void run(() => call(`/service-orders/${osId}/folders/${f.id}`, { method: "DELETE" })); };
+  const newFolder = () => { void askText({ title: "Nova pasta", label: "Nome da pasta", confirmLabel: "Criar" }).then((name) => { if (name) void run(() => call(`/service-orders/${osId}/folders`, { method: "POST", body: JSON.stringify({ name }) })); }); };
+  const rename = (f: Folder) => { void askText({ title: "Renomear pasta", label: "Novo nome da pasta", initial: f.name }).then((name) => { if (name && name !== f.name) void run(() => call(`/service-orders/${osId}/folders/${f.id}`, { method: "PUT", body: JSON.stringify({ name }) })); }); };
+  const remove = (f: Folder) => { void askConfirm({ title: "Excluir pasta", message: `Excluir a pasta "${f.name}"? Os anexos não são apagados: voltam para "Sem pasta".`, confirmLabel: "Excluir" }).then((ok) => { if (ok) void run(() => call(`/service-orders/${osId}/folders/${f.id}`, { method: "DELETE" })); }); };
   const move = (a: Attachment, folderId: string) => void run(() => call(`/service-orders/${osId}/folders/assign`, { method: "PUT", body: JSON.stringify({ attachmentId: String(a.ordemServicoArquivoId), folderId: folderId || null }) }));
 
   const folderOf = (a: Attachment) => state.assign[String(a.ordemServicoArquivoId)];

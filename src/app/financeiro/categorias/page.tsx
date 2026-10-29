@@ -1,5 +1,6 @@
 "use client";
 
+import { askConfirm, askText } from "@/lib/dialog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Breadcrumb, PageShell } from "@/components/layout/page-shell";
 import { Icon } from "@/components/ui/icon";
@@ -51,9 +52,9 @@ function Categories() {
       <div className={`${card} mb-4 p-3`}><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar categoria" className={field} /></div>
       {error && <p role="alert" className="mb-3 rounded-lg bg-ds-danger-bg px-3 py-2 text-sm text-ds-danger-text">{error}</p>}
       <div className={`${card} p-2`}>{!all ? <p className="py-10 text-center text-sm text-ds-text-secondary">Carregando...</p> : <ul>{(kids.get(null) ?? []).map((c) => <Node key={c.id} c={c} kids={kids} depth={0} open={open} toggle={toggle} search={term}
-        onAdd={(p) => { const name = window.prompt(`Nova subcategoria em "${p.name}":`); if (name?.trim()) void run(() => fin.createCategory({ name, parentId: p.id })).then(() => setOpen((o) => new Set(o).add(p.id))); }}
-        onRename={(c2) => { const name = window.prompt("Novo nome:", c2.name); if (name?.trim() && name.trim() !== c2.name) void run(() => fin.updateCategory(c2.id, { name })); }}
-        onDelete={(c2) => { if (window.confirm(`Excluir a categoria "${c2.name}"?`)) void run(() => fin.deleteCategory(c2.id)); }} />)}</ul>}</div>
+        onAdd={(p) => { void askText({ title: "Nova subcategoria", label: `Nome da subcategoria em "${p.name}"`, confirmLabel: "Criar" }).then((name) => { if (name) void run(() => fin.createCategory({ name, parentId: p.id })).then(() => setOpen((o) => new Set(o).add(p.id))); }); }}
+        onRename={(c2) => { void askText({ title: "Renomear categoria", label: "Novo nome", initial: c2.name }).then((name) => { if (name && name !== c2.name) void run(() => fin.updateCategory(c2.id, { name })); }); }}
+        onDelete={(c2) => { void askConfirm({ title: "Excluir categoria", message: `Excluir a categoria "${c2.name}"?`, confirmLabel: "Excluir" }).then((ok) => { if (ok) void run(() => fin.deleteCategory(c2.id)); }); }} />)}</ul>}</div>
     </div>
   );
 }

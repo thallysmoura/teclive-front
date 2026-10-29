@@ -1,5 +1,6 @@
 "use client";
 
+import { askConfirm, askText } from "@/lib/dialog";
 import { lockScroll } from "@/lib/scroll-lock";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -58,7 +59,7 @@ function PlanChecklists({ osId, plan, onChange }: { osId: string; plan: Plan; on
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const base = `/service-orders/${osId}/plans/${plan.id}/checklists`;
   const run = async (fn: () => Promise<unknown>) => { setError(""); try { await fn(); onChange(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível concluir."); } };
-  const create = () => { const title = window.prompt("Nome do checklist (ex.: Infraestrutura, Instalação):"); if (title?.trim()) void run(() => call(base, { method: "POST", body: JSON.stringify({ title }) })); };
+  const create = () => { void askText({ title: "Novo checklist", label: "Nome do checklist", placeholder: "Ex.: Infraestrutura, Instalação", confirmLabel: "Criar" }).then((title) => { if (title) void run(() => call(base, { method: "POST", body: JSON.stringify({ title }) })); }); };
   return (
     <section className="mt-4 rounded-xl border border-ds-border-subtle bg-white">
       <header className="flex flex-wrap items-center gap-2 border-b border-ds-border-subtle px-4 py-3"><Icon name="checklist" className="text-[22px] text-[#F7941D]" /><h5 className="text-sm font-bold text-ds-primary-deep">Checklists da planta ({plan.checklists.length})</h5><button type="button" onClick={create} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-[#F7941D] px-3 text-sm font-bold text-white hover:bg-[#E5850F]"><Icon name="add" className="text-[18px]" />Novo checklist</button></header>
@@ -70,8 +71,8 @@ function PlanChecklists({ osId, plan, onChange }: { osId: string; plan: Plan; on
             return (
               <article key={c.id} className="rounded-xl border border-ds-border-subtle p-3">
                 <div className="flex items-center gap-2"><h6 className="min-w-0 flex-1 truncate font-bold text-ds-primary-deep">{c.title}</h6><span className="text-xs font-bold text-ds-text-secondary">{done}/{c.items.length}</span>
-                  <button type="button" onClick={() => { const t = window.prompt("Novo nome do checklist:", c.title); if (t?.trim() && t.trim() !== c.title) void run(() => call(`${base}/${c.id}`, { method: "PUT", body: JSON.stringify({ title: t }) })); }} aria-label={`Renomear ${c.title}`} title="Renomear" className="text-ds-primary"><Icon name="edit" className="text-[18px]" /></button>
-                  <button type="button" onClick={() => { if (window.confirm(`Excluir o checklist "${c.title}"?`)) void run(() => call(`${base}/${c.id}`, { method: "DELETE" })); }} aria-label={`Excluir ${c.title}`} title="Excluir" className="text-ds-danger-text"><Icon name="delete" className="text-[18px]" /></button></div>
+                  <button type="button" onClick={() => { void askText({ title: "Renomear checklist", label: "Novo nome do checklist", initial: c.title }).then((t) => { if (t && t !== c.title) void run(() => call(`${base}/${c.id}`, { method: "PUT", body: JSON.stringify({ title: t }) })); }); }} aria-label={`Renomear ${c.title}`} title="Renomear" className="text-ds-primary"><Icon name="edit" className="text-[18px]" /></button>
+                  <button type="button" onClick={() => { void askConfirm({ title: "Excluir checklist", message: `Excluir o checklist "${c.title}"?`, confirmLabel: "Excluir" }).then((ok) => { if (ok) void run(() => call(`${base}/${c.id}`, { method: "DELETE" })); }); }} aria-label={`Excluir ${c.title}`} title="Excluir" className="text-ds-danger-text"><Icon name="delete" className="text-[18px]" /></button></div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ds-bg"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct === 100 ? "#12A262" : "#F7941D" }} /></div>
                 <ul className="mt-2 space-y-1">
                   {c.items.map((i) => (
@@ -125,8 +126,9 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
 
   const plan = plans?.find((p) => p.id === sel) ?? null;
   const rename = (p: Plan) => {
-    const t = window.prompt(`Nome da planta no histórico (ex.: Infraestrutura, Instalação).\n${NAME_HINTS}`, p.title);
-    if (t?.trim() && t.trim() !== p.title) void call(`/service-orders/${osId}/plans/${p.id}`, { method: "PUT", body: JSON.stringify({ title: t }) }).then(() => load()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível renomear."));
+    void askText({ title: "Nome da planta", label: `Nome no histórico. ${NAME_HINTS}`, initial: p.title }).then((t) => {
+      if (t && t !== p.title) void call(`/service-orders/${osId}/plans/${p.id}`, { method: "PUT", body: JSON.stringify({ title: t }) }).then(() => load()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível renomear."));
+    });
   };
 
   async function upload(f: File | undefined) {
@@ -157,7 +159,7 @@ export function OsWorkPlans({ osId, canManage }: { osId: string; canManage: bool
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atualizar."); }
   }
   async function remove(p: Point) {
-    if (!plan || !confirm(`Excluir o ponto ${p.number}?`)) return;
+    if (!plan || !(await askConfirm({ title: "Excluir ponto", message: `Excluir o ponto ${p.number}?`, confirmLabel: "Excluir" }))) return;
     try { await call(`/service-orders/${osId}/plans/${plan.id}/points/${p.id}`, { method: "DELETE" }); void load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível excluir."); }
   }
