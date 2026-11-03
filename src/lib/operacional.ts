@@ -65,7 +65,8 @@ export type OsRow = {
   total: number; pendencies: number; attachments: number;
 };
 export type OsItem = { ordemServicoItemId: number; quantidade: number; quantidadeEntregue?: number; cobrado?: boolean; valores?: { unitario?: number; total?: number; desconto?: { valor?: number } | number }; servico?: { descricao: string }; produto?: { descricao: string; identificador?: string; unidadeMedida?: string }; orcamento?: { numero: number } | null };
-export type OsComment = { id?: string; tipo: number; conteudo: string | null; dataRegistro: string; usuario: string; usuarioId?: string; editadoEm?: string; avatarUrl?: string | null; anexos?: { id: string; fileName: string; mimeType: string; size: number; url?: string }[] };
+export type CommentUser = { id: string; name: string; avatarUrl?: string | null };
+export type OsComment = { id?: string; tipo: number; conteudo: string | null; dataRegistro: string; usuario: string; usuarioId?: string; editadoEm?: string; avatarUrl?: string | null; replyTo?: { key: string; usuario: string; conteudo: string | null; dataRegistro: string } | null; mentions?: CommentUser[]; anexos?: { id: string; fileName: string; mimeType: string; size: number; url?: string }[] };
 export type OsDetail = OsRow & {
   purpose: number; openedBy: string; interruptedAt: string | null; contact: { nome?: string; email?: string | null; telefone?: string | null } | null; technicalSheet: string | null; cause: string | null; solution: string | null;
   paymentMethod: string | null; installments: number | null; totalServices: number; totalProducts: number; personId: string | null;
@@ -103,7 +104,8 @@ export const osClient = {
   async create(input: OsInput): Promise<OsDetail> { return parse(await authFetch("/service-orders", send("POST", input)), "Não foi possível abrir a OS."); },
   async setTechnicalSheet(id: string, text: string | null): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/technical-sheet`, send("PUT", { text })), "Não foi possível alterar a ficha técnica."); },
   async update(id: string, input: OsInput): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}`, send("PUT", input)), "Não foi possível salvar a OS."); },
-  async comment(id: string, input: { text: string; fileIds?: string[] }): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/comments`, send("POST", input)), "Não foi possível comentar."); },
+  async commentUsers(): Promise<CommentUser[]> { return parse(await authFetch("/service-orders/comment-users", { cache: "no-store" }), "Não foi possível carregar os usuários para menção."); },
+  async comment(id: string, input: { text: string; fileIds?: string[]; replyToKey?: string; mentionIds?: string[] }): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/comments`, send("POST", input)), "Não foi possível comentar."); },
   async editComment(id: string, eventId: string, text: string): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/comments/${eventId}`, send("PUT", { text })), "Não foi possível editar o comentário."); },
   async deleteComment(id: string, eventId: string): Promise<OsDetail> { return parse(await authFetch(`/service-orders/${id}/comments/${eventId}`, send("DELETE")), "Não foi possível excluir o comentário."); },
   async comments(id: string): Promise<OsComment[]> { return parse(await authFetch(`/service-orders/${id}/comments`, { cache: "no-store" }), "Não foi possível atualizar os comentários."); },

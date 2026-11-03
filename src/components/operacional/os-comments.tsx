@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cachedMe } from "@/lib/session-cache";
 import { authFetch } from "@/lib/api";
-import { fmtDateTime, osClient, type OsComment, type OsDetail } from "@/lib/operacional";
+import { fmtDateTime, osClient, type CommentUser, type OsComment, type OsDetail } from "@/lib/operacional";
 
 const MAX_IMAGES = 6;
 const MAX_BYTES = 2.4 * 1024 * 1024; // o servidor aceita até 3 MB por imagem
@@ -39,8 +39,16 @@ type Pending = { key: string; name: string; preview: string; fileBase64: string;
 /** Cor estável por pessoa (mesma cor do nome, do avatar e da borda do balão). */
 const PALETTE = ["#0B6BCB", "#7A3EE0", "#0F8A5F", "#C2410C", "#B4236B", "#0E7490", "#A16207", "#4D7C0F", "#B91C1C", "#3F51B5"];
 export const personColor = (name: string) => { let h = 0; for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; };
+const commentKey = (e: OsComment) => e.id ?? `legacy:${e.dataRegistro}:${e.usuario}`;
 
-function Bubble({ os, e, mine, own, onEdit, onDelete, onOpen }: { os: OsDetail; e: OsComment; mine: boolean; own: boolean; onEdit: (text: string) => Promise<void>; onDelete: () => Promise<void>; onOpen: (index: number) => void }) {
+function CommentText({ text, mentions = [] }: { text: string; mentions?: CommentUser[] }) {
+  const tokens = [...new Set(mentions.map((u) => `@${u.name}`))].sort((a, b) => b.length - a.length);
+  if (!tokens.length) return text;
+  const pattern = new RegExp(`(${tokens.map((v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "g");
+  return text.split(pattern).map((part, i) => tokens.includes(part) ? <mark key={i} className="rounded bg-sky-100 px-0.5 font-semibold text-sky-900">{part}</mark> : part);
+}
+
+function Bubble({ os, e, mine, own, onEdit, onDelete, onOpen, onReply }: { os: OsDetail; e: OsComment; mine: boolean; own: boolean; onEdit: (text: string) => Promise<void>; onDelete: () => Promise<void>; onOpen: (index: number) => void; onReply: () => void }) {
   const color = personColor(e.usuario);
   const [menu, setMenu] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -63,7 +71,7 @@ function Bubble({ os, e, mine, own, onEdit, onDelete, onOpen }: { os: OsDetail; 
   }
 
   return (
-    <article className="flex gap-2 sm:gap-3">
+    <article id={`os-comment-${commentKey(e)}`} className="mx-auto flex w-full min-w-0 max-w-5xl scroll-mt-4 gap-2 sm:gap-3">
       <div className="hidden shrink-0 sm:block"><UserAvatar name={e.usuario} avatarUrl={e.avatarUrl} size={38} accent={color} /></div><div className="shrink-0 sm:hidden"><UserAvatar name={e.usuario} avatarUrl={e.avatarUrl} size={30} accent={color} /></div>
       <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-ds-border-subtle border-l-4 px-3 py-2.5 shadow-sm sm:px-4 sm:py-3" style={{ borderLeftColor: color, background: `color-mix(in srgb, ${color} ${own ? 9 : 4}%, white)` }}>
         <header className="flex items-start gap-2">
@@ -81,31 +89,33 @@ function Bubble({ os, e, mine, own, onEdit, onDelete, onOpen }: { os: OsDetail; 
           )}
         </header>
 
+        {e.replyTo && <button type="button" onClick={() => document.getElementById(`os-comment-${e.replyTo!.key}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-2 block w-full min-w-0 rounded-lg border-l-2 border-sky-300 bg-white/70 px-3 py-2 text-left hover:bg-sky-50" aria-label={`Ver comentário de ${e.replyTo.usuario}`}><span className="block text-xs font-bold text-sky-800">Em resposta a {e.replyTo.usuario}</span><span className="mt-0.5 line-clamp-2 [overflow-wrap:anywhere] text-xs text-ds-text-muted">{e.replyTo.conteudo || "Anexo"}</span></button>}
         {editing ? (
           <div className="mt-2">
             <textarea value={text} autoFocus rows={3} maxLength={4000} onChange={(ev) => setText(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Escape") { ev.stopPropagation(); setEditing(false); } if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) void save(); }} aria-label="Editar comentário" className="w-full resize-y rounded-[10px] border border-ds-border bg-white px-3 py-2 text-[15px] leading-relaxed outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" />
             <div className="mt-2 flex items-center gap-2"><button type="button" disabled={busy} onClick={() => void save()} className="h-9 rounded-lg bg-ds-primary px-4 text-sm font-bold text-white hover:bg-ds-primary-hover disabled:opacity-50">{busy ? "Salvando..." : "Salvar"}</button><button type="button" onClick={() => { setEditing(false); setError(""); }} className="h-9 rounded-lg border border-ds-border px-4 text-sm font-semibold text-ds-text-muted hover:border-ds-primary">Cancelar</button><span className="ml-auto text-[11px] text-ds-text-secondary">Ctrl+Enter salva · Esc cancela</span></div>
           </div>
-        ) : e.conteudo && <p className="mt-1.5 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-ds-text sm:mt-2 sm:text-[15px]">{e.conteudo}</p>}
+        ) : e.conteudo && <p className="mt-1.5 whitespace-pre-wrap [overflow-wrap:anywhere] text-[14px] leading-relaxed text-ds-text sm:mt-2 sm:text-[15px]"><CommentText text={e.conteudo} mentions={e.mentions} /></p>}
         {error && <p role="alert" className="mt-2 text-xs text-ds-danger-text">{error}</p>}
 
         {e.anexos && e.anexos.length > 0 && (
-          <ul className={`mt-3 grid gap-2 ${e.anexos.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3"}`}>
+          <ul className="mt-3 flex flex-wrap gap-2">
             {e.anexos.map((a, idx) => (
-              <li key={a.id} className={`overflow-hidden rounded-xl border border-ds-border-subtle bg-ds-bg ${e.anexos!.length === 1 || a.mimeType?.startsWith("video/") ? "max-w-md" : "aspect-square"} ${a.mimeType?.startsWith("video/") ? "col-span-full" : ""}`}>
-                {a.mimeType?.startsWith("video/") ? <video src={a.url} controls playsInline preload="metadata" className="max-h-80 w-full bg-black" /> : <button type="button" onClick={() => onOpen(idx)} aria-label={`Ampliar ${a.fileName}`} className="relative block h-full w-full cursor-zoom-in">
-                  <AuthImage osId={os.id} fileId={a.id} url={a.url} alt={a.fileName} className={`w-full ${e.anexos!.length === 1 ? "max-h-80 object-contain" : "h-full object-cover"}`} />
+              <li key={a.id} className={`max-w-full overflow-hidden rounded-xl border border-ds-border-subtle bg-ds-bg ${a.mimeType?.startsWith("video/") ? "w-full max-w-sm" : "aspect-square w-24 sm:w-36"}`}>
+                {a.mimeType?.startsWith("video/") ? <video src={a.url} controls playsInline preload="metadata" className="max-h-56 w-full bg-black" /> : <button type="button" onClick={() => onOpen(idx)} aria-label={`Ampliar ${a.fileName}`} className="relative block h-full w-full cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ds-primary">
+                  <AuthImage osId={os.id} fileId={a.id} url={a.url} alt={a.fileName} className="h-full w-full object-contain" />
                 </button>}
               </li>
             ))}
           </ul>
         )}
+        {!editing && <button type="button" onClick={onReply} className="mt-2 inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-ds-text-muted hover:bg-white hover:text-ds-primary"><Icon name="reply" className="text-[16px]" />Responder</button>}
       </div>
     </article>
   );
 }
 
-export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUpdated: (os: OsDetail) => void; tall?: boolean }) {
+export function OsComments({ os, onUpdated, tall = false, initialFull = false, onExit }: { os: OsDetail; onUpdated: (os: OsDetail) => void; tall?: boolean; initialFull?: boolean; onExit?: () => void }) {
   const me = cachedMe();
   const visible = (list: OsComment[]) => list.filter((e) => e.conteudo || e.anexos?.length);
   const [events, setEvents] = useState<OsComment[]>(visible(os.events));
@@ -114,7 +124,14 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   const [videos, setVideos] = useState<PendingVideo[]>([]);
   const [busy, setBusy] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [full, setFull] = useState(false);
+  const [full, setFull] = useState(initialFull);
+  const [reply, setReply] = useState<OsComment | null>(null);
+  const [users, setUsers] = useState<CommentUser[]>([]);
+  const [usersError, setUsersError] = useState("");
+  const [selectedMentions, setSelectedMentions] = useState<CommentUser[]>([]);
+  const [mention, setMention] = useState<{ start: number; end: number; query: string } | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const panel = useRef<HTMLElement>(null);
   const [sheetDraft, setSheetDraft] = useState<string | null>(null);
   const [sheetBusy, setSheetBusy] = useState(false);
   const isAdmin = me?.role === "ADMIN";
@@ -127,12 +144,17 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   const [error, setError] = useState("");
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
   useEffect(() => {
+    let active = true;
+    void osClient.commentUsers().then((list) => { if (active) setUsers(list); }).catch((err) => { if (active) setUsersError(err instanceof Error ? err.message : "Não foi possível carregar as menções."); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
     if (!full) return;
     const unlock = lockScroll();
-    const k = (e: KeyboardEvent) => { if (e.key === "Escape" && !lightbox) setFull(false); };
-    window.addEventListener("keydown", k);
-    return () => { window.removeEventListener("keydown", k); unlock(); };
-  }, [full, lightbox]);
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    panel.current?.focus();
+    return () => { unlock(); if (previousFocus?.isConnected) previousFocus.focus(); };
+  }, [full]);
   const [drag, setDrag] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
@@ -140,6 +162,26 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   const area = useRef<HTMLTextAreaElement>(null);
   const lastCount = useRef(events.length);
   const editing = useRef(false);
+  const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const suggestions = mention ? users.filter((u) => normalize(u.name).includes(normalize(mention.query))).slice(0, 8) : [];
+
+  function detectMention(value: string, caret: number) {
+    const match = value.slice(0, caret).match(/(?:^|\s)@([^@\n]{0,60})$/);
+    const query = match?.[1] ?? "";
+    setMention(match && !(query.endsWith(" ") && users.some((u) => u.name === query.trim())) ? { start: caret - query.length - 1, end: caret, query } : null);
+    setMentionIndex(0);
+  }
+
+  function insertMention(user: CommentUser) {
+    if (!mention) return;
+    const inserted = `@${user.name} `;
+    const next = text.slice(0, mention.start) + inserted + text.slice(mention.end);
+    if (next.length > 4000) return;
+    const caret = mention.start + inserted.length;
+    setText(next); setMention(null);
+    setSelectedMentions((list) => [...list.filter((u) => u.id !== user.id), user]);
+    requestAnimationFrame(() => { area.current?.focus(); area.current?.setSelectionRange(caret, caret); });
+  }
 
   // Tempo real: consulta novos comentários a cada 4 s enquanto a aba está visível.
   const refresh = useCallback(() => osClient.comments(os.id).then((list) => { if (!editing.current) setEvents(visible(list)); }).catch(() => {}), [os.id]);
@@ -187,10 +229,10 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
         if (!res.ok) throw new Error(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Não foi possível enviar o vídeo.");
         ids.push(body.id);
       }
-      const updated = await osClient.comment(os.id, { text, fileIds: ids });
+      const updated = await osClient.comment(os.id, { text, fileIds: ids, replyToKey: reply ? commentKey(reply) : undefined, mentionIds: selectedMentions.filter((u) => text.includes(`@${u.name}`)).map((u) => u.id) });
       pending.forEach((p) => URL.revokeObjectURL(p.preview));
       videos.forEach((v) => URL.revokeObjectURL(v.preview));
-      setText(""); setPending([]); setVideos([]); stick.current = true;
+      setText(""); setPending([]); setVideos([]); setReply(null); setSelectedMentions([]); setMention(null); stick.current = true;
       if (area.current) area.current.style.height = "auto";
       setEvents(visible(updated.events)); onUpdated(updated);
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar."); } finally { setBusy(false); area.current?.focus(); }
@@ -199,29 +241,44 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
   const apply = (updated: OsDetail) => { setEvents(visible(updated.events)); onUpdated(updated); };
 
   const root = (
-    <section className={full ? "fixed inset-0 z-[400] flex flex-col overflow-hidden bg-white" : "flex min-h-0 flex-col overflow-hidden rounded-xl border border-ds-border-subtle bg-white"} aria-label="Comentários">
-      <h4 className="flex items-center gap-2 border-b border-ds-border-subtle px-4 py-3 text-sm font-bold text-ds-primary-deep"><Icon name="forum" className="text-[18px]" />Comentários<span className="rounded-full bg-ds-bg px-2 py-0.5 text-xs font-semibold text-ds-text-muted">{events.length}</span><button type="button" onClick={() => setFull((v) => !v)} className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-ds-border bg-white px-2.5 text-xs font-semibold text-ds-primary-deep hover:border-ds-primary" aria-label={full ? "Sair da tela cheia" : "Maximizar comentários"} title={full ? "Sair da tela cheia" : "Maximizar"}><Icon name={full ? "fullscreen_exit" : "fullscreen"} className="text-[18px]" /><span className="hidden sm:inline">{full ? "Sair da tela cheia" : "Maximizar"}</span></button></h4>
+    <section ref={panel} tabIndex={full ? -1 : undefined} role={full ? "dialog" : undefined} aria-modal={full || undefined} className={full ? "fixed inset-0 z-[400] flex h-dvh min-w-0 flex-col overflow-hidden bg-white pt-[env(safe-area-inset-top)] outline-none" : "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-ds-border-subtle bg-white"} aria-label="Comentários" onKeyDown={(e) => {
+      if (!full || lightbox) return;
+      e.stopPropagation();
+      if (e.key === "Escape") { e.preventDefault(); if (onExit) onExit(); else setFull(false); }
+      if (e.key === "Tab") {
+        const controls = [...(panel.current?.querySelectorAll<HTMLElement>('button:not([disabled]), textarea:not([disabled]), input:not([hidden]):not([disabled]), [tabindex="0"]') ?? [])].filter((el) => el.getClientRects().length > 0);
+        const first = controls[0], last = controls.at(-1);
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) { e.preventDefault(); last?.focus(); }
+        else if (!e.shiftKey && (document.activeElement === last || document.activeElement === panel.current)) { e.preventDefault(); first?.focus(); }
+      }
+    }}>
+      <h4 className="flex shrink-0 items-center gap-2 border-b border-ds-border-subtle px-3 py-2 text-sm font-bold text-ds-primary-deep sm:px-4 sm:py-3"><Icon name="forum" className="text-[18px]" />Comentários<span className="rounded-full bg-ds-bg px-2 py-0.5 text-xs font-semibold text-ds-text-muted">{events.length}</span><button type="button" onClick={() => { if (full && onExit) onExit(); else setFull((v) => !v); }} className="ml-auto inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-ds-border bg-white px-2.5 text-xs font-semibold text-ds-primary-deep hover:border-ds-primary" aria-label={full ? "Voltar à ordem de serviço" : "Maximizar comentários"}><Icon name={full ? "close" : "fullscreen"} className="text-[18px]" /><span className="hidden sm:inline">{full ? "Voltar à OS" : "Maximizar"}</span></button></h4>
+
+      <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className={`${full ? "min-h-0 flex-1" : tall ? "h-[min(62dvh,44rem)] min-h-[14rem]" : "h-[min(26rem,52dvh)] min-h-[12rem] lg:h-[min(32rem,58dvh)]"} space-y-3 overflow-y-auto overscroll-contain bg-ds-bg/40 p-2 sm:space-y-4 sm:p-4`}>
       {os.technicalSheet && (
-        <article className="max-h-[34%] shrink-0 overflow-y-auto border-b border-[#EAB308]/60 bg-[#FEF08A] p-3 sm:px-4" style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.35), transparent 40%)" }}>
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#854D0E]"><Icon name="push_pin" className="text-[16px]" />Ficha técnica{isAdmin && sheetDraft === null && <span className="ml-auto flex gap-1 normal-case tracking-normal"><button type="button" onClick={() => setSheetDraft(os.technicalSheet ?? "")} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-[#854D0E] hover:bg-[#854D0E]/10"><Icon name="edit" className="text-[15px]" />Editar</button><button type="button" disabled={sheetBusy} onClick={() => { if (window.confirm("Excluir a ficha técnica desta OS?")) void saveSheet(null); }} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-[#B42318] hover:bg-[#B42318]/10"><Icon name="delete" className="text-[15px]" />Excluir</button></span>}</p>
+        <article className="mx-auto w-full min-w-0 max-w-5xl rounded-xl border border-sky-200 bg-sky-50 p-3 sm:px-4">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <button type="button" onClick={() => setSheetOpen((v) => !v)} aria-expanded={sheetOpen || sheetDraft !== null} className="flex min-h-9 min-w-0 flex-1 items-center gap-1.5 text-left text-xs font-bold text-sky-900 hover:text-sky-700"><Icon name="push_pin" className="text-[16px]" />Ficha técnica<Icon name={sheetOpen || sheetDraft !== null ? "expand_less" : "expand_more"} className="text-[18px]" /></button>
+            {isAdmin && sheetDraft === null && <span className="ml-auto flex gap-1"><button type="button" onClick={() => setSheetDraft(os.technicalSheet ?? "")} className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-xs font-semibold text-sky-900 hover:bg-sky-100"><Icon name="edit" className="text-[15px]" />Editar</button><button type="button" disabled={sheetBusy} onClick={() => { if (window.confirm("Excluir a ficha técnica desta OS?")) void saveSheet(null); }} className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-xs font-semibold text-ds-danger-text hover:bg-ds-danger-bg"><Icon name="delete" className="text-[15px]" />Excluir</button></span>}
+          </div>
           {sheetDraft !== null ? (
             <div>
-              <textarea autoFocus value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} rows={6} maxLength={4000} aria-label="Ficha técnica" className="w-full resize-y rounded-md border border-[#EAB308] bg-white/80 px-2.5 py-2 text-sm text-[#713F12] outline-none focus:ring-2 focus:ring-[#EAB308]/50" />
-              <div className="mt-2 flex gap-2"><button type="button" disabled={sheetBusy} onClick={() => void saveSheet(sheetDraft)} className="inline-flex h-8 items-center rounded-md bg-[#854D0E] px-3 text-xs font-bold text-white disabled:opacity-60">{sheetBusy ? "Salvando..." : "Salvar"}</button><button type="button" onClick={() => setSheetDraft(null)} className="inline-flex h-8 items-center rounded-md border border-[#854D0E]/40 px-3 text-xs font-bold text-[#854D0E]">Cancelar</button></div>
+              <textarea autoFocus value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} rows={4} maxLength={4000} aria-label="Ficha técnica" className="w-full resize-y rounded-lg border border-sky-200 bg-white px-3 py-2 text-base text-ds-text outline-none focus:ring-2 focus:ring-ds-primary/20 sm:text-sm" />
+              <div className="mt-2 flex gap-2"><button type="button" disabled={sheetBusy} onClick={() => void saveSheet(sheetDraft)} className="inline-flex h-9 items-center rounded-lg bg-ds-primary px-3 text-xs font-bold text-white disabled:opacity-60">{sheetBusy ? "Salvando..." : "Salvar"}</button><button type="button" onClick={() => setSheetDraft(null)} className="inline-flex h-9 items-center rounded-lg border border-sky-200 px-3 text-xs font-bold text-sky-900">Cancelar</button></div>
             </div>
           ) : <>
-          <p className={`whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#713F12] sm:text-[15px] ${sheetOpen ? "" : "line-clamp-4"}`}>{os.technicalSheet}</p>
-          {os.technicalSheet.length > 220 && <button type="button" onClick={() => setSheetOpen((v) => !v)} aria-expanded={sheetOpen} className="mt-1 text-xs font-bold text-[#854D0E] underline-offset-2 hover:underline">{sheetOpen ? "Mostrar menos" : "Ver ficha completa"}</button>}</>}
+          <p className={`whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-slate-700 ${sheetOpen ? "" : "line-clamp-1"}`}>{os.technicalSheet}</p>
+          <button type="button" onClick={() => setSheetOpen((v) => !v)} aria-expanded={sheetOpen} className="mt-1 inline-flex min-h-8 items-center text-xs font-semibold text-sky-800 underline-offset-2 hover:underline">{sheetOpen ? "Recolher ficha" : "Ver ficha completa"}</button></>}
         </article>
       )}
 
-      <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className={`${full ? "min-h-0 flex-1" : tall ? "h-[min(62vh,44rem)] min-h-[18rem]" : "h-[min(26rem,52vh)] min-h-[14rem] lg:h-[min(32rem,58vh)]"} space-y-4 overflow-y-auto overscroll-contain bg-ds-bg/40 p-3 sm:p-4`}>
         {events.map((e, i) => {
           const thread: LightboxItem[] = (e.anexos ?? []).map((a) => ({ name: a.fileName, osId: os.id, fileId: a.id, src: a.url }));
           return (
             <Bubble key={e.id ?? i} os={os} e={e} mine={!!me && (me.role === "ADMIN" || e.usuarioId === me.id)} own={!!me && e.usuarioId === me.id}
               onEdit={async (t) => { editing.current = true; try { apply(await osClient.editComment(os.id, e.id!, t)); } finally { editing.current = false; } }}
               onDelete={async () => apply(await osClient.deleteComment(os.id, e.id!))}
+              onReply={() => { if (busy) return; setReply(e); requestAnimationFrame(() => area.current?.focus()); }}
               onOpen={(index) => setLightbox({ items: thread, index })} />
           );
         })}
@@ -229,7 +286,8 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
       </div>
 
 
-      <div className={`border-t border-ds-border-subtle p-3 ${drag ? "bg-ds-primary/5" : ""}`} onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); void addFiles(e.dataTransfer.files); }}>
+      <div className={`max-h-[40dvh] shrink-0 overflow-y-auto border-t border-ds-border-subtle p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-3 ${drag ? "bg-ds-primary/5" : ""}`} onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); void addFiles(e.dataTransfer.files); }}>
+        <div className="mx-auto w-full min-w-0 max-w-5xl">
         {videos.length > 0 && (
           <ul className="mb-3 flex flex-wrap gap-2" aria-label="Vídeos a enviar">
             {videos.map((v) => (
@@ -253,16 +311,31 @@ export function OsComments({ os, onUpdated, tall = false }: { os: OsDetail; onUp
           </ul>
         )}
         {error && <p role="alert" className="mb-2 text-xs text-ds-danger-text">{error}</p>}
-        <div className="flex items-end gap-2">
+        {reply && <div className="mb-2 flex items-start gap-2 rounded-lg border-l-2 border-ds-primary bg-sky-50 px-3 py-2"><div className="min-w-0 flex-1"><p className="text-xs font-bold text-sky-900">Respondendo a {reply.usuario}</p><p className="mt-0.5 line-clamp-2 [overflow-wrap:anywhere] text-xs text-ds-text-muted">{reply.conteudo || "Anexo"}</p></div><button type="button" disabled={busy} onClick={() => setReply(null)} aria-label="Cancelar resposta" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sky-900 hover:bg-sky-100"><Icon name="close" className="text-[18px]" /></button></div>}
+        <div className="overflow-hidden rounded-xl border border-ds-border bg-white focus-within:border-ds-primary focus-within:ring-2 focus-within:ring-ds-primary/15">
           <input ref={input} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple hidden onChange={(e) => { if (e.target.files) void addFiles(e.target.files); e.target.value = ""; }} />
-          <button type="button" onClick={() => input.current?.click()} disabled={pending.length >= MAX_IMAGES && videos.length >= MAX_VIDEOS} aria-label="Anexar imagem ou vídeo" title="Anexar imagem ou vídeo" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] border border-ds-border text-ds-text-muted hover:border-ds-primary hover:text-ds-primary disabled:opacity-40"><Icon name="image" className="text-[22px]" /></button>
-          <textarea ref={area} value={text} rows={1} maxLength={4000} onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`; }}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
+          <textarea ref={area} value={text} disabled={busy} rows={3} maxLength={4000} onChange={(e) => { setText(e.target.value); detectMention(e.target.value, e.target.selectionStart); }} onSelect={(e) => detectMention(e.currentTarget.value, e.currentTarget.selectionStart)} onBlur={() => setMention(null)}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return;
+              if (mention && e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setMention(null); return; }
+              if (suggestions.length && (e.key === "ArrowDown" || e.key === "ArrowUp")) { e.preventDefault(); setMentionIndex((i) => (i + (e.key === "ArrowDown" ? 1 : -1) + suggestions.length) % suggestions.length); return; }
+              if (suggestions.length && e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.shiftKey) { e.preventDefault(); insertMention(suggestions[mentionIndex] ?? suggestions[0]); return; }
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void send(); }
+            }}
             onPaste={(e) => { const files = [...e.clipboardData.files]; if (files.some((f) => f.type.startsWith("image/") || f.type.startsWith("video/"))) { e.preventDefault(); void addFiles(files); } }}
-            placeholder="Escreva um comentário..." aria-label="Novo comentário" className="max-h-36 min-h-11 flex-1 resize-none rounded-[10px] border border-ds-border bg-white px-3.5 py-2.5 text-[15px] leading-normal outline-none focus:border-ds-primary focus:ring-2 focus:ring-ds-primary/20" />
-          <button type="button" onClick={() => void send()} disabled={busy || (!text.trim() && !pending.length && !videos.length)} aria-label="Enviar comentário" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-ds-primary text-white shadow-[0_2px_8px_-2px_rgba(0,141,255,0.5)] hover:bg-ds-primary-hover disabled:cursor-not-allowed disabled:bg-ds-border-subtle disabled:text-[#a9b6c2] disabled:shadow-none"><Icon name={busy ? "hourglass_top" : "send"} className="text-[20px]" /></button>
+            placeholder={reply ? `Responda a ${reply.usuario}...` : "Escreva seu comentário… Use @ para mencionar alguém."} aria-label="Novo comentário" aria-autocomplete="list" aria-controls={suggestions.length ? `comment-mentions-${os.id}` : undefined} aria-activedescendant={suggestions.length ? `comment-mention-${os.id}-${mentionIndex}` : undefined} className="block max-h-[25dvh] min-h-24 w-full min-w-0 resize-y border-0 bg-transparent px-3 py-3 text-base leading-relaxed outline-none sm:text-[15px]" />
+          {mention && <div className="border-t border-ds-border-subtle bg-sky-50/50">
+            {suggestions.length ? <ul id={`comment-mentions-${os.id}`} role="listbox" aria-label="Usuários para mencionar" className="max-h-28 overflow-y-auto p-1">{suggestions.map((u, i) => <li key={u.id} role="presentation"><button id={`comment-mention-${os.id}-${i}`} role="option" aria-selected={i === mentionIndex} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insertMention(u)} className={`flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm ${i === mentionIndex ? "bg-sky-100 text-sky-900" : "text-ds-text hover:bg-sky-100"}`}><UserAvatar name={u.name} avatarUrl={u.avatarUrl} size={28} /><span className="truncate">{u.name}</span></button></li>)}</ul> : <p role="status" className="px-3 py-2 text-xs text-ds-text-secondary">{usersError || "Nenhum usuário encontrado."}</p>}
+          </div>}
+          <div className="flex flex-wrap items-center gap-1 border-t border-ds-border-subtle bg-ds-bg/40 px-2 py-1.5">
+            <button type="button" onClick={() => input.current?.click()} disabled={busy || (pending.length >= MAX_IMAGES && videos.length >= MAX_VIDEOS)} aria-label="Anexar imagem ou vídeo" title="Anexar imagem ou vídeo" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ds-text-muted hover:bg-white hover:text-ds-primary disabled:opacity-40"><Icon name="attach_file" className="text-[22px]" /></button>
+            <button type="button" disabled={busy} onClick={() => { const start = area.current?.selectionStart ?? text.length, end = area.current?.selectionEnd ?? start; const inserted = start > 0 && !/\s/.test(text[start - 1]) ? " @" : "@"; const value = text.slice(0, start) + inserted + text.slice(end); if (value.length > 4000) return; setText(value); detectMention(value, start + inserted.length); requestAnimationFrame(() => { area.current?.focus(); area.current?.setSelectionRange(start + inserted.length, start + inserted.length); }); }} aria-label="Mencionar usuário" title="Mencionar usuário" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl font-semibold text-ds-text-muted hover:bg-white hover:text-ds-primary disabled:opacity-40">@</button>
+            <span className="ml-auto text-[11px] tabular-nums text-ds-text-secondary">{text.length}/4000</span>
+            <button type="button" onClick={() => void send()} disabled={busy || (!text.trim() && !pending.length && !videos.length)} className="ml-2 inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-ds-primary px-3 text-sm font-bold text-white hover:bg-ds-primary-hover disabled:cursor-not-allowed disabled:bg-ds-border-subtle disabled:text-ds-text-secondary"><Icon name={busy ? "hourglass_top" : "send"} className="text-[18px]" />{busy ? "Enviando…" : "Enviar"}</button>
+          </div>
         </div>
-        <p className="mt-1.5 hidden text-[11px] text-ds-text-secondary sm:block">Enter envia · Shift+Enter nova linha · arraste ou cole imagens (até {MAX_IMAGES})</p>
+        <p className="mt-1.5 text-[11px] text-ds-text-secondary">Enter para nova linha · Ctrl+Enter para enviar · @ para mencionar</p>
+        </div>
       </div>
 
       {lightbox && <ImageLightbox items={lightbox.items} index={lightbox.index} onIndex={(i) => setLightbox({ ...lightbox, index: i })} onClose={() => setLightbox(null)} />}

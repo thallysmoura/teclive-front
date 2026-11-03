@@ -73,14 +73,14 @@ function Donut({ data, onPick, active }: { data: { key: string; label: string; v
   let acc = 0;
   const R = 54, C = 2 * Math.PI * R;
   return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row">
-      <svg viewBox="0 0 140 140" className="h-40 w-40 shrink-0 -rotate-90" role="img" aria-label="Distribuição por situação">
+    <div className="flex min-w-0 flex-col items-center gap-3 min-[1700px]:flex-row">
+      <svg viewBox="0 0 140 140" className="h-36 w-36 shrink-0 -rotate-90" role="img" aria-label="Distribuição por situação">
         {data.map((d) => { const len = (d.value / total) * C; const el = <circle key={d.key} cx="70" cy="70" r={R} fill="none" stroke={d.color} strokeWidth={active === d.key ? 26 : 20} strokeDasharray={`${Math.max(len - 1.5, 0)} ${C}`} strokeDashoffset={-acc} className="cursor-pointer transition-all" onClick={() => onPick(d.key)}><title>{d.label}: {d.value}</title></circle>; acc += len; return el; })}
         <text x="70" y="66" textAnchor="middle" className="rotate-90 origin-center fill-ds-primary-deep text-[22px] font-extrabold" transform="rotate(90 70 70)">{total === 1 && !data.length ? 0 : data.reduce((s, d) => s + d.value, 0)}</text>
         <text x="70" y="84" textAnchor="middle" className="fill-ds-text-secondary text-[9px]" transform="rotate(90 70 70)">obras</text>
       </svg>
-      <ul className="grid w-full gap-1 text-sm">{data.map((d) => (
-        <li key={d.key}><button type="button" onClick={() => onPick(d.key)} aria-pressed={active === d.key} className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left hover:bg-ds-bg ${active === d.key ? "bg-ds-bg font-semibold" : ""}`}><span className="h-2.5 w-2.5 rounded-full" style={{ background: d.color }} /><span className="flex-1 truncate text-ds-text-muted">{d.label}</span><strong className="text-ds-primary-deep">{d.value}</strong><span className="w-9 text-right text-xs text-ds-text-secondary">{pct(d.value, total)}%</span></button></li>
+      <ul className="grid w-full min-w-0 gap-0.5 text-[13px]">{data.map((d) => (
+        <li key={d.key}><button type="button" onClick={() => onPick(d.key)} aria-pressed={active === d.key} className={`flex w-full items-center gap-2 min-w-0 rounded-lg px-2 py-1 text-left hover:bg-ds-bg ${active === d.key ? "bg-ds-bg font-semibold" : ""}`}><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: d.color }} /><span className="flex-1 truncate text-ds-text-muted">{d.label}</span><strong className="shrink-0 text-ds-primary-deep">{d.value}</strong><span className="w-10 shrink-0 text-right text-xs text-ds-text-secondary">{pct(d.value, total)}%</span></button></li>
       ))}</ul>
     </div>
   );

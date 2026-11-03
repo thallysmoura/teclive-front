@@ -218,7 +218,7 @@ export function OsDetailModal({ id, onClose, onChanged, onEdit }: { id: string; 
               {tab === "Comentários" && (
                 <div className="mx-auto max-w-4xl">
                   <button type="button" onClick={() => setTab("Resumo")} className="mb-3 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-semibold text-ds-primary hover:bg-ds-bg"><Icon name="arrow_back" className="text-[18px]" />Voltar ao resumo</button>
-                  <OsComments os={os} tall onUpdated={(updated) => { setOs(updated); setLiveComments(null); onChanged(); }} />
+                  <OsComments os={os} tall initialFull onExit={() => setTab("Resumo")} onUpdated={(updated) => { setOs(updated); setLiveComments(null); onChanged(); }} />
                 </div>
               )}
 
